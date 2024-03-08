@@ -159,6 +159,12 @@ void Shader::unbind()
     glUseProgram(0);
 }
 
+void Shader::setInt(const std::string &name, int value)
+{
+    GLint location = glGetUniformLocation(m_id, name.c_str());
+    glUniform1i(location, value);
+}
+
 void Shader::setFloat3(const std::string &name, const glm::vec3 &value)
 {
     GLint location = glGetUniformLocation(m_id, name.c_str());

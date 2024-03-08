@@ -12,6 +12,8 @@ public:
     //void onKeyPress(KeyPressEvent &event);
     OrthoCamera &getCamera() { return m_camera; }
 
+    void onMouseScroll(MouseWheelEvent &event);
+
 private:
     float m_aspectRatio;
     float m_zoom = 1.0f;

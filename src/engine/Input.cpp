@@ -14,7 +14,9 @@ static std::array<std::vector<std::function<void(ButtonPressEvent&)>>, NUM_OF_MO
 static std::array<std::vector<std::function<void(ButtonReleaseEvent&)>>, NUM_OF_MOUSE_BUTTONS> s_buttonReleaseCallbacks;
 static std::array<std::vector<std::function<void(KeyPressEvent&)>>, SDL_NUM_SCANCODES> s_keyPressCallbacks;
 static std::array<std::vector<std::function<void(KeyReleaseEvent&)>>, SDL_NUM_SCANCODES> s_keyReleaseCallbacks;
-static std::vector<std::function<void(MouseMotionEvent&)>> s_MouseMotionCallbacks;
+static std::vector<std::function<void(MouseMotionEvent&)>> s_mouseMotionCallbacks;
+static std::vector<std::function<void(MouseWheelEvent&)>> s_scrollWheelUpCallbacks;
+static std::vector<std::function<void(MouseWheelEvent&)>> s_scrollWheelDownCallbacks;
 
 void Input::init()
 {
@@ -34,9 +36,8 @@ void Input::processInput()
                     KeyPressEvent keyPressEvent = {
                         Key::Keycode(event.key.keysym.scancode)
                     };
-                    for (std::function<void(KeyPressEvent&)> callback : s_keyPressCallbacks[keyPressEvent.key]) {
+                    for (std::function<void(KeyPressEvent&)> callback : s_keyPressCallbacks[keyPressEvent.key])
                         callback(keyPressEvent);
-                    }
                 }
                 break;
             case SDL_KEYUP:
@@ -44,9 +45,8 @@ void Input::processInput()
                     KeyReleaseEvent keyReleaseEvent = {
                         Key::Keycode(event.key.keysym.scancode)
                     };
-                    for (std::function<void(KeyReleaseEvent&)> callback : s_keyReleaseCallbacks[keyReleaseEvent.key]) {
+                    for (std::function<void(KeyReleaseEvent&)> callback : s_keyReleaseCallbacks[keyReleaseEvent.key])
                         callback(keyReleaseEvent);
-                    }
                 }
                 break;
             case SDL_MOUSEMOTION:
@@ -55,9 +55,8 @@ void Input::processInput()
                         event.motion.x, event.motion.y,
                         event.motion.xrel, event.motion.yrel
                     };
-                    for (std::function<void(MouseMotionEvent&)> callback : s_MouseMotionCallbacks) {
+                    for (std::function<void(MouseMotionEvent&)> callback : s_mouseMotionCallbacks)
                         callback(mouseMotionEvent);
-                    }
                 }
                 break;
             case SDL_MOUSEBUTTONDOWN:
@@ -65,9 +64,8 @@ void Input::processInput()
                     ButtonPressEvent buttonPressEvent = {
                         Button::ButtonCode(event.button.button)
                     };
-                    for (std::function<void(ButtonPressEvent&)> callback : s_buttonPressCallbacks[buttonPressEvent.button]) {
+                    for (std::function<void(ButtonPressEvent&)> callback : s_buttonPressCallbacks[buttonPressEvent.button])
                         callback(buttonPressEvent);
-                    }
                 }
                 break;
             case SDL_MOUSEBUTTONUP:
@@ -75,9 +73,18 @@ void Input::processInput()
                     ButtonReleaseEvent buttonReleaseEvent = {
                         Button::ButtonCode(event.button.button)
                     };
-                    for (std::function<void(ButtonReleaseEvent&)> callback : s_buttonReleaseCallbacks[buttonReleaseEvent.button]) {
+                    for (std::function<void(ButtonReleaseEvent&)> callback : s_buttonReleaseCallbacks[buttonReleaseEvent.button])
                         callback(buttonReleaseEvent);
-                    }
+                }
+                break;
+            case SDL_MOUSEWHEEL:
+                {
+                    MouseWheelEvent mouseWheelEvent = {
+                        event.wheel.y
+                    };
+                    auto callbacks = mouseWheelEvent.amount > 0 ? s_scrollWheelUpCallbacks : s_scrollWheelDownCallbacks;
+                    for (std::function<void(MouseWheelEvent&)> callback : callbacks)
+                        callback(mouseWheelEvent);
                 }
                 break;
         }
@@ -113,5 +120,15 @@ void Input::addKeyPressCallback(std::function<void(KeyPressEvent&)> callback, Ke
 void Input::addKeyReleaseCallback(std::function<void(KeyReleaseEvent&)> callback, Key::Keycode key)
 {
     s_keyReleaseCallbacks[key].push_back(callback);
+}
+
+void Input::addMouseWheelUpCallback(std::function<void(MouseWheelEvent&)> callback)
+{
+    s_scrollWheelUpCallbacks.push_back(callback);
+}
+
+void Input::addMouseWheelDownCallback(std::function<void(MouseWheelEvent&)> callback)
+{
+    s_scrollWheelDownCallbacks.push_back(callback);
 }
 

@@ -3,9 +3,11 @@
 #include "OrthoCameraController.hpp"
 #include "../opengl/gl.hpp"
 #include "Renderer2D.hpp"
+#include "opengl/Texture.hpp"
 
 #include <SDL2/SDL.h>
 #include <cstdio>
+#include <memory>
 
 App::App()
 {}
@@ -35,6 +37,7 @@ void App::init(std::string title)
 void App::run()
 {
     OrthoCameraController cameraController(16.0f / 9.0f);
+    std::shared_ptr<Texture> texture = std::make_shared<Texture>("assets/textures/big.jpg");
 
     float lastFrameTime = SDL_GetTicks();
     while (true) {
@@ -51,7 +54,16 @@ void App::run()
         GL::clear();
 
         Renderer2D::beginScene(cameraController.getCamera());
-        Renderer2D::drawQuad({ 0.0f, 0.0f, 0.0f }, { 1.0f, 1.0f }, { 0.8f, 0.4f, 0.0f, 1.0f });
+        Renderer2D::drawQuad({ 0.0f, 0.0f, 0.0f }, { 1.0f, 1.0f }, texture, { 1.0f, 1.0f, 1.0f, 1.0f });
+        Renderer2D::drawQuad({ 0.5f, 0.5f, 0.0f }, { 1.0f, 0.5f }, { 0.8f, 0.6f, 0.3f, 1.0f });
+        constexpr int count = 15;
+        for (int y = 0; y < count; y++)
+        {
+            for (int x = 0; x < count; x++)
+            {
+                Renderer2D::drawQuad({ x, y, 0.0f }, { 0.8f, 0.8f }, texture, { 0.3f, 0.3f, 0.8f, 1.0f });
+            }
+        }
         Renderer2D::endScene();
 
         window.swapBuffers();

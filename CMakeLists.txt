@@ -13,6 +13,7 @@ message(STATUS "CMAKE_BUILD_TYPE = ${CMAKE_BUILD_TYPE}")
 # Include directories
 include_directories(
     src
+    src/vendor/stb_image/
 )
 
 # Set build path

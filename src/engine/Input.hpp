@@ -12,6 +12,7 @@ namespace Key {
         a      = SDL_SCANCODE_A,
         s      = SDL_SCANCODE_S,
         d      = SDL_SCANCODE_D,
+        f      = SDL_SCANCODE_F,
         lshift = SDL_SCANCODE_LSHIFT,
         space  = SDL_SCANCODE_SPACE,
         esc    = SDL_SCANCODE_ESCAPE
@@ -45,6 +46,10 @@ struct MouseMotionEvent {
     int xRel, yRel;
 };
 
+struct MouseWheelEvent {
+    int amount;
+};
+
 class Input {
 public:
     // Should be called after initializing SDL
@@ -60,4 +65,6 @@ public:
     static void addKeyPressCallback(std::function<void(KeyPressEvent&)> callback, Key::Keycode key);
     static void addKeyReleaseCallback(std::function<void(KeyReleaseEvent&)> callback, Key::Keycode key);
     static void addMouseMotionCallback(std::function<void(MouseMotionEvent&)> callback);
+    static void addMouseWheelUpCallback(std::function<void(MouseWheelEvent&)> callback);
+    static void addMouseWheelDownCallback(std::function<void(MouseWheelEvent&)> callback);
 };
