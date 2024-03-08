@@ -1,9 +1,8 @@
 #include "OrthoCamera.hpp"
 
-#include <cstdio>
+#include <glm/glm.hpp>
 #include <glm/ext/matrix_clip_space.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include <glm/matrix.hpp>
 
 OrthoCamera::OrthoCamera(float left, float right, float bottom, float top)
     : m_projectionMatrix(glm::ortho(left, right, bottom, top, -1.0f, 1.0f)), m_viewMatrix(1.0f)
