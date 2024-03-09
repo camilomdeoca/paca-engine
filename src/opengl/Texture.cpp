@@ -53,3 +53,8 @@ void Texture::bind(uint32_t slot) const
     glBindTextureUnit(slot, m_id);
 }
 
+void Texture::setInterpolate(bool value)
+{
+    glTextureParameteri(m_id, GL_TEXTURE_MAG_FILTER, value ? GL_LINEAR : GL_NEAREST);
+}
+

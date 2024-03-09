@@ -7,7 +7,9 @@
 
 #include <SDL2/SDL.h>
 #include <cstdio>
+#include <format>
 #include <memory>
+#include <string>
 
 App::App()
 {}
@@ -37,13 +39,23 @@ void App::init(std::string title)
 void App::run()
 {
     OrthoCameraController cameraController(16.0f / 9.0f);
-    std::shared_ptr<Texture> texture = std::make_shared<Texture>("assets/textures/big.jpg");
+    OrthoCamera uiCamera(0.0f, 1600.0f, 0.0f, 900.0f);
+    std::shared_ptr<Texture> bigImageTexture = std::make_shared<Texture>("assets/textures/big.jpg");
 
     float lastFrameTime = SDL_GetTicks();
     while (true) {
         float time = SDL_GetTicks();
         float timeDelta = time - lastFrameTime;
         lastFrameTime = time;
+
+        constexpr int frameTimeMeasurementCount = 10;
+        static float framTimeBuffer[frameTimeMeasurementCount] = {0};
+        static int oldestFrameTimeIndex = 0;
+        framTimeBuffer[oldestFrameTimeIndex] = timeDelta;
+        oldestFrameTimeIndex++;
+        if (oldestFrameTimeIndex >= frameTimeMeasurementCount) oldestFrameTimeIndex = 0;
+        float smoothFrameTime = 0;
+        for (int i = 0; i < frameTimeMeasurementCount; i++) smoothFrameTime += framTimeBuffer[i]/frameTimeMeasurementCount;
 
         Input::processInput();
 
@@ -54,16 +66,28 @@ void App::run()
         GL::clear();
 
         Renderer2D::beginScene(cameraController.getCamera());
-        Renderer2D::drawQuad({ 0.0f, 0.0f, 0.0f }, { 1.0f, 1.0f }, texture, { 1.0f, 1.0f, 1.0f, 1.0f });
-        Renderer2D::drawQuad({ 0.5f, 0.5f, 0.0f }, { 1.0f, 0.5f }, { 0.8f, 0.6f, 0.3f, 1.0f });
-        constexpr int count = 15;
-        for (int y = 0; y < count; y++)
+        Renderer2D::drawQuad(
+                { -(float)bigImageTexture->getWidth()/(float)bigImageTexture->getHeight(), -1.0f, 0.1f },
+                { (float)bigImageTexture->getWidth()/(float)bigImageTexture->getHeight(), 1.0f },
+                bigImageTexture,
+                { 1.0f, 1.0f, 1.0f, 1.0f });
+
+        for (int y = 0; y < 20; y++)
         {
-            for (int x = 0; x < count; x++)
+            for (int x = 0; x < 100; x++)
             {
-                Renderer2D::drawQuad({ x, y, 0.0f }, { 0.8f, 0.8f }, texture, { 0.3f, 0.3f, 0.8f, 1.0f });
+                Renderer2D::drawQuad(
+                { x, y, 0.1f },
+                { (float)bigImageTexture->getWidth()/(float)bigImageTexture->getHeight(), 1.0f },
+                bigImageTexture,
+                { 1.0f, 1.0f, 1.0f, 1.0f });
+
             }
         }
+        Renderer2D::drawString({0.0f, 25.0f, 0.2f}, "pspspssspspsspspssspssps", {0.9f, 0.9f, 1.0f, 1.0f});
+        Renderer2D::endScene();
+        Renderer2D::beginScene(uiCamera);
+        Renderer2D::drawString({0.0f, 900.0f-24.0f, 0.5f}, std::format("{:.1f}", 1000.0f/smoothFrameTime) + "fps", {0.0f, 1.0f, 0.0f, 1.0f});
         Renderer2D::endScene();
 
         window.swapBuffers();

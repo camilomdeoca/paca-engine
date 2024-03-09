@@ -16,7 +16,9 @@ public:
 
     void setData(void *data, uint32_t size);
 
-    void bind(uint32_t slot = 0) const; 
+    void bind(uint32_t slot = 0) const;
+
+    void setInterpolate(bool value);
 
 private:
     void create(unsigned char *data, uint32_t width, uint32_t height);
