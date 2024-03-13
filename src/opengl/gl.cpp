@@ -9,6 +9,7 @@ void GL::init()
 
 	glEnable(GL_DEPTH_TEST);
 	//glEnable(GL_LINE_SMOOTH);
+    //glPixelStorei(GL_UNPACK_ALIGNMENT, 1); // if textures are not 4-byte aligned (default)
 }
 
 void GL::setClearColor(const glm::vec4 &color)

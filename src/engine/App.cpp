@@ -38,9 +38,12 @@ void App::init(std::string title)
 
 void App::run()
 {
-    OrthoCameraController cameraController(16.0f / 9.0f);
+    OrthoCameraController cameraController(1600.0f / 900.0f);
     OrthoCamera uiCamera(0.0f, 1600.0f, 0.0f, 900.0f);
-    std::shared_ptr<Texture> bigImageTexture = std::make_shared<Texture>("assets/textures/big.jpg");
+    std::shared_ptr<Texture> bigImageTexture = std::make_shared<Texture>("assets/textures/cat1.png");
+    std::shared_ptr<Texture> bigImageTexture2 = std::make_shared<Texture>("assets/textures/cat2.png");
+    bigImageTexture->setInterpolate(false);
+    bigImageTexture2->setInterpolate(false);
 
     float lastFrameTime = SDL_GetTicks();
     while (true) {
@@ -66,20 +69,24 @@ void App::run()
         GL::clear();
 
         Renderer2D::beginScene(cameraController.getCamera());
-        Renderer2D::drawQuad(
-                { -(float)bigImageTexture->getWidth()/(float)bigImageTexture->getHeight(), -1.0f, 0.1f },
-                { (float)bigImageTexture->getWidth()/(float)bigImageTexture->getHeight(), 1.0f },
-                bigImageTexture,
-                { 1.0f, 1.0f, 1.0f, 1.0f });
+        //Renderer2D::drawQuad(
+        //        { -(float)bigImageTexture->getWidth()/(float)bigImageTexture->getHeight(), -1.0f, 0.1f },
+        //        { (float)bigImageTexture->getWidth()/(float)bigImageTexture->getHeight(), 1.0f },
+        //        bigImageTexture);
+        //Renderer2D::drawQuad(
+        //        { 0.0f, 0.0f, 0.1f },
+        //        { (float)bigImageTexture->getWidth()/(float)bigImageTexture->getHeight(), 1.0f },
+        //        bigImageTexture2);
 
         for (int y = 0; y < 20; y++)
         {
             for (int x = 0; x < 100; x++)
             {
+                std::shared_ptr<Texture> &texture = (x + y) % 2 ? bigImageTexture : bigImageTexture2;
                 Renderer2D::drawQuad(
                 { x, y, 0.1f },
-                { (float)bigImageTexture->getWidth()/(float)bigImageTexture->getHeight(), 1.0f },
-                bigImageTexture,
+                { (float)texture->getWidth()/(float)texture->getHeight(), 1.0f },
+                texture,
                 { 1.0f, 1.0f, 1.0f, 1.0f });
 
             }

@@ -59,7 +59,7 @@ void Renderer2D::init()
 
     unsigned char whitePixel[] = { 255, 255, 255, 255 };
 
-    s_data.whiteTexture = std::make_shared<Texture>(whitePixel, 1, 1);
+    s_data.whiteTexture = std::make_shared<Texture>(whitePixel, 1, 1, Texture::Format::RGBA8);
     s_data.fontAtlas = std::make_shared<Texture>("assets/fonts/DejaVuSansFontAtlas.png");
     s_data.fontAtlas->setInterpolate(false);
 

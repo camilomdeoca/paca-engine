@@ -20,7 +20,7 @@ include_directories(
 set(EXECUTABLE_OUTPUT_PATH ${CMAKE_SOURCE_DIR}/build)
 
 # Add executable
-file(GLOB SOURCES src/*.cpp src/*/*.cpp src/*/*/*.cpp )
+file(GLOB_RECURSE SOURCES src/*.cpp )
 add_executable(${PROJECT_NAME}
     ${SOURCES}
 )
