@@ -84,10 +84,10 @@ void App::run()
             {
                 std::shared_ptr<Texture> &texture = (x + y) % 2 ? bigImageTexture : bigImageTexture2;
                 Renderer2D::drawQuad(
-                { x, y, 0.1f },
-                { (float)texture->getWidth()/(float)texture->getHeight(), 1.0f },
-                texture,
-                { 1.0f, 1.0f, 1.0f, 1.0f });
+                    { x, y, 0.1f },
+                    { (float)texture->getWidth()/(float)texture->getHeight(), 1.0f },
+                    texture,
+                    { 1.0f, 1.0f, 1.0f, 1.0f });
 
             }
         }

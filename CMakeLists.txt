@@ -25,10 +25,13 @@ add_executable(${PROJECT_NAME}
     ${SOURCES}
 )
 
+add_subdirectory(lib/fontatlas)
+
 # Link libraries
 target_link_libraries(${PROJECT_NAME}
     SDL2
     GL
     GLEW
     png
+    fontatlas
 )

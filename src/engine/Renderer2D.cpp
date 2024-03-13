@@ -9,8 +9,9 @@
 #include <glm/ext/matrix_transform.hpp>
 #include <locale>
 #include <memory>
+#include <unordered_map>
 
-#include "glyph_data_deja_vu_sans.h"
+#include <fontatlas/fontatlas.hpp>
 
 struct QuadVertex {
     glm::vec3 position;
@@ -38,6 +39,8 @@ static struct {
         {1.0f, 1.0f},
         {0.0f, 1.0f}
     };
+
+    std::unordered_map<uint32_t, fontatlas::glyph_data> glyphData;
 } s_data;
 
 void Renderer2D::init()
@@ -61,6 +64,7 @@ void Renderer2D::init()
 
     s_data.whiteTexture = std::make_shared<Texture>(whitePixel, 1, 1, Texture::Format::RGBA8);
     s_data.fontAtlas = std::make_shared<Texture>("assets/fonts/DejaVuSansFontAtlas.png");
+    s_data.glyphData = fontatlas::read_glyph_data_file("assets/fonts/DejaVuSansFontAtlas.fntat");
     s_data.fontAtlas->setInterpolate(false);
 
     s_data.quadsShader = std::make_shared<Shader>("assets/shaders/vertex.glsl", "assets/shaders/fragment.glsl");
@@ -114,23 +118,23 @@ void Renderer2D::drawString(const glm::vec3 &position, const std::string &text, 
     float h = s_data.fontAtlas->getHeight();
 
     for (const char32_t &u32char : u32text) {
-        const std::unordered_map<char32_t, Glyph>::iterator it = fontData.find(u32char);
-        if (it == fontData.end()) {
+        const std::unordered_map<uint32_t, fontatlas::glyph_data>::iterator it = s_data.glyphData.find(u32char);
+        if (it == s_data.glyphData.end()) {
             continue;
         }
 
-        Glyph glyphData = it->second;
+        fontatlas::glyph_data glyphData = it->second;
 
-        if (glyphData.size.x != 0 && glyphData.size.y != 0) {
-            float sizeX    = glyphData.size.x;
-            float sizeY    = glyphData.size.y;
+        if (glyphData.size.w != 0 && glyphData.size.h != 0) {
+            float sizeX    = glyphData.size.w;
+            float sizeY    = glyphData.size.h;
 
-            float textureX      = glyphData.textureCoords.x/w;
-            float textureY      = (h - glyphData.textureCoords.y - glyphData.size.y)/h; // Because we invert textures vertically on import
-            float textureSizeX  = glyphData.size.x/w;
-            float textureSizeY  = glyphData.size.y/h;
+            float textureX      = glyphData.texture_coords.x/w;
+            float textureY      = (h - glyphData.texture_coords.y - glyphData.size.h)/h; // Because we invert textures vertically on import
+            float textureSizeX  = glyphData.size.w/w;
+            float textureSizeY  = glyphData.size.h/h;
 
-            glm::vec3 offset = { size * glyphData.offset.x, size * (glyphData.offset.y -  static_cast<int>(glyphData.size.y)), 0.0f };
+            glm::vec3 offset = { size * glyphData.offset.x, size * (glyphData.offset.y -  static_cast<int>(glyphData.size.h)), 0.0f };
 
             QuadVertex quadVertex[4];
 

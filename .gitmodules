@@ -1,0 +1,3 @@
+[submodule "lib/fontatlas"]
+	path = lib/fontatlas
+	url = https://github.com/camilomdeoca/fontatlas.git
