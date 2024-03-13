@@ -105,14 +105,13 @@ void Renderer2D::drawQuad(const glm::vec3 &position, const glm::vec2 &size, std:
 }
 
 
-void Renderer2D::drawString(const glm::vec3 &position, const std::string &text, const glm::vec4 &color)
+void Renderer2D::drawString(const glm::vec3 &position, const std::string &text, const glm::vec4 &color, float size)
 {
     std::u32string u32text = std::wstring_convert<std::codecvt_utf8<char32_t>, char32_t>().from_bytes(text);
     glm::vec3 currentGlyphPos = position;
 
     float w = s_data.fontAtlas->getWidth();
     float h = s_data.fontAtlas->getHeight();
-    float scale = 1.0f;
 
     for (const char32_t &u32char : u32text) {
         const std::unordered_map<char32_t, Glyph>::iterator it = fontData.find(u32char);
@@ -131,7 +130,7 @@ void Renderer2D::drawString(const glm::vec3 &position, const std::string &text, 
             float textureSizeX  = glyphData.size.x/w;
             float textureSizeY  = glyphData.size.y/h;
 
-            glm::vec3 offset = { scale * glyphData.offset.x, scale * (glyphData.offset.y -  static_cast<int>(glyphData.size.y)), 0.0f };
+            glm::vec3 offset = { size * glyphData.offset.x, size * (glyphData.offset.y -  static_cast<int>(glyphData.size.y)), 0.0f };
 
             QuadVertex quadVertex[4];
 
@@ -152,7 +151,7 @@ void Renderer2D::drawString(const glm::vec3 &position, const std::string &text, 
             glm::vec3 glyphOrigin = currentGlyphPos + offset;
             for (size_t i = 0; i < 4; i++)
             {
-                quadVertex[i].position = glyphOrigin + relativeSize[i] * scale;
+                quadVertex[i].position = glyphOrigin + relativeSize[i] * size;
                 quadVertex[i].uv = uvCoords[i];
             }
 
@@ -167,7 +166,7 @@ void Renderer2D::drawString(const glm::vec3 &position, const std::string &text, 
             s_data.quadsVertexArray->bind();
             GL::drawIndexed(s_data.quadsVertexArray);
         }
-        currentGlyphPos.x += scale * (glyphData.advance.x);
-        currentGlyphPos.y += scale * (glyphData.advance.y);
+        currentGlyphPos.x += size * (glyphData.advance.x);
+        currentGlyphPos.y += size * (glyphData.advance.y);
     } 
 }

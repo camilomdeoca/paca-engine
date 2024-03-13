@@ -91,7 +91,7 @@ void App::run()
 
             }
         }
-        Renderer2D::drawString({0.0f, 25.0f, 0.2f}, "pspspssspspsspspssspssps", {0.9f, 0.9f, 1.0f, 1.0f});
+        Renderer2D::drawString({0.0f, 25.0f, 0.2f}, "pspspssspspsspspssspssps", {0.9f, 0.9f, 1.0f, 1.0f}, 0.01f);
         Renderer2D::endScene();
         Renderer2D::beginScene(uiCamera);
         Renderer2D::drawString({0.0f, 900.0f-24.0f, 0.5f}, std::format("{:.1f}", 1000.0f/smoothFrameTime) + "fps", {0.0f, 1.0f, 0.0f, 1.0f});
