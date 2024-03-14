@@ -42,6 +42,7 @@ void App::run()
     OrthoCamera uiCamera(0.0f, 1600.0f, 0.0f, 900.0f);
     std::shared_ptr<Texture> bigImageTexture = std::make_shared<Texture>("assets/textures/cat1.png");
     std::shared_ptr<Texture> bigImageTexture2 = std::make_shared<Texture>("assets/textures/cat2.png");
+    Font font("assets/fonts/DejaVuSansFontAtlas.png", "assets/fonts/DejaVuSansFontAtlas.fntat");
     bigImageTexture->setInterpolate(false);
     bigImageTexture2->setInterpolate(false);
 
@@ -91,10 +92,10 @@ void App::run()
 
             }
         }
-        Renderer2D::drawString({0.0f, 25.0f, 0.2f}, "pspspssspspsspspssspssps", {0.9f, 0.9f, 1.0f, 1.0f}, 0.01f);
+        Renderer2D::drawString({0.0f, 25.0f, 0.2f}, "pspspssspspsspspssspssps", font, {0.9f, 0.9f, 1.0f, 1.0f}, 0.01f);
         Renderer2D::endScene();
         Renderer2D::beginScene(uiCamera);
-        Renderer2D::drawString({0.0f, 900.0f-24.0f, 0.5f}, std::format("{:.1f}", 1000.0f/smoothFrameTime) + "fps", {0.0f, 1.0f, 0.0f, 1.0f});
+        Renderer2D::drawString({0.0f, 900.0f-24.0f, 0.5f}, std::format("{:.1f}", 1000.0f/smoothFrameTime) + "fps", font, {0.0f, 1.0f, 0.0f, 1.0f});
         Renderer2D::endScene();
 
         window.swapBuffers();

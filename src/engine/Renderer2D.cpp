@@ -24,7 +24,6 @@ static struct {
     std::shared_ptr<Shader> quadsShader;
 
     std::shared_ptr<Texture> whiteTexture;
-    std::shared_ptr<Texture> fontAtlas;
 
     const glm::vec4 squareVertices[4] = {
         {0.0f, 0.0f, 0.0f, 1.0f},
@@ -39,8 +38,6 @@ static struct {
         {1.0f, 1.0f},
         {0.0f, 1.0f}
     };
-
-    std::unordered_map<uint32_t, fontatlas::glyph_data> glyphData;
 } s_data;
 
 void Renderer2D::init()
@@ -63,9 +60,6 @@ void Renderer2D::init()
     unsigned char whitePixel[] = { 255, 255, 255, 255 };
 
     s_data.whiteTexture = std::make_shared<Texture>(whitePixel, 1, 1, Texture::Format::RGBA8);
-    s_data.fontAtlas = std::make_shared<Texture>("assets/fonts/DejaVuSansFontAtlas.png");
-    s_data.glyphData = fontatlas::read_glyph_data_file("assets/fonts/DejaVuSansFontAtlas.fntat");
-    s_data.fontAtlas->setInterpolate(false);
 
     s_data.quadsShader = std::make_shared<Shader>("assets/shaders/vertex.glsl", "assets/shaders/fragment.glsl");
 }
@@ -109,17 +103,25 @@ void Renderer2D::drawQuad(const glm::vec3 &position, const glm::vec2 &size, std:
 }
 
 
-void Renderer2D::drawString(const glm::vec3 &position, const std::string &text, const glm::vec4 &color, float size)
+void Renderer2D::drawString(const glm::vec3 &position, const std::string &text, Font &font, const glm::vec4 &color, float size)
 {
     std::u32string u32text = std::wstring_convert<std::codecvt_utf8<char32_t>, char32_t>().from_bytes(text);
     glm::vec3 currentGlyphPos = position;
 
-    float w = s_data.fontAtlas->getWidth();
-    float h = s_data.fontAtlas->getHeight();
+    float w = font.getTexture()->getWidth();
+    float h = font.getTexture()->getHeight();
+
+    const std::unordered_map<uint32_t, fontatlas::glyph_data> &glyphsData = font.getGlyphsData();
+
+    s_data.quadsShader->bind();
+    s_data.quadsShader->setFloat4("u_color", color);
+
+    font.getTexture()->bind(0);
+    s_data.quadsShader->setInt("u_texture", 0);
 
     for (const char32_t &u32char : u32text) {
-        const std::unordered_map<uint32_t, fontatlas::glyph_data>::iterator it = s_data.glyphData.find(u32char);
-        if (it == s_data.glyphData.end()) {
+        std::unordered_map<uint32_t, fontatlas::glyph_data>::const_iterator it = glyphsData.find(u32char);
+        if (it == glyphsData.end()) {
             continue;
         }
 
@@ -160,13 +162,6 @@ void Renderer2D::drawString(const glm::vec3 &position, const std::string &text, 
             }
 
             s_data.quadsVertexBuffer->setData(quadVertex, 4 * sizeof(QuadVertex));
-
-            s_data.quadsShader->bind();
-            s_data.quadsShader->setFloat4("u_color", color);
-
-            s_data.fontAtlas->bind(0);
-            s_data.quadsShader->setInt("u_texture", 0);
-
             s_data.quadsVertexArray->bind();
             GL::drawIndexed(s_data.quadsVertexArray);
         }
