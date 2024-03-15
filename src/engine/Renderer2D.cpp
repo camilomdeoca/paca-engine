@@ -64,7 +64,7 @@ void Renderer2D::init()
     s_data.quadsShader = std::make_shared<Shader>("assets/shaders/vertex.glsl", "assets/shaders/fragment.glsl");
 }
 
-void Renderer2D::beginScene(const OrthoCamera &camera)
+void Renderer2D::beginScene(const Camera &camera)
 {
     s_data.quadsShader->bind();
     s_data.quadsShader->setMat4("u_viewProjection", camera.getViewProjectionMatrix());

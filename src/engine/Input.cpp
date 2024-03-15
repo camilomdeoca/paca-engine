@@ -91,6 +91,11 @@ void Input::processInput()
     }
 }
 
+void Input::restrainMouseToWindow(bool enabled)
+{
+    SDL_SetRelativeMouseMode(enabled ? SDL_TRUE : SDL_FALSE);
+}
+
 bool Input::isKeyPressed(Key::Keycode key)
 {
     return s_keyboardState[key];
@@ -120,6 +125,11 @@ void Input::addKeyPressCallback(std::function<void(KeyPressEvent&)> callback, Ke
 void Input::addKeyReleaseCallback(std::function<void(KeyReleaseEvent&)> callback, Key::Keycode key)
 {
     s_keyReleaseCallbacks[key].push_back(callback);
+}
+
+void Input::addMouseMotionCallback(std::function<void(MouseMotionEvent&)> callback)
+{
+    s_mouseMotionCallbacks.push_back(callback);
 }
 
 void Input::addMouseWheelUpCallback(std::function<void(MouseWheelEvent&)> callback)

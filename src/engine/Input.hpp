@@ -57,6 +57,8 @@ public:
 
     static void processInput();
 
+    static void restrainMouseToWindow(bool enabled);
+
     static bool isKeyPressed(Key::Keycode key);
     static bool isMouseButtonPressed(Button::ButtonCode button);
 

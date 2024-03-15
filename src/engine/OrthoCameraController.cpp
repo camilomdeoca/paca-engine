@@ -15,23 +15,23 @@ void OrthoCameraController::onUpdate(float ms)
     constexpr float rotationSpeed = 0.1f; // degrees per ms
 
     glm::vec3 position = getCamera().getPosition();
-    float rotation = getCamera().getRotation();
+    glm::vec3 rotation = getCamera().getRotation();
     
     if (Input::isKeyPressed(Key::a)) {
-        position.x -= cos(glm::radians(rotation)) * cameraSpeed * ms * m_zoom;
-        position.y -= sin(glm::radians(rotation)) * cameraSpeed * ms * m_zoom;
+        position.x -= cos(glm::radians(rotation.z)) * cameraSpeed * ms * m_zoom;
+        position.y -= sin(glm::radians(rotation.z)) * cameraSpeed * ms * m_zoom;
     }
     if (Input::isKeyPressed(Key::d)) {
-        position.x += cos(glm::radians(rotation)) * cameraSpeed * ms * m_zoom;
-        position.y += sin(glm::radians(rotation)) * cameraSpeed * ms * m_zoom;
+        position.x += cos(glm::radians(rotation.z)) * cameraSpeed * ms * m_zoom;
+        position.y += sin(glm::radians(rotation.z)) * cameraSpeed * ms * m_zoom;
     }
     if (Input::isKeyPressed(Key::w)) {
-        position.x += -sin(glm::radians(rotation)) * cameraSpeed * ms * m_zoom;
-        position.y += cos(glm::radians(rotation)) * cameraSpeed * ms * m_zoom;
+        position.x += -sin(glm::radians(rotation.z)) * cameraSpeed * ms * m_zoom;
+        position.y += cos(glm::radians(rotation.z)) * cameraSpeed * ms * m_zoom;
     }
     if (Input::isKeyPressed(Key::s)) {
-        position.x -= -sin(glm::radians(rotation)) * cameraSpeed * ms * m_zoom;
-        position.y -= cos(glm::radians(rotation)) * cameraSpeed * ms * m_zoom;
+        position.x -= -sin(glm::radians(rotation.z)) * cameraSpeed * ms * m_zoom;
+        position.y -= cos(glm::radians(rotation.z)) * cameraSpeed * ms * m_zoom;
     }
 
     if (Input::isKeyPressed(Key::q)) {
@@ -40,8 +40,8 @@ void OrthoCameraController::onUpdate(float ms)
     if (Input::isKeyPressed(Key::e)) {
         rotation += rotationSpeed * ms;
     }
-    if (rotation > 180.0f) rotation -= 360.0f;
-    if (rotation <= -180.0f) rotation += 360.0f;
+    if (rotation.z > 180.0f) rotation.z -= 360.0f;
+    if (rotation.z <= -180.0f) rotation.z += 360.0f;
 
     getCamera().setRotation(rotation);
     getCamera().setPosition(position);
