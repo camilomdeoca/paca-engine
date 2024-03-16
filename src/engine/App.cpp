@@ -4,6 +4,7 @@
 #include "../opengl/gl.hpp"
 #include "Renderer2D.hpp"
 #include "engine/PerspectiveCameraController.hpp"
+#include "engine/Renderer.hpp"
 #include "opengl/Texture.hpp"
 
 #include <SDL2/SDL.h>
@@ -35,6 +36,7 @@ void App::init(std::string title)
 
     GL::init();
     Input::init();
+    Renderer::init();
     Renderer2D::init();
 }
 
@@ -49,6 +51,8 @@ void App::run()
     Font font("assets/fonts/DejaVuSansFontAtlas.png", "assets/fonts/DejaVuSansFontAtlas.fntat");
     bigImageTexture->setInterpolate(false);
     bigImageTexture2->setInterpolate(false);
+
+    Mesh teapot("assets/meshes/teapot1.obj");
 
     float lastFrameTime = SDL_GetTicks();
     while (true) {
@@ -73,33 +77,46 @@ void App::run()
         GL::setClearColor({0.1f, 0.1f, 0.15f, 1.0f});
         GL::clear();
 
-        Renderer2D::beginScene(cameraController.getCamera());
-        //Renderer2D::drawQuad(
-        //        { -(float)bigImageTexture->getWidth()/(float)bigImageTexture->getHeight(), -1.0f, 0.1f },
-        //        { (float)bigImageTexture->getWidth()/(float)bigImageTexture->getHeight(), 1.0f },
-        //        bigImageTexture);
-        //Renderer2D::drawQuad(
-        //        { 0.0f, 0.0f, 0.1f },
-        //        { (float)bigImageTexture->getWidth()/(float)bigImageTexture->getHeight(), 1.0f },
-        //        bigImageTexture2);
+        Renderer::beginScene(cameraController.getCamera());
+        Renderer::drawMesh(teapot);
+        Renderer::endScene();
 
-        for (int y = 0; y < 20; y++)
-        {
-            for (int x = 0; x < 100; x++)
-            {
-                std::shared_ptr<Texture> &texture = (x + y) % 2 ? bigImageTexture : bigImageTexture2;
-                Renderer2D::drawQuad(
-                    { x, y, (x + y) % 2 == 0 ? 0.0f : 0.2f },
-                    { (float)texture->getWidth()/(float)texture->getHeight(), 1.0f },
-                    texture,
-                    { 1.0f, 1.0f, 1.0f, 1.0f });
+        //Renderer2D::beginScene(cameraController.getCamera());
+        //for (int y = 0; y < 20; y++)
+        //{
+        //    for (int x = 0; x < 100; x++)
+        //    {
+        //        std::shared_ptr<Texture> &texture = (x + y) % 2 ? bigImageTexture : bigImageTexture2;
+        //        Renderer2D::drawQuad(
+        //            { x, y, (x + y) % 2 == 0 ? 0.0f : 0.2f },
+        //            { (float)texture->getWidth()/(float)texture->getHeight(), 1.0f },
+        //            texture,
+        //            { 1.0f, 1.0f, 1.0f, 1.0f });
 
-            }
-        }
-        Renderer2D::drawString({0.0f, 25.0f, 0.2f}, "pspspssspspsspspssspssps", font, {0.9f, 0.9f, 1.0f, 1.0f}, 0.01f);
-        Renderer2D::endScene();
+        //    }
+        //}
+        //Renderer2D::drawString({0.0f, 25.0f, 0.2f}, "pspspssspspsspspssspssps", font, {0.9f, 0.9f, 1.0f, 1.0f}, 0.01f);
+        //Renderer2D::endScene();
         Renderer2D::beginScene(uiCamera);
         Renderer2D::drawString({0.0f, 900.0f-24.0f, 0.5f}, std::format("{:.1f}", 1000.0f/smoothFrameTime) + "fps", font, {0.0f, 1.0f, 0.0f, 1.0f});
+        Renderer2D::drawString(
+            {0.0f, 900.0f-24.0f*2, 0.5f},
+            "X: " + std::format("{:.2f}", cameraController.getCamera().getPosition().x),
+            font,
+            {1.0f, 1.0f, 1.0f, 1.0f}
+        );
+        Renderer2D::drawString(
+            {0.0f, 900.0f-24.0f*3, 0.5f},
+            "Y: " + std::format("{:.2f}", cameraController.getCamera().getPosition().y),
+            font,
+            {1.0f, 1.0f, 1.0f, 1.0f}
+        );
+        Renderer2D::drawString(
+            {0.0f, 900.0f-24.0f*4, 0.5f},
+            "Z: " + std::format("{:.2f}", cameraController.getCamera().getPosition().z),
+            font,
+            {1.0f, 1.0f, 1.0f, 1.0f}
+        );
         Renderer2D::endScene();
 
         window.swapBuffers();
