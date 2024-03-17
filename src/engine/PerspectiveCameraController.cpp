@@ -16,23 +16,31 @@ PerspectiveCameraController::~PerspectiveCameraController()
 
 void PerspectiveCameraController::onUpdate(float ms)
 {
-    constexpr float cameraSpeed = 0.3f; // units per ms
+    constexpr float cameraSpeed = 0.03f; // units per ms
 
     glm::vec3 position = getCamera().getPosition();
     glm::vec3 front = getCamera().getDirection();
+    front.y = 0;
+    front = glm::normalize(front);
     glm::vec3 right = glm::normalize(glm::cross(front, getCamera().getUp()));
 
     if (Input::isKeyPressed(Key::a)) {
-        position -= right * cameraSpeed;
+        position -= right * cameraSpeed * ms;
     }
     if (Input::isKeyPressed(Key::d)) {
-        position += right * cameraSpeed;
+        position += right * cameraSpeed * ms;
     }
     if (Input::isKeyPressed(Key::w)) {
-        position += front * cameraSpeed;
+        position += front * cameraSpeed * ms;
     }
     if (Input::isKeyPressed(Key::s)) {
-        position -= front * cameraSpeed;
+        position -= front * cameraSpeed * ms;
+    }
+    if (Input::isKeyPressed(Key::space)) {
+        position.y += cameraSpeed * ms;
+    }
+    if (Input::isKeyPressed(Key::lshift)) {
+        position.y -= cameraSpeed * ms;
     }
 
     m_camera.setPosition(position);

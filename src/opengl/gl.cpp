@@ -8,6 +8,9 @@ void GL::init()
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	glEnable(GL_DEPTH_TEST);
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_BACK);
+    glFrontFace(GL_CCW);
 	//glEnable(GL_LINE_SMOOTH);
     //glPixelStorei(GL_UNPACK_ALIGNMENT, 1); // if textures are not 4-byte aligned (default)
 }
@@ -28,4 +31,12 @@ void GL::drawIndexed(const std::shared_ptr<VertexArray> &vertexArray, uint32_t i
     vertexArray->bind();
     uint32_t count = indexCount ? indexCount : vertexArray->getIndexBuffer()->getCount();
     glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, nullptr);
+}
+
+void GL::setDepthTest(bool value)
+{
+    if (value)
+        glEnable(GL_DEPTH_TEST);
+    else
+        glDisable(GL_DEPTH_TEST);
 }

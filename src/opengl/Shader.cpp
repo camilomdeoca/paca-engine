@@ -165,6 +165,18 @@ void Shader::setInt(const std::string &name, int value)
     glUniform1i(location, value);
 }
 
+void Shader::setFloat(const std::string &name, const float &value)
+{
+    GLint location = glGetUniformLocation(m_id, name.c_str());
+    glUniform1f(location, value);
+}
+
+void Shader::setFloat2(const std::string &name, const glm::vec2 &value)
+{
+    GLint location = glGetUniformLocation(m_id, name.c_str());
+    glUniform2f(location, value.x, value.y);
+}
+
 void Shader::setFloat3(const std::string &name, const glm::vec3 &value)
 {
     GLint location = glGetUniformLocation(m_id, name.c_str());
@@ -175,6 +187,12 @@ void Shader::setFloat4(const std::string &name, const glm::vec4 &value)
 {
     GLint location = glGetUniformLocation(m_id, name.c_str());
     glUniform4f(location, value.x, value.y, value.z, value.w);
+}
+
+void Shader::setMat3(const std::string &name, const glm::mat3 &matrix)
+{
+    GLint location = glGetUniformLocation(m_id, name.c_str());
+    glUniformMatrix3fv(location, 1, GL_FALSE, glm::value_ptr(matrix));
 }
 
 void Shader::setMat4(const std::string &name, const glm::mat4 &matrix)

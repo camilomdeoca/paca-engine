@@ -14,6 +14,7 @@ GLenum formatToOpenGLFormat(Texture::Format format)
         case Texture::Format::GA8:   return GL_RG;
         case Texture::Format::RGB8:  return GL_RGB;
         case Texture::Format::RGBA8: return GL_RGBA;
+        case Texture::Format::depth24stencil8: return GL_DEPTH_STENCIL;
     }
 }
 
@@ -25,6 +26,7 @@ GLenum formatToOpenGLInternalFormat(Texture::Format format)
         case Texture::Format::GA8:   return GL_RG8;
         case Texture::Format::RGB8:  return GL_RGB8;
         case Texture::Format::RGBA8: return GL_RGBA8;
+        case Texture::Format::depth24stencil8: return GL_DEPTH24_STENCIL8;
     }
 }
 
@@ -56,8 +58,15 @@ Texture::Texture(const std::string &path)
 }
 
 Texture::Texture(unsigned char *data, uint32_t width, uint32_t height, Format format)
+    : m_format(format)
 {
     create(data, width, height, format);
+}
+
+Texture::Texture(uint32_t width, uint32_t height, Format format)
+    : m_format(format)
+{
+    create(nullptr, width, height, format);
 }
 
 Texture::~Texture()
@@ -76,11 +85,18 @@ void Texture::create(unsigned char *data, uint32_t width, uint32_t height, Forma
     glTextureParameteri(m_id, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTextureParameteri(m_id, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
+    glTextureParameteri(m_id, GL_TEXTURE_WRAP_R, GL_REPEAT);
     glTextureParameteri(m_id, GL_TEXTURE_WRAP_S, GL_REPEAT);
 	glTextureParameteri(m_id, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
-    glTextureSubImage2D(m_id, 0, 0, 0, m_width, m_height, formatToOpenGLFormat(format), GL_UNSIGNED_BYTE, data);
+    if (data)
+        glTextureSubImage2D(m_id, 0, 0, 0, m_width, m_height, formatToOpenGLFormat(format), GL_UNSIGNED_BYTE, data);
 }
+
+//void Texture::setData(void *data, uint32_t size)
+//{
+//    glTextureSubImage2D(m_id, 0, 0, 0, m_width, m_height, formatToOpenGLFormat(m_format), GL_UNSIGNED_BYTE, data);
+//}
 
 void Texture::bind(uint32_t slot) const
 {
@@ -90,5 +106,12 @@ void Texture::bind(uint32_t slot) const
 void Texture::setInterpolate(bool value)
 {
     glTextureParameteri(m_id, GL_TEXTURE_MAG_FILTER, value ? GL_LINEAR : GL_NEAREST);
+}
+
+void Texture::setRepeat(bool value)
+{
+    glTextureParameteri(m_id, GL_TEXTURE_WRAP_R, value ? GL_REPEAT : GL_CLAMP_TO_EDGE);
+    glTextureParameteri(m_id, GL_TEXTURE_WRAP_S, value ? GL_REPEAT : GL_CLAMP_TO_EDGE);
+    glTextureParameteri(m_id, GL_TEXTURE_WRAP_T, value ? GL_REPEAT : GL_CLAMP_TO_EDGE);
 }
 

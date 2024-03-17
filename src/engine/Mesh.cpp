@@ -23,7 +23,7 @@ Mesh::Mesh(const std::string &path)
     m_vertex_buffer->setLayout({
         {ShaderDataType::float3, "a_position"},
         {ShaderDataType::float2, "a_uvCoords"},
-        {ShaderDataType::float3, "a_normals"}
+        {ShaderDataType::float3, "a_normal"}
     });
 
     m_vertex_array->addVertexBuffer(m_vertex_buffer);

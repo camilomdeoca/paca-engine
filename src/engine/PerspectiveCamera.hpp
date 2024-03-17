@@ -15,6 +15,8 @@ public:
     const glm::vec3 &getDirection() const override { return m_direction; }
     const glm::vec3 &getUp() const override { return m_up; };
     const glm::mat4 &getViewProjectionMatrix() const override { return m_viewProjectionMatrix; }
+    const glm::mat4 &getProjectionMatrix() const override { return m_projectionMatrix; }
+    const glm::mat4 &getViewMatrix() const override { return m_viewMatrix; }
 
     float getFov() { return m_fov; }
     void setFov(float fov);
