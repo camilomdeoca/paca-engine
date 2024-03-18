@@ -1,5 +1,6 @@
 #include "Renderer.hpp"
 
+#include "engine/Material.hpp"
 #include "opengl/FrameBuffer.hpp"
 #include "opengl/IndexBuffer.hpp"
 #include "opengl/Texture.hpp"
@@ -10,6 +11,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <string>
 
 static struct {
     std::shared_ptr<Shader> shader;
@@ -27,6 +29,11 @@ static struct {
         -1.0f,  9.0f, -1.0f,
         -1.0f, -1.0f, -1.0f
     };
+    //glm::mat3 kernel = {
+    //    0.0f, 0.0f, 0.0f,
+    //    0.0f, 1.0f, 0.0f,
+    //    0.0f, 0.0f, 0.0f
+    //};
 } s_data;
 
 void Renderer::init()
@@ -96,9 +103,31 @@ void Renderer::endScene()
 void Renderer::drawMesh(Mesh &mesh)
 {
     s_data.shader->bind();
-    s_data.shader->setFloat4("u_color", {1.0f, 0.8f, 0.7f, 1.0f});
+    //s_data.shader->setFloat4("u_color", {1.0f, 0.8f, 0.7f, 1.0f});
+
+    unsigned int i = 0;
+    for (const std::shared_ptr<Texture> &texture : mesh.getMaterial()->getTextures(MaterialTextureType::diffuse))
+    {
+        texture->bind(i);
+        s_data.shader->setInt("u_diffuse" + std::to_string(i), i);
+        i++;
+    }
+    for (const std::shared_ptr<Texture> &texture : mesh.getMaterial()->getTextures(MaterialTextureType::specular))
+    {
+        texture->bind(i);
+        s_data.shader->setInt("u_specular" + std::to_string(i), i);
+        i++;
+    }
 
     mesh.getVertexArray()->bind();
     GL::drawIndexed(mesh.getVertexArray());
+}
+
+void Renderer::drawModel(Model &model)
+{
+    for (const std::shared_ptr<Mesh> &mesh : model.getMeshes())
+    {
+        drawMesh(*mesh);
+    }
 }
 

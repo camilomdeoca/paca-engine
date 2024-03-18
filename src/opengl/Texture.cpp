@@ -32,14 +32,14 @@ GLenum formatToOpenGLInternalFormat(Texture::Format format)
 
 Texture::Texture(const std::string &path)
 {
-    unsigned int width, height, channels;
-    //stbi_set_flip_vertically_on_load(1);
-    //stbi_uc *data = stbi_load(path.c_str(), &width, &height, &channels, 0);
-    std::vector<unsigned char> data = ImageLoader::loadPNG(path, width, height, channels);
+    int width, height, channels;
+    stbi_set_flip_vertically_on_load(1);
+    stbi_uc *data = stbi_load(path.c_str(), &width, &height, &channels, 0);
+    //std::vector<unsigned char> data = ImageLoader::loadPNG(path, width, height, channels);
 
-    if (data.empty())
+    if (!data)
     {
-        fprintf(stderr, "Failed to load image!\n");
+        fprintf(stderr, "Failed to load image: %s!\n", path.c_str());
         exit(1);
     }
     Format format;
@@ -52,9 +52,9 @@ Texture::Texture(const std::string &path)
         case 4: format = Format::RGBA8; break;
     }
 
-    create(data.data(), width, height, format);
+    create(data, width, height, format);
 
-    //stbi_image_free(data);
+    stbi_image_free(data);
 }
 
 Texture::Texture(unsigned char *data, uint32_t width, uint32_t height, Format format)

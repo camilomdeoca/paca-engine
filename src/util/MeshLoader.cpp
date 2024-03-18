@@ -132,11 +132,11 @@ std::optional<MeshData> MeshLoader::loadObj(const std::string &path)
             result.vertices.push_back(vertices[(vertexIndices[i] - 1) * 3 + 0]);
             result.vertices.push_back(vertices[(vertexIndices[i] - 1) * 3 + 1]);
             result.vertices.push_back(vertices[(vertexIndices[i] - 1) * 3 + 2]);
-            result.vertices.push_back(textureCoords[(textureIndices[i] - 1) * 2 + 0]);
-            result.vertices.push_back(textureCoords[(textureIndices[i] - 1) * 2 + 1]);
             result.vertices.push_back(normals[(normalIndices[i] - 1) * 3 + 0]);
             result.vertices.push_back(normals[(normalIndices[i] - 1) * 3 + 1]);
             result.vertices.push_back(normals[(normalIndices[i] - 1) * 3 + 2]);
+            result.vertices.push_back(textureCoords[(textureIndices[i] - 1) * 2 + 0]);
+            result.vertices.push_back(textureCoords[(textureIndices[i] - 1) * 2 + 1]);
             result.indices.push_back(index++);
         }
     }
@@ -152,11 +152,11 @@ std::optional<MeshData> MeshLoader::loadObj(const std::string &path)
             result.vertices.push_back(vertices[(vertexIndices[i] - 1) * 3 + 0]);
             result.vertices.push_back(vertices[(vertexIndices[i] - 1) * 3 + 1]);
             result.vertices.push_back(vertices[(vertexIndices[i] - 1) * 3 + 2]);
-            result.vertices.push_back(0);
-            result.vertices.push_back(0);
             result.vertices.push_back(normals[(normalIndices[i] - 1) * 3 + 0]);
             result.vertices.push_back(normals[(normalIndices[i] - 1) * 3 + 1]);
             result.vertices.push_back(normals[(normalIndices[i] - 1) * 3 + 2]);
+            result.vertices.push_back(0);
+            result.vertices.push_back(0);
             result.indices.push_back(index++);
         }
     }

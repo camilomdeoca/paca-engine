@@ -3,7 +3,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 PerspectiveCamera::PerspectiveCamera(float aspect, float fov)
-    : m_aspect(aspect), m_fov(fov), m_projectionMatrix(glm::perspective(glm::radians(m_fov), m_aspect, 0.1f, 100.0f))
+    : m_aspect(aspect), m_fov(fov), m_projectionMatrix(glm::perspective(glm::radians(m_fov), m_aspect, 0.1f, 1000.0f))
 {
     m_direction = glm::normalize(glm::vec3(
         cos(glm::radians(m_rotation.y)) * cos(glm::radians(m_rotation.x)),

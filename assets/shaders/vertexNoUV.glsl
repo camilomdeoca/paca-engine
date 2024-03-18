@@ -1,22 +1,15 @@
 #version 450 core
 
 layout (location = 0) in vec3 a_position;
-layout (location = 1) in vec2 a_uvCoords;
-layout (location = 2) in vec3 a_normal;
+layout (location = 1) in vec3 a_normal;
+layout (location = 2) in vec2 a_uvCoords;
 
 layout (location = 0) out vec3 o_fragPosition;
-layout (location = 1) out vec2 o_uvCoords;
-layout (location = 2) out vec3 o_normal;
+layout (location = 1) out vec3 o_normal;
+layout (location = 2) out vec2 o_uvCoords;
 
 uniform mat4 u_projectionMatrix;
 uniform mat4 u_viewModelMatrix;
-
-struct Material {
-    vec3 ambient;
-    vec3 diffuse;
-    vec3 specular;
-    float shininess;
-};
 
 void main()
 {

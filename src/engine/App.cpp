@@ -52,7 +52,8 @@ void App::run()
     bigImageTexture->setInterpolate(false);
     bigImageTexture2->setInterpolate(false);
 
-    Mesh teapot("assets/meshes/teapot1.obj");
+    //Mesh teapot("assets/meshes/teapot1.obj");
+    Model backpack("assets/meshes/backpack/backpack.obj");
 
     float lastFrameTime = SDL_GetTicks();
     while (true) {
@@ -78,7 +79,8 @@ void App::run()
         GL::clear();
 
         Renderer::beginScene(cameraController.getCamera());
-        Renderer::drawMesh(teapot);
+        //Renderer::drawMesh(teapot);
+        Renderer::drawModel(backpack);
         Renderer::endScene();
 
         //Renderer2D::beginScene(cameraController.getCamera());

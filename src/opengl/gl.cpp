@@ -12,7 +12,7 @@ void GL::init()
     glCullFace(GL_BACK);
     glFrontFace(GL_CCW);
 	//glEnable(GL_LINE_SMOOTH);
-    //glPixelStorei(GL_UNPACK_ALIGNMENT, 1); // if textures are not 4-byte aligned (default)
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1); // if textures are not 4-byte aligned (default)
 }
 
 void GL::setClearColor(const glm::vec4 &color)

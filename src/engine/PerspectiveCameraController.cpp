@@ -16,7 +16,7 @@ PerspectiveCameraController::~PerspectiveCameraController()
 
 void PerspectiveCameraController::onUpdate(float ms)
 {
-    constexpr float cameraSpeed = 0.03f; // units per ms
+    constexpr float cameraSpeed = 0.005f; // units per ms
 
     glm::vec3 position = getCamera().getPosition();
     glm::vec3 front = getCamera().getDirection();

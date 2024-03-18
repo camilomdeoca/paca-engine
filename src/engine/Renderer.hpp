@@ -2,6 +2,7 @@
 
 #include "engine/Camera.hpp"
 #include "engine/Mesh.hpp"
+#include "engine/Model.hpp"
 
 class Renderer {
 public:
@@ -11,5 +12,6 @@ public:
     static void endScene();
 
     static void drawMesh(Mesh &mesh);
+    static void drawModel(Model &model);
 };
 
