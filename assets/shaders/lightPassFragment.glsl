@@ -16,13 +16,23 @@ struct Light {
 uniform Light u_lights[MAX_LIGHTS];
 uniform int u_numOfLights;
 
-uniform sampler2D u_gPosition;
+uniform mat4 u_inverseProjectionViewMatrix;
+
 uniform sampler2D u_gNormal;
 uniform sampler2D u_gColorSpec;
+uniform sampler2D u_gDepth;
+
+vec3 getPosition()
+{
+    float depth = texture(u_gDepth, o_uv).x * 2.0 - 1.0;
+    vec4 pos = vec4(o_uv * 2.0 - 1.0, depth, 1.0);
+    pos = u_inverseProjectionViewMatrix * pos;
+    return pos.xyz / pos.w;
+}
 
 void main()
 {
-    const vec3 position = texture(u_gPosition, o_uv).rgb;
+    const vec3 position = getPosition();
     const vec3 normal = texture(u_gNormal, o_uv).rgb;
     const vec3 color = vec4(texture(u_gColorSpec, o_uv).rgb, 1.0).rgb;
     const float spec = texture(u_gColorSpec, o_uv).a;
@@ -49,6 +59,7 @@ void main()
     }
 
     outColor = vec4(final + ambient, 1.0);
+    //outColor = vec4(position, 1.0);
     //outColor = vec4(diffuse * color * u_lights.intensity + specular * u_lights.color * u_lights.intensity + ambient, 1.0);
     //outColor = vec4(1.0, 0.0, 0.0, 1.0);
 }

@@ -11,6 +11,7 @@
 
 #include <cstdint>
 #include <glm/ext/matrix_transform.hpp>
+#include <glm/ext/quaternion_common.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <memory>
 #include <string>
@@ -21,19 +22,21 @@ static struct {
     
     glm::mat4 projectionMatrix;
     glm::mat4 viewMatrix;
+    glm::vec3 cameraPos;
+
     const std::vector<std::shared_ptr<Light>> *lights;
 
     std::shared_ptr<FrameBuffer> gBuffer;
-    std::shared_ptr<Texture> gPositionTexture, gNormalTexture, gAlbedoSpecularTexture;
+    std::shared_ptr<Texture> gNormalTexture, gAlbedoSpecularTexture, gDepthTexture;
     std::shared_ptr<Shader> gBufferShader;
 
     std::shared_ptr<Shader> lightPassShader;
 
-    std::shared_ptr<FrameBuffer> framebuffer;
-    std::shared_ptr<Texture> colorTexture, depthStencilTexture;
+    std::shared_ptr<FrameBuffer> postprocessFramebuffer;
+    std::shared_ptr<Texture> postprocessColorTexture, postprocessDepthStencilTexture;
     
     std::shared_ptr<Shader> postProcessingShader;
-    std::shared_ptr<VertexArray> quadForPostProcessingVertexArray;
+    std::shared_ptr<VertexArray> fullscreenQuad;
     //glm::mat3 kernel = {
     //    -1.0f, -1.0f, -1.0f,
     //    -1.0f,  9.0f, -1.0f,
@@ -69,12 +72,12 @@ void Renderer::init()
     gBufferParams.width = 1600;
     gBufferParams.height = 900;
     gBufferParams.textureAttachmentFormats = {
-        Texture::Format::RGBA16F, Texture::Format::RGBA16F, Texture::Format::RGBA8, Texture::Format::depth24stencil8 // TODO: make depth buffer into renderbuffer
+        Texture::Format::RGBA16F, Texture::Format::RGBA8, Texture::Format::depth24stencil8
     };
     s_data.gBuffer = std::make_shared<FrameBuffer>(gBufferParams);
-    s_data.gPositionTexture = s_data.gBuffer->getColorAttachments()[0];
-    s_data.gNormalTexture = s_data.gBuffer->getColorAttachments()[1];
-    s_data.gAlbedoSpecularTexture = s_data.gBuffer->getColorAttachments()[2];
+    s_data.gNormalTexture = s_data.gBuffer->getColorAttachments()[0];
+    s_data.gAlbedoSpecularTexture = s_data.gBuffer->getColorAttachments()[1];
+    s_data.gDepthTexture = s_data.gBuffer->getDepthAttachment();
     s_data.gBufferShader = std::make_shared<Shader>("assets/shaders/gBufferVertex.glsl", "assets/shaders/gBufferFragment.glsl");
     s_data.lightPassShader = std::make_shared<Shader>("assets/shaders/lightPassVertex.glsl", "assets/shaders/lightPassFragment.glsl");
 
@@ -85,13 +88,13 @@ void Renderer::init()
     frameBufferParameters.textureAttachmentFormats = {
         Texture::Format::RGBA8, Texture::Format::depth24stencil8
     };
-    s_data.framebuffer = std::make_shared<FrameBuffer>(frameBufferParameters);
-    s_data.colorTexture = s_data.framebuffer->getColorAttachments()[0];
-    s_data.depthStencilTexture = s_data.framebuffer->getDepthAttachment();
-
+    s_data.postprocessFramebuffer = std::make_shared<FrameBuffer>(frameBufferParameters);
+    s_data.postprocessColorTexture = s_data.postprocessFramebuffer->getColorAttachments()[0];
+    s_data.postprocessDepthStencilTexture = s_data.postprocessFramebuffer->getDepthAttachment();
     s_data.postProcessingShader = std::make_shared<Shader>("assets/shaders/vertexPostProcess.glsl","assets/shaders/fragmentPostProcess.glsl");
-    s_data.quadForPostProcessingVertexArray = std::make_shared<VertexArray>();
 
+    // Full screen quad for lighting pass and postprocessing
+    s_data.fullscreenQuad = std::make_shared<VertexArray>();
     float quadVertices[] = {
         // positions   // texCoords
         -1.0f, -1.0f,  0.0f, 0.0f, // bl
@@ -106,15 +109,15 @@ void Renderer::init()
         {ShaderDataType::float2, "a_position"},
         {ShaderDataType::float2, "a_uv"}
     });
-    s_data.quadForPostProcessingVertexArray->addVertexBuffer(vertexBuffer);
+    s_data.fullscreenQuad->addVertexBuffer(vertexBuffer);
 
     std::shared_ptr<IndexBuffer> indexBuffer = std::make_shared<IndexBuffer>(indices, sizeof(indices) / sizeof(uint32_t));
-    s_data.quadForPostProcessingVertexArray->setIndexBuffer(indexBuffer);
+    s_data.fullscreenQuad->setIndexBuffer(indexBuffer);
 }
 
-void Renderer::beginScene(const Camera &camera, const std::vector<std::shared_ptr<Light>> &lights)
+void Renderer::beginScene(const Camera &camera, const RenderEnvironment &environment)
 {
-    s_data.lights = &lights;
+    s_data.lights = environment.pointLights;
 
     // set up to render to G-Buffer
     s_data.gBuffer->bind();
@@ -125,6 +128,7 @@ void Renderer::beginScene(const Camera &camera, const std::vector<std::shared_pt
     s_data.gBufferShader->bind();
     s_data.projectionMatrix = camera.getProjectionMatrix();
     s_data.viewMatrix = camera.getViewMatrix();
+    s_data.cameraPos = camera.getPosition();
     s_data.gBufferShader->setMat4("u_projectionMatrix", s_data.projectionMatrix);
 
     //
@@ -132,9 +136,9 @@ void Renderer::beginScene(const Camera &camera, const std::vector<std::shared_pt
     //GL::clear();
     //GL::setDepthTest(true);
     //s_data.shader->bind();
-    s_data.projectionMatrix = camera.getProjectionMatrix();
-    s_data.viewMatrix = camera.getViewMatrix();
-    s_data.shader->setMat4("u_projectionMatrix", s_data.projectionMatrix);
+    //s_data.projectionMatrix = camera.getProjectionMatrix();
+    //s_data.viewMatrix = camera.getViewMatrix();
+    //s_data.shader->setMat4("u_projectionMatrix", s_data.projectionMatrix);
     //s_data.shader->setMat4("u_viewModelMatrix", s_data.viewMatrix); // TODO: Change when we are able to move models
 }
 
@@ -143,16 +147,17 @@ void Renderer::endScene()
     s_data.gBuffer->unbind();
 
     // light Pass
-    s_data.framebuffer->bind();
+    s_data.postprocessFramebuffer->bind();
     GL::clear();
     s_data.lightPassShader->bind();
-    s_data.gPositionTexture->bind(0);
-    s_data.gNormalTexture->bind(1);
-    s_data.gAlbedoSpecularTexture->bind(2);
+    s_data.gNormalTexture->bind(0);
+    s_data.gAlbedoSpecularTexture->bind(1);
+    s_data.gDepthTexture->bind(2);
     GL::setDepthTest(false);
-    s_data.lightPassShader->setInt("u_gPosition", 0);
-    s_data.lightPassShader->setInt("u_gNormal", 1);
-    s_data.lightPassShader->setInt("u_gColorSpec", 2);
+    s_data.lightPassShader->setInt("u_gNormal", 0);
+    s_data.lightPassShader->setInt("u_gColorSpec", 1);
+    s_data.lightPassShader->setInt("u_gDepth", 2);
+    s_data.lightPassShader->setMat4("u_inverseProjectionViewMatrix", glm::inverse(s_data.projectionMatrix));
 
     // Light parameters
     for (const std::shared_ptr<Light> &light : *s_data.lights)
@@ -166,24 +171,25 @@ void Renderer::endScene()
         s_data.lightPassShader->setFloat("u_lights[0].intensity", light->getIntensity());
         s_data.lightPassShader->setFloat("u_lights[0].attenuation", light->getAttenuation());
         s_data.lightPassShader->setInt("u_numOfLights", 1);
-        s_data.quadForPostProcessingVertexArray->bind();
-        GL::drawIndexed(s_data.quadForPostProcessingVertexArray);
+        s_data.fullscreenQuad->bind();
+        GL::drawIndexed(s_data.fullscreenQuad);
     }
 
-    s_data.framebuffer->unbind();
 
 
     // Post-process
+    s_data.postprocessFramebuffer->unbind();
+    GL::setClearColor({0.1f, 0.1f, 0.15f, 1.0f});
     GL::clear();
     s_data.postProcessingShader->bind();
     GL::setDepthTest(false);
-    s_data.colorTexture->bind(0);
+    s_data.postprocessColorTexture->bind(0);
     s_data.postProcessingShader->setFloat("u_screenWidth", 1600);
     s_data.postProcessingShader->setFloat("u_screenHeight", 900);
     s_data.postProcessingShader->setMat3("u_kernel", s_data.kernel);
     s_data.postProcessingShader->setInt("u_screenTexture", 0);
-    s_data.quadForPostProcessingVertexArray->bind();
-    GL::drawIndexed(s_data.quadForPostProcessingVertexArray);
+    s_data.fullscreenQuad->bind();
+    GL::drawIndexed(s_data.fullscreenQuad);
 }
 
 void Renderer::drawMesh(Mesh &mesh, const glm::mat4 &modelMatrix)

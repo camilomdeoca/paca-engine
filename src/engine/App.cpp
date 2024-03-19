@@ -124,7 +124,10 @@ void App::run()
         GL::setClearColor({0.1f, 0.1f, 0.15f, 1.0f});
         GL::clear();
 
-        Renderer::beginScene(cameraController.getCamera(), lights);
+        RenderEnvironment environment;
+        environment.pointLights = &lights;
+
+        Renderer::beginScene(cameraController.getCamera(), environment);
         //Renderer::drawMesh(teapot);
         Renderer::drawModel(plane);
         Renderer::drawModel(mainModel);
