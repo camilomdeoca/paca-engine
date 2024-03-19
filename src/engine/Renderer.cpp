@@ -10,35 +10,75 @@
 #include "opengl/Shader.hpp"
 
 #include <cstdint>
+#include <glm/ext/matrix_transform.hpp>
+#include <glm/gtc/quaternion.hpp>
 #include <memory>
 #include <string>
+#include <vector>
 
 static struct {
     std::shared_ptr<Shader> shader;
     
     glm::mat4 projectionMatrix;
     glm::mat4 viewMatrix;
+    const std::vector<std::shared_ptr<Light>> *lights;
+
+    std::shared_ptr<FrameBuffer> gBuffer;
+    std::shared_ptr<Texture> gPositionTexture, gNormalTexture, gAlbedoSpecularTexture;
+    std::shared_ptr<Shader> gBufferShader;
+
+    std::shared_ptr<Shader> lightPassShader;
 
     std::shared_ptr<FrameBuffer> framebuffer;
     std::shared_ptr<Texture> colorTexture, depthStencilTexture;
     
     std::shared_ptr<Shader> postProcessingShader;
     std::shared_ptr<VertexArray> quadForPostProcessingVertexArray;
-    glm::mat3 kernel = {
-        -1.0f, -1.0f, -1.0f,
-        -1.0f,  9.0f, -1.0f,
-        -1.0f, -1.0f, -1.0f
-    };
     //glm::mat3 kernel = {
-    //    0.0f, 0.0f, 0.0f,
-    //    0.0f, 1.0f, 0.0f,
-    //    0.0f, 0.0f, 0.0f
+    //    -1.0f, -1.0f, -1.0f,
+    //    -1.0f,  9.0f, -1.0f,
+    //    -1.0f, -1.0f, -1.0f
     //};
+    glm::mat3 kernel = {
+        0.0f, 0.0f, 0.0f,
+        0.0f, 1.0f, 0.0f,
+        0.0f, 0.0f, 0.0f
+    };
 } s_data;
+
+std::string textureTypeToUniformName(MaterialTextureType::Type type)
+{
+    switch (type) {
+        case MaterialTextureType::diffuse: return "u_diffuseMap";
+        case MaterialTextureType::specular: return "u_specularMap";
+        case MaterialTextureType::normal: return "u_normalMap";
+        case MaterialTextureType::height: return "u_heightMap";
+        default: break;
+    }
+
+    fprintf(stderr, "Invalid Material Texture Type!\n");
+    exit(1);
+}
 
 void Renderer::init()
 {
     s_data.shader = std::make_shared<Shader>("assets/shaders/vertexNoUV.glsl", "assets/shaders/fragmentNoUV.glsl");
+
+    // G-Buffer
+    FrameBufferParameters gBufferParams;
+    gBufferParams.width = 1600;
+    gBufferParams.height = 900;
+    gBufferParams.textureAttachmentFormats = {
+        Texture::Format::RGBA16F, Texture::Format::RGBA16F, Texture::Format::RGBA8, Texture::Format::depth24stencil8 // TODO: make depth buffer into renderbuffer
+    };
+    s_data.gBuffer = std::make_shared<FrameBuffer>(gBufferParams);
+    s_data.gPositionTexture = s_data.gBuffer->getColorAttachments()[0];
+    s_data.gNormalTexture = s_data.gBuffer->getColorAttachments()[1];
+    s_data.gAlbedoSpecularTexture = s_data.gBuffer->getColorAttachments()[2];
+    s_data.gBufferShader = std::make_shared<Shader>("assets/shaders/gBufferVertex.glsl", "assets/shaders/gBufferFragment.glsl");
+    s_data.lightPassShader = std::make_shared<Shader>("assets/shaders/lightPassVertex.glsl", "assets/shaders/lightPassFragment.glsl");
+
+    // Post-process buffer
     FrameBufferParameters frameBufferParameters;
     frameBufferParameters.width = 1600;
     frameBufferParameters.height = 900;
@@ -72,22 +112,68 @@ void Renderer::init()
     s_data.quadForPostProcessingVertexArray->setIndexBuffer(indexBuffer);
 }
 
-void Renderer::beginScene(const Camera &camera)
+void Renderer::beginScene(const Camera &camera, const std::vector<std::shared_ptr<Light>> &lights)
 {
-    s_data.framebuffer->bind();
+    s_data.lights = &lights;
+
+    // set up to render to G-Buffer
+    s_data.gBuffer->bind();
+    GL::setBlending(false);
+    GL::setClearColor({0.0f, 0.0f, 0.0f, 1.0f});
     GL::clear();
     GL::setDepthTest(true);
-    s_data.shader->bind();
+    s_data.gBufferShader->bind();
+    s_data.projectionMatrix = camera.getProjectionMatrix();
+    s_data.viewMatrix = camera.getViewMatrix();
+    s_data.gBufferShader->setMat4("u_projectionMatrix", s_data.projectionMatrix);
+
+    //
+    //s_data.framebuffer->bind();
+    //GL::clear();
+    //GL::setDepthTest(true);
+    //s_data.shader->bind();
     s_data.projectionMatrix = camera.getProjectionMatrix();
     s_data.viewMatrix = camera.getViewMatrix();
     s_data.shader->setMat4("u_projectionMatrix", s_data.projectionMatrix);
-    s_data.shader->setMat4("u_viewModelMatrix", s_data.viewMatrix); // TODO: Change when we are able to move models
-    s_data.shader->setFloat3("u_viewPosition", camera.getPosition());
+    //s_data.shader->setMat4("u_viewModelMatrix", s_data.viewMatrix); // TODO: Change when we are able to move models
 }
 
 void Renderer::endScene()
 {
+    s_data.gBuffer->unbind();
+
+    // light Pass
+    s_data.framebuffer->bind();
+    GL::clear();
+    s_data.lightPassShader->bind();
+    s_data.gPositionTexture->bind(0);
+    s_data.gNormalTexture->bind(1);
+    s_data.gAlbedoSpecularTexture->bind(2);
+    GL::setDepthTest(false);
+    s_data.lightPassShader->setInt("u_gPosition", 0);
+    s_data.lightPassShader->setInt("u_gNormal", 1);
+    s_data.lightPassShader->setInt("u_gColorSpec", 2);
+
+    // Light parameters
+    for (const std::shared_ptr<Light> &light : *s_data.lights)
+    {
+        glm::vec3 lightPosInViewSpace
+            = s_data.viewMatrix
+            * glm::vec4(light->getPosition().x, light->getPosition().y, light->getPosition().z, 1.0f);
+
+        s_data.lightPassShader->setFloat3("u_lights[0].posInViewSpace", lightPosInViewSpace);
+        s_data.lightPassShader->setFloat3("u_lights[0].color", light->getColor());
+        s_data.lightPassShader->setFloat("u_lights[0].intensity", light->getIntensity());
+        s_data.lightPassShader->setFloat("u_lights[0].attenuation", light->getAttenuation());
+        s_data.lightPassShader->setInt("u_numOfLights", 1);
+        s_data.quadForPostProcessingVertexArray->bind();
+        GL::drawIndexed(s_data.quadForPostProcessingVertexArray);
+    }
+
     s_data.framebuffer->unbind();
+
+
+    // Post-process
     GL::clear();
     s_data.postProcessingShader->bind();
     GL::setDepthTest(false);
@@ -100,23 +186,25 @@ void Renderer::endScene()
     GL::drawIndexed(s_data.quadForPostProcessingVertexArray);
 }
 
-void Renderer::drawMesh(Mesh &mesh)
+void Renderer::drawMesh(Mesh &mesh, const glm::mat4 &modelMatrix)
 {
-    s_data.shader->bind();
-    //s_data.shader->setFloat4("u_color", {1.0f, 0.8f, 0.7f, 1.0f});
+    s_data.gBufferShader->bind();
+    s_data.gBufferShader->setMat4("u_viewModelMatrix", s_data.viewMatrix * modelMatrix);
 
-    unsigned int i = 0;
-    for (const std::shared_ptr<Texture> &texture : mesh.getMaterial()->getTextures(MaterialTextureType::diffuse))
-    {
-        texture->bind(i);
-        s_data.shader->setInt("u_diffuse" + std::to_string(i), i);
-        i++;
-    }
-    for (const std::shared_ptr<Texture> &texture : mesh.getMaterial()->getTextures(MaterialTextureType::specular))
-    {
-        texture->bind(i);
-        s_data.shader->setInt("u_specular" + std::to_string(i), i);
-        i++;
+    //s_data.shader->bind();
+    //s_data.shader->setFloat4("u_color", {1.0f, 0.8f, 0.7f, 1.0f});
+    //s_data.shader->setMat4("u_viewModelMatrix", s_data.viewMatrix * modelMatrix);
+
+    unsigned int slot = 0;
+    for (unsigned int i = 0; i < MaterialTextureType::last; i++) {
+        unsigned int indexOfTextureOfType = 0;
+        for (const std::shared_ptr<Texture> &texture : mesh.getMaterial()->getTextures(MaterialTextureType::diffuse))
+        {
+            texture->bind(slot);
+            s_data.gBufferShader->setInt(textureTypeToUniformName(MaterialTextureType::Type(i)) + std::to_string(indexOfTextureOfType), slot);
+            //s_data.shader->setInt(textureTypeToUniformName(MaterialTextureType::Type(i)) + std::to_string(indexOfTextureOfType), slot);
+            slot++, indexOfTextureOfType++;
+        }
     }
 
     mesh.getVertexArray()->bind();
@@ -125,9 +213,15 @@ void Renderer::drawMesh(Mesh &mesh)
 
 void Renderer::drawModel(Model &model)
 {
+    glm::mat4 transform = glm::mat4(1.0f);
+    transform = glm::translate(transform, model.getPosition());
+    transform = glm::scale(transform, model.getScale());
+    glm::quat rot(glm::radians(model.getRotation()));
+    transform = transform * glm::mat4_cast(rot);
+
     for (const std::shared_ptr<Mesh> &mesh : model.getMeshes())
     {
-        drawMesh(*mesh);
+        drawMesh(*mesh, transform);
     }
 }
 

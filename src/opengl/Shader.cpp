@@ -58,7 +58,7 @@ Shader::Shader(const std::string &vertexPath, const std::string &fragmentPath)
     
     	// Use the infoLog as you see fit.
         fprintf(stderr, "%s\n", infoLog.data());
-        fprintf(stderr, "Error compiling vertex shader!\n");
+        fprintf(stderr, "Error compiling vertex shader!: %s.\n", vertexPath.c_str());
         exit(1);
     	
     	// In this simple program, we'll just leave
@@ -93,7 +93,7 @@ Shader::Shader(const std::string &vertexPath, const std::string &fragmentPath)
     
     	// Use the infoLog as you see fit.
         fprintf(stderr, "%s\n", infoLog.data());
-        fprintf(stderr, "Error compiling fragment shader!\n");
+        fprintf(stderr, "Error compiling fragment shader!: %s.\n", fragmentPath.c_str());
         exit(1);
     	
     	// In this simple program, we'll just leave

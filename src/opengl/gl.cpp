@@ -40,3 +40,12 @@ void GL::setDepthTest(bool value)
     else
         glDisable(GL_DEPTH_TEST);
 }
+
+void GL::setBlending(bool value)
+{
+    if (value)
+        glEnable(GL_BLEND);
+    else
+        glDisable(GL_BLEND);
+
+}

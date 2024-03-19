@@ -13,6 +13,10 @@ namespace Key {
         s      = SDL_SCANCODE_S,
         d      = SDL_SCANCODE_D,
         f      = SDL_SCANCODE_F,
+        right  = SDL_SCANCODE_RIGHT,
+        left   = SDL_SCANCODE_LEFT,
+        down   = SDL_SCANCODE_DOWN,
+        up     = SDL_SCANCODE_UP,
         lshift = SDL_SCANCODE_LSHIFT,
         space  = SDL_SCANCODE_SPACE,
         esc    = SDL_SCANCODE_ESCAPE

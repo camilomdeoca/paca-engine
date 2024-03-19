@@ -59,6 +59,7 @@ std::shared_ptr<Mesh> processMesh(aiMesh *mesh, const aiScene *scene, const std:
     MaterialSpecification materialSpec;
     materialSpec.textureMaps[MaterialTextureType::diffuse] = loadMaterialTextures(material, aiTextureType_DIFFUSE, directory);
     materialSpec.textureMaps[MaterialTextureType::specular] = loadMaterialTextures(material, aiTextureType_SPECULAR, directory);
+    materialSpec.textureMaps[MaterialTextureType::normal] = loadMaterialTextures(material, aiTextureType_NORMALS, directory);
 
     return std::make_shared<Mesh>(vertices, indices, std::make_shared<Material>(materialSpec));
 }

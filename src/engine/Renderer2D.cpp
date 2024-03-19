@@ -68,6 +68,7 @@ void Renderer2D::beginScene(const Camera &camera)
 {
     s_data.quadsShader->bind();
     s_data.quadsShader->setMat4("u_viewProjection", camera.getViewProjectionMatrix());
+    GL::setBlending(true);
 }
 
 void Renderer2D::endScene()

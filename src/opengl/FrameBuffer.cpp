@@ -3,8 +3,10 @@
 #include "opengl/Texture.hpp"
 
 #include <GL/glew.h>
+#include <cassert>
 #include <cstdlib>
 #include <memory>
+#include <vector>
 
 FrameBuffer::FrameBuffer(FrameBufferParameters parameters)
 {
@@ -19,18 +21,35 @@ FrameBuffer::FrameBuffer(FrameBufferParameters parameters)
             std::shared_ptr<Texture> &texture =
                 m_colorAttachments.emplace_back(std::make_shared<Texture>(parameters.width, parameters.height, format));
             texture->setRepeat(false);
+            texture->setInterpolate(false);
         }
         else
             m_depthAttachment = std::make_shared<Texture>(parameters.width, parameters.height, format);
     }
 
     // Attach all color textures
-    for (unsigned int i = 0; i < m_colorAttachments.size(); i++)
+    for (unsigned int i = 0; i < m_colorAttachments.size(); i++) {
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, GL_TEXTURE_2D, m_colorAttachments[i]->getId(), 0);
+    }
 
     // Attach depth stencil buffer
     if (m_depthAttachment)
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, m_depthAttachment->getId(), 0);
+
+    // Set color buffers to draw to
+    GLenum buffers[] = {
+        GL_COLOR_ATTACHMENT0,
+        GL_COLOR_ATTACHMENT1,
+        GL_COLOR_ATTACHMENT2,
+        GL_COLOR_ATTACHMENT3,
+        GL_COLOR_ATTACHMENT4,
+        GL_COLOR_ATTACHMENT5,
+        GL_COLOR_ATTACHMENT6,
+        GL_COLOR_ATTACHMENT7,
+        GL_COLOR_ATTACHMENT8
+    };
+    assert(m_colorAttachments.size() < sizeof(buffers) / sizeof(GLenum));
+    glDrawBuffers(m_colorAttachments.size(), buffers);
 
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
         exit(1); // Error :C

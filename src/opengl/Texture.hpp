@@ -10,6 +10,7 @@ public:
         GA8,
         RGB8,
         RGBA8,
+        RGBA16F,
         depth24stencil8
     };
 

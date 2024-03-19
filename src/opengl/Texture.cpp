@@ -14,8 +14,9 @@ GLenum formatToOpenGLFormat(Texture::Format format)
         case Texture::Format::GA8:   return GL_RG;
         case Texture::Format::RGB8:  return GL_RGB;
         case Texture::Format::RGBA8: return GL_RGBA;
+        case Texture::Format::RGBA16F: return GL_RGBA;
         case Texture::Format::depth24stencil8: return GL_DEPTH_STENCIL;
-    }
+        }
 }
 
 GLenum formatToOpenGLInternalFormat(Texture::Format format)
@@ -26,8 +27,9 @@ GLenum formatToOpenGLInternalFormat(Texture::Format format)
         case Texture::Format::GA8:   return GL_RG8;
         case Texture::Format::RGB8:  return GL_RGB8;
         case Texture::Format::RGBA8: return GL_RGBA8;
+        case Texture::Format::RGBA16F: return GL_RGBA16F;
         case Texture::Format::depth24stencil8: return GL_DEPTH24_STENCIL8;
-    }
+        }
 }
 
 Texture::Texture(const std::string &path)
@@ -105,6 +107,7 @@ void Texture::bind(uint32_t slot) const
 
 void Texture::setInterpolate(bool value)
 {
+    glTextureParameteri(m_id, GL_TEXTURE_MIN_FILTER, value ? GL_LINEAR : GL_NEAREST);
     glTextureParameteri(m_id, GL_TEXTURE_MAG_FILTER, value ? GL_LINEAR : GL_NEAREST);
 }
 

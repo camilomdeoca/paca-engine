@@ -28,7 +28,7 @@ public:
     ~Material();
 
     const std::vector<std::shared_ptr<Texture>> &getTextures(MaterialTextureType::Type type);
-    static std::string MaterialTextureTypeToUniformName(MaterialTextureType::Type type);
+    static std::string TextureTypeToUniformName(MaterialTextureType::Type type);
 
 private:
     std::array<std::vector<std::shared_ptr<Texture>>, MaterialTextureType::last> m_maps;

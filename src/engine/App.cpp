@@ -11,6 +11,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <format>
+#include <glm/fwd.hpp>
 #include <memory>
 #include <string>
 
@@ -53,7 +54,37 @@ void App::run()
     bigImageTexture2->setInterpolate(false);
 
     //Mesh teapot("assets/meshes/teapot1.obj");
-    Model backpack("assets/meshes/backpack/backpack.obj");
+    Model mainModel("assets/meshes/backpack/backpack.obj");
+    Model plane("assets/meshes/plane/plane.gltf");
+    plane.setPosition({0.0f, -3.0f, 0.0f});
+    //Model mainModel("assets/meshes/cube/scene.gltf");
+    //mainModel.setScale(glm::vec3(0.005f));
+    Model lightBulb("assets/meshes/light/scene.gltf");
+    lightBulb.setPosition({3.0f, 4.0f, -3.0f});
+    lightBulb.setRotation({-90.0f, 0.0f, 0.0f});
+    lightBulb.setScale(glm::vec3(10.0f));
+
+    std::vector<std::shared_ptr<Light>> lights;
+    std::shared_ptr<Light> light = std::make_shared<Light>(glm::vec3(3.0f, 4.0f, -3.0f), glm::vec3(1.0f, 1.0f, 1.0f), 1.0f, 0.0075f);
+    lights.push_back(light);
+
+    Input::addKeyPressCallback([light](KeyPressEvent &event) {
+        light->setIntensity(light->getIntensity() - 0.1);
+        printf("intensity = %f\n", light->getIntensity());
+    }, Key::down);
+    Input::addKeyPressCallback([light](KeyPressEvent &event) {
+        light->setIntensity(light->getIntensity() + 0.1);
+        printf("intensity = %f\n", light->getIntensity());
+    }, Key::up);
+    Input::addKeyPressCallback([light](KeyPressEvent &event) {
+        light->setAttenuation(light->getAttenuation() + 0.0005);
+        printf("attenuation = %f\n", light->getAttenuation());
+    }, Key::left);
+    Input::addKeyPressCallback([light](KeyPressEvent &event) {
+        light->setAttenuation(light->getAttenuation() - 0.0005);
+        printf("attenuation = %f\n", light->getAttenuation());
+    }, Key::right);
+
 
     float lastFrameTime = SDL_GetTicks();
     while (true) {
@@ -73,14 +104,31 @@ void App::run()
         Input::processInput();
 
         cameraController.onUpdate(timeDelta);
+        //glm::vec3 rotation = backpack.getRotation();
+        //rotation.y = 15.0f * sin(time * 0.01f);
+        //rotation.x = 15.0f *sin(time * 0.005f);
+        //backpack.setRotation(rotation);
+
+        //glm::vec3 position = backpack.getPosition();
+        //position.y = 0.3f * sin(time * 0.01f);
+        //backpack.setPosition(position);
+        
+        // Rotate Light
+        static float distance = 3.0f;
+        glm::vec3 newLightPos(distance * sin(time*0.002f), 2.0f, distance * cos(time*0.002f));
+        //distance += 0.001 * timeDelta;
+        light->setPosition(newLightPos);
+        lightBulb.setPosition(newLightPos);
 
         /* Draw */
         GL::setClearColor({0.1f, 0.1f, 0.15f, 1.0f});
         GL::clear();
 
-        Renderer::beginScene(cameraController.getCamera());
+        Renderer::beginScene(cameraController.getCamera(), lights);
         //Renderer::drawMesh(teapot);
-        Renderer::drawModel(backpack);
+        Renderer::drawModel(plane);
+        Renderer::drawModel(mainModel);
+        Renderer::drawModel(lightBulb);
         Renderer::endScene();
 
         //Renderer2D::beginScene(cameraController.getCamera());
