@@ -1,7 +1,8 @@
 #include "Renderer2D.hpp"
-#include "../opengl/VertexArray.hpp"
-#include "../opengl/Shader.hpp"
-#include "../opengl/gl.hpp"
+
+#include "opengl/VertexArray.hpp"
+#include "opengl/Shader.hpp"
+#include "opengl/gl.hpp"
 #include "opengl/Texture.hpp"
 #include "opengl/VertexBuffer.hpp"
 
@@ -10,7 +11,6 @@
 #include <locale>
 #include <memory>
 #include <unordered_map>
-
 #include <fontatlas/fontatlas.hpp>
 
 struct QuadVertex {

@@ -4,6 +4,7 @@
 #include "engine/Light.hpp"
 #include "engine/Mesh.hpp"
 #include "engine/Model.hpp"
+
 #include <memory>
 
 struct RenderEnvironment {

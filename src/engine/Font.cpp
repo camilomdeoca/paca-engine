@@ -1,4 +1,5 @@
 #include "Font.hpp"
+
 #include "fontatlas/fontatlas.hpp"
 
 #include <memory>

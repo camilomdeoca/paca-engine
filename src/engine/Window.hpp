@@ -11,6 +11,9 @@ public:
 
     void create(std::string title = "Window Title", int w = 1600, int h = 900);
 
+    unsigned int getWidth() { return m_width; }
+    unsigned int getHeight() { return m_height; }
+
     void swapBuffers();
 private:
     struct deleter {
@@ -20,4 +23,5 @@ private:
     };
 
     std::unique_ptr<SDL_Window, deleter> m_window;
+    unsigned int m_width = 0, m_height = 0;
 };

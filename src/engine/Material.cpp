@@ -1,4 +1,5 @@
 #include "Material.hpp"
+
 #include <cstdio>
 
 Material::Material(MaterialSpecification maps)

@@ -1,5 +1,7 @@
 #include "ResourceManager.hpp"
+
 #include "opengl/Texture.hpp"
+
 #include <memory>
 #include <unordered_map>
 #include <utility>

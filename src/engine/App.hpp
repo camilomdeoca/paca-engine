@@ -11,5 +11,5 @@ public:
     void run();
 
 private:
-    Window window;
+    Window m_window;
 };

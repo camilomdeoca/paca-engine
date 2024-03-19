@@ -1,5 +1,7 @@
 #include "Model.hpp"
+
 #include "util/ModelLoader.hpp"
+
 #include <cstdio>
 
 Model::Model(const std::string &path)
@@ -13,7 +15,6 @@ Model::Model(const std::string &path)
     }
 
     m_meshes = data.value().meshes;
-    fprintf(stdout, "%s model has %zu meshes.\n", path.c_str(), m_meshes.size());
 }
 
 Model::~Model()
