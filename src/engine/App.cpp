@@ -47,7 +47,7 @@ void App::run()
     OrthoCamera uiCamera(0.0f, 1600.0f, 0.0f, 900.0f);
     Font font("assets/fonts/DejaVuSansFontAtlas.png", "assets/fonts/DejaVuSansFontAtlas.fntat");
 
-    Model mainModel("assets/meshes/backpack/backpack.obj");
+    Model mainModel("assets/meshes/cube/scene.gltf");
     Model plane("assets/meshes/plane/plane.gltf");
     plane.setPosition({0.0f, -3.0f, 0.0f});
     Model lightBulb("assets/meshes/light/scene.gltf");
@@ -68,11 +68,11 @@ void App::run()
         printf("intensity = %f\n", light->getIntensity());
     }, Key::up);
     Input::addKeyPressCallback([light](KeyPressEvent &event) {
-        light->setAttenuation(light->getAttenuation() + 0.0005);
+        light->setAttenuation(light->getAttenuation() * 1.05);
         printf("attenuation = %f\n", light->getAttenuation());
     }, Key::left);
     Input::addKeyPressCallback([light](KeyPressEvent &event) {
-        light->setAttenuation(light->getAttenuation() - 0.0005);
+        light->setAttenuation(light->getAttenuation() * 0.95);
         printf("attenuation = %f\n", light->getAttenuation());
     }, Key::right);
 
@@ -100,7 +100,7 @@ void App::run()
         static float distance = 3.0f;
         glm::vec3 newLightPos(distance * sin(time*0.002f), 2.0f, distance * cos(time*0.002f));
         light->setPosition(newLightPos);
-        lightBulb.setPosition(newLightPos);
+        lightBulb.setPosition(newLightPos);        
 
         /* Draw */
         GL::setClearColor({0.1f, 0.1f, 0.15f, 1.0f});

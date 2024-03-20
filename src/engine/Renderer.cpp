@@ -10,6 +10,7 @@
 #include "opengl/Shader.hpp"
 
 #include <cstdint>
+#include <cstdio>
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/ext/quaternion_common.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -204,11 +205,11 @@ void Renderer::drawMesh(Mesh &mesh, const glm::mat4 &modelMatrix)
     unsigned int slot = 0;
     for (unsigned int i = 0; i < MaterialTextureType::last; i++) {
         unsigned int indexOfTextureOfType = 0;
-        for (const std::shared_ptr<Texture> &texture : mesh.getMaterial()->getTextures(MaterialTextureType::diffuse))
+        for (const std::shared_ptr<Texture> &texture : mesh.getMaterial()->getTextures(MaterialTextureType::Type(i)))
         {
             texture->bind(slot);
             s_data.gBufferShader->setInt(textureTypeToUniformName(MaterialTextureType::Type(i)) + std::to_string(indexOfTextureOfType), slot);
-            //s_data.shader->setInt(textureTypeToUniformName(MaterialTextureType::Type(i)) + std::to_string(indexOfTextureOfType), slot);
+            s_data.shader->setInt(textureTypeToUniformName(MaterialTextureType::Type(i)) + std::to_string(indexOfTextureOfType), slot);
             slot++, indexOfTextureOfType++;
         }
     }

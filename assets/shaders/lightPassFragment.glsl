@@ -59,7 +59,7 @@ void main()
     }
 
     outColor = vec4(final + ambient, 1.0);
-    //outColor = vec4(position, 1.0);
+    //outColor = vec4(normal, 1.0);
     //outColor = vec4(diffuse * color * u_lights.intensity + specular * u_lights.color * u_lights.intensity + ambient, 1.0);
     //outColor = vec4(1.0, 0.0, 0.0, 1.0);
 }

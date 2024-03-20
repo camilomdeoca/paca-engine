@@ -4,6 +4,7 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <cstdio>
 #include <fstream>
+#include <iosfwd>
 #include <vector>
 
 std::string readFile(const std::string &path)
@@ -14,7 +15,7 @@ std::string readFile(const std::string &path)
     if (file)
     {
         file.seekg(0, std::ios::end);
-        size_t size = file.tellg();
+        std::streampos size = file.tellg();
         if (size != -1)
         {
             result.resize(size);

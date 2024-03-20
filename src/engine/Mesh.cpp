@@ -24,6 +24,7 @@ Mesh::Mesh(const std::string &path)
     m_vertex_buffer->setLayout({
         {ShaderDataType::float3, "a_position"},
         {ShaderDataType::float3, "a_normal"},
+        {ShaderDataType::float3, "a_tangent"},
         {ShaderDataType::float2, "a_uvCoords"}
     });
 
@@ -43,6 +44,7 @@ Mesh::Mesh(const std::vector<float> &vertices, const std::vector<uint32_t> &indi
     m_vertex_buffer->setLayout({
         {ShaderDataType::float3, "a_position"},
         {ShaderDataType::float3, "a_normal"},
+        {ShaderDataType::float3, "a_tangent"},
         {ShaderDataType::float2, "a_uvCoords"}
     });
 

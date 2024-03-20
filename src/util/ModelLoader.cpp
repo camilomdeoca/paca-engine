@@ -43,6 +43,11 @@ std::shared_ptr<Mesh> processMesh(aiMesh *mesh, const aiScene *scene, const std:
         vertices.push_back(hasNormals ? mesh->mNormals[i].y : 0);
         vertices.push_back(hasNormals ? mesh->mNormals[i].z : 0);
 
+        bool hasTangents = mesh->HasTangentsAndBitangents();
+        vertices.push_back(hasTangents ? mesh->mTangents[i].x : 0);
+        vertices.push_back(hasTangents ? mesh->mTangents[i].y : 0);
+        vertices.push_back(hasTangents ? mesh->mTangents[i].z : 0);
+
         bool hasTextureCoords = mesh->mTextureCoords[0];
         vertices.push_back(hasTextureCoords ? mesh->mTextureCoords[0][i].x : 0);
         vertices.push_back(hasTextureCoords ? mesh->mTextureCoords[0][i].y : 0);
@@ -84,7 +89,7 @@ std::optional<ModelData> ModelLoader::loadModel(const std::string &path)
     ModelData result;
 
     Assimp::Importer importer;
-    const aiScene *scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_OptimizeMeshes);
+    const aiScene *scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_OptimizeMeshes | aiProcess_CalcTangentSpace);
 
     if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
     {
