@@ -11,9 +11,14 @@ struct RenderEnvironment {
     std::vector<std::shared_ptr<Light>> *pointLights;
 };
 
+struct RendererParameters {
+    // size to render to
+    uint32_t width, height;
+};
+
 class Renderer {
 public:
-    static void init();
+    static void init(RendererParameters parameters);
 
     static void beginScene(const Camera &camera, const RenderEnvironment &environment);
     static void endScene();

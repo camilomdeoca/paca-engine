@@ -34,20 +34,25 @@ void App::init(std::string title)
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 
+    RendererParameters rendererParams;
+    rendererParams.width = m_window.getWidth();
+    rendererParams.height = m_window.getHeight();
+
     GL::init();
     Input::init();
-    Renderer::init();
+    Renderer::init(rendererParams);
     Renderer2D::init();
 }
 
 void App::run()
 {
     Input::restrainMouseToWindow(true);
-    PerspectiveCameraController cameraController(1600.0f / 900.0f, 90.0f);
-    OrthoCamera uiCamera(0.0f, 1600.0f, 0.0f, 900.0f);
+    PerspectiveCameraController cameraController((float)m_window.getWidth() / m_window.getHeight(), 90.0f);
+    OrthoCamera uiCamera(0.0f, m_window.getWidth(), 0.0f, m_window.getHeight());
     Font font("assets/fonts/DejaVuSansFontAtlas.png", "assets/fonts/DejaVuSansFontAtlas.fntat");
 
-    Model mainModel("assets/meshes/cube/scene.gltf");
+    Model mainModel("assets/meshes/f1961_33-part_01-laser-ortery_texture-150k-4096-gltf_std/f1961_33-part_01-laser-ortery_texture-150k-4096.gltf");
+    mainModel.setScale(glm::vec3(10.0f));
     Model plane("assets/meshes/plane/plane.gltf");
     plane.setPosition({0.0f, -3.0f, 0.0f});
     Model lightBulb("assets/meshes/light/scene.gltf");
@@ -75,7 +80,11 @@ void App::run()
         light->setAttenuation(light->getAttenuation() * 0.95);
         printf("attenuation = %f\n", light->getAttenuation());
     }, Key::right);
-
+    Input::addMouseButtonPressCallback([&light, &cameraController, &lightBulb](ButtonPressEvent &event) {
+        glm::vec3 newPos = cameraController.getCamera().getPosition();
+        light->setPosition(newPos);
+        lightBulb.setPosition(newPos);
+    }, Button::left);
 
     float lastFrameTime = SDL_GetTicks();
     while (true) {
@@ -97,10 +106,10 @@ void App::run()
         cameraController.onUpdate(timeDelta);
         
         // Rotate Light
-        static float distance = 3.0f;
-        glm::vec3 newLightPos(distance * sin(time*0.002f), 2.0f, distance * cos(time*0.002f));
-        light->setPosition(newLightPos);
-        lightBulb.setPosition(newLightPos);        
+        //static float distance = 3.0f;
+        //glm::vec3 newLightPos(distance * sin(time*0.002f), 2.0f, distance * cos(time*0.002f));
+        //light->setPosition(newLightPos);
+        //lightBulb.setPosition(newLightPos);        
 
         /* Draw */
         GL::setClearColor({0.1f, 0.1f, 0.15f, 1.0f});

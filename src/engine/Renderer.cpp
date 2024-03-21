@@ -19,6 +19,7 @@
 #include <vector>
 
 static struct {
+    unsigned int width, height;
     std::shared_ptr<Shader> shader;
     
     glm::mat4 projectionMatrix;
@@ -64,14 +65,16 @@ std::string textureTypeToUniformName(MaterialTextureType::Type type)
     exit(1);
 }
 
-void Renderer::init()
+void Renderer::init(RendererParameters parameters)
 {
     s_data.shader = std::make_shared<Shader>("assets/shaders/vertexNoUV.glsl", "assets/shaders/fragmentNoUV.glsl");
+    s_data.width = parameters.width;
+    s_data.height = parameters.height;
 
     // G-Buffer
     FrameBufferParameters gBufferParams;
-    gBufferParams.width = 1600;
-    gBufferParams.height = 900;
+    gBufferParams.width = s_data.width;
+    gBufferParams.height = s_data.height;
     gBufferParams.textureAttachmentFormats = {
         Texture::Format::RGBA16F, Texture::Format::RGBA8, Texture::Format::depth24stencil8
     };
@@ -84,8 +87,8 @@ void Renderer::init()
 
     // Post-process buffer
     FrameBufferParameters frameBufferParameters;
-    frameBufferParameters.width = 1600;
-    frameBufferParameters.height = 900;
+    frameBufferParameters.width = s_data.width;
+    frameBufferParameters.height = s_data.height;
     frameBufferParameters.textureAttachmentFormats = {
         Texture::Format::RGBA8, Texture::Format::depth24stencil8
     };
@@ -185,8 +188,8 @@ void Renderer::endScene()
     s_data.postProcessingShader->bind();
     GL::setDepthTest(false);
     s_data.postprocessColorTexture->bind(0);
-    s_data.postProcessingShader->setFloat("u_screenWidth", 1600);
-    s_data.postProcessingShader->setFloat("u_screenHeight", 900);
+    s_data.postProcessingShader->setFloat("u_screenWidth", s_data.width);
+    s_data.postProcessingShader->setFloat("u_screenHeight", s_data.height);
     s_data.postProcessingShader->setMat3("u_kernel", s_data.kernel);
     s_data.postProcessingShader->setInt("u_screenTexture", 0);
     s_data.fullscreenQuad->bind();
