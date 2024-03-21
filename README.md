@@ -8,6 +8,8 @@
 
 * Normal Mapping
 
+* Text Rendering
+
 ## Building and Running
 
 ```
