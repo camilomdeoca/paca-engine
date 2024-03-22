@@ -33,22 +33,23 @@ static struct {
     std::shared_ptr<Shader> gBufferShader;
 
     std::shared_ptr<Shader> lightPassShader;
+    std::shared_ptr<Shader> lightShader;
 
     std::shared_ptr<FrameBuffer> postprocessFramebuffer;
     std::shared_ptr<Texture> postprocessColorTexture, postprocessDepthStencilTexture;
     
     std::shared_ptr<Shader> postProcessingShader;
     std::shared_ptr<VertexArray> fullscreenQuad;
-    //glm::mat3 kernel = {
-    //    -1.0f, -1.0f, -1.0f,
-    //    -1.0f,  9.0f, -1.0f,
-    //    -1.0f, -1.0f, -1.0f
-    //};
     glm::mat3 kernel = {
-        0.0f, 0.0f, 0.0f,
-        0.0f, 1.0f, 0.0f,
-        0.0f, 0.0f, 0.0f
+        -1.0f, -1.0f, -1.0f,
+        -1.0f,  9.0f, -1.0f,
+        -1.0f, -1.0f, -1.0f
     };
+    //glm::mat3 kernel = {
+    //    0.0f, 0.0f, 0.0f,
+    //    0.0f, 1.0f, 0.0f,
+    //    0.0f, 0.0f, 0.0f
+    //};
 } s_data;
 
 std::string textureTypeToUniformName(MaterialTextureType::Type type)
@@ -83,7 +84,10 @@ void Renderer::init(RendererParameters parameters)
     s_data.gAlbedoSpecularTexture = s_data.gBuffer->getColorAttachments()[1];
     s_data.gDepthTexture = s_data.gBuffer->getDepthAttachment();
     s_data.gBufferShader = std::make_shared<Shader>("assets/shaders/gBufferVertex.glsl", "assets/shaders/gBufferFragment.glsl");
+
+    // Light pass
     s_data.lightPassShader = std::make_shared<Shader>("assets/shaders/lightPassVertex.glsl", "assets/shaders/lightPassFragment.glsl");
+    s_data.lightShader = std::make_shared<Shader>("assets/shaders/lightShaderVertex.glsl", "assets/shaders/lightShaderFragment.glsl");
 
     // Post-process buffer
     FrameBufferParameters frameBufferParameters;
@@ -148,7 +152,7 @@ void Renderer::beginScene(const Camera &camera, const RenderEnvironment &environ
 
 void Renderer::endScene()
 {
-    s_data.gBuffer->unbind();
+    // TODO: Break each pass to a new function
 
     // light Pass
     s_data.postprocessFramebuffer->bind();
@@ -179,7 +183,33 @@ void Renderer::endScene()
         GL::drawIndexed(s_data.fullscreenQuad);
     }
 
+    // Render Light models
+    FrameBuffer::copy(*s_data.gBuffer, *s_data.postprocessFramebuffer);
+    s_data.lightShader->bind();
+    GL::setDepthTest(true);
+    s_data.lightShader->setMat4("u_projectionMatrix", s_data.projectionMatrix);
+    for (const std::shared_ptr<Light> &light : *s_data.lights)
+    {
+        if (light->getModel())
+        {
+            light->getModel()->setPosition(light->getPosition());
 
+            // Put this into a function in Model class
+            glm::mat4 transform = glm::mat4(1.0f);
+            transform = glm::translate(transform, light->getModel()->getPosition());
+            transform = glm::scale(transform, light->getModel()->getScale());
+            glm::quat rot(glm::radians(light->getModel()->getRotation()));
+            transform = transform * glm::mat4_cast(rot);
+
+            s_data.lightShader->setMat4("u_viewModelMatrix", s_data.viewMatrix * transform);
+            s_data.lightShader->setFloat3("u_lightColor", light->getColor());
+            for (const std::shared_ptr<Mesh> &mesh : light->getModel()->getMeshes())
+            {
+                mesh->getVertexArray()->bind();
+                GL::drawIndexed(mesh->getVertexArray());
+            }
+        }
+    }
 
     // Post-process
     s_data.postprocessFramebuffer->unbind();

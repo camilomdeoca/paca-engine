@@ -15,7 +15,13 @@ public:
     void onMouseScroll(MouseWheelEvent &event);
     void onMouseMotion(MouseMotionEvent &event);
 
+    void pauseControl();
+    void resumeControl();
+
 private:
     PerspectiveCamera m_camera;
+    std::list<MouseMotionCallback>::const_iterator m_mouseMotionCallbackReference;
+    std::list<MouseWheelCallback>::const_iterator m_mouseWheelUpCallbackReference, m_mouseWheelDownCallbackReference;
+    bool m_haveControl = false;
 };
 

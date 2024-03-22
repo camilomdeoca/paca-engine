@@ -4,14 +4,12 @@ layout (location = 0) in vec2 o_uv;
 
 layout (location = 0) out vec4 color;
 
-uniform float u_screenWidth;
-uniform float u_screenHeight;
 uniform mat3 u_kernel;
 uniform sampler2D u_screenTexture;
 
 void main()
 {
-    vec2 offset = vec2(2.0/u_screenWidth, 2.0/u_screenHeight);
+    vec2 offset = 1.0 / textureSize(u_screenTexture, 0);
     vec2 offsets[9] = vec2[](
         vec2(-offset.x,  offset.y), // top-left
         vec2(     0.0f,  offset.y), // top-center
@@ -45,5 +43,5 @@ void main()
     float gamma = 2.2;
     color = vec4(pow(col, vec3(1.0/gamma)), 1.0);
     //color = vec4(col, 1.0);
-    //color = vec4(vec3(1.0) - sampledColor.xyz, sampledColor.w); // invert
+    //color = texture(u_screenTexture, o_uv);
 }

@@ -9,6 +9,7 @@
 #include <vector>
 
 FrameBuffer::FrameBuffer(FrameBufferParameters parameters)
+    : m_width(parameters.width), m_height(parameters.height)
 {
     glGenFramebuffers(1, &m_id);
     glBindFramebuffer(GL_FRAMEBUFFER, m_id);
@@ -70,4 +71,11 @@ void FrameBuffer::bind()
 void FrameBuffer::unbind()
 {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+void FrameBuffer::copy(const FrameBuffer &from, const FrameBuffer &to)
+{
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, from.m_id);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, to.m_id);
+    glBlitFramebuffer(0, 0, from.m_width, from.m_height, 0, 0, to.m_width, to.m_height, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
 }

@@ -3,6 +3,7 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_scancode.h>
 #include <functional>
+#include <list>
 
 namespace Key {
     enum Keycode {
@@ -54,6 +55,13 @@ struct MouseWheelEvent {
     int amount;
 };
 
+typedef std::function<void(ButtonPressEvent&)> ButtonPressCallback;
+typedef std::function<void(ButtonReleaseEvent&)> ButtonReleaseCallback;
+typedef std::function<void(KeyPressEvent&)> KeyPressCallback;
+typedef std::function<void(KeyReleaseEvent&)> KeyReleaseCallback;
+typedef std::function<void(MouseMotionEvent&)> MouseMotionCallback;
+typedef std::function<void(MouseWheelEvent&)> MouseWheelCallback;
+
 class Input {
 public:
     // Should be called after initializing SDL
@@ -66,11 +74,19 @@ public:
     static bool isKeyPressed(Key::Keycode key);
     static bool isMouseButtonPressed(Button::ButtonCode button);
 
-    static void addMouseButtonPressCallback(std::function<void(ButtonPressEvent&)> callback, Button::ButtonCode button);
-    static void addMouseButtonReleaseCallback(std::function<void(ButtonReleaseEvent&)> callback, Button::ButtonCode button);
-    static void addKeyPressCallback(std::function<void(KeyPressEvent&)> callback, Key::Keycode key);
-    static void addKeyReleaseCallback(std::function<void(KeyReleaseEvent&)> callback, Key::Keycode key);
-    static void addMouseMotionCallback(std::function<void(MouseMotionEvent&)> callback);
-    static void addMouseWheelUpCallback(std::function<void(MouseWheelEvent&)> callback);
-    static void addMouseWheelDownCallback(std::function<void(MouseWheelEvent&)> callback);
+    static std::list<ButtonPressCallback>::const_iterator addMouseButtonPressCallback(ButtonPressCallback callback, Button::ButtonCode button);
+    static std::list<ButtonReleaseCallback>::const_iterator addMouseButtonReleaseCallback(ButtonReleaseCallback callback, Button::ButtonCode button);
+    static std::list<KeyPressCallback>::const_iterator addKeyPressCallback(KeyPressCallback callback, Key::Keycode key);
+    static std::list<KeyReleaseCallback>::const_iterator addKeyReleaseCallback(KeyReleaseCallback callback, Key::Keycode key);
+    static std::list<MouseMotionCallback>::const_iterator addMouseMotionCallback(MouseMotionCallback callback);
+    static std::list<MouseWheelCallback>::const_iterator addMouseWheelUpCallback(MouseWheelCallback callback);
+    static std::list<MouseWheelCallback>::const_iterator addMouseWheelDownCallback(MouseWheelCallback callback);
+
+    static void removeMouseButtonPressCallback(std::list<ButtonPressCallback>::const_iterator referenceToCallback, Button::ButtonCode button);
+    static void removeMouseButtonReleaseCallback(std::list<ButtonReleaseCallback>::const_iterator referenceToCallback, Button::ButtonCode button);
+    static void removeKeyPressCallback(std::list<KeyPressCallback>::const_iterator referenceToCallback, Key::Keycode key);
+    static void removeKeyReleaseCallback(std::list<KeyReleaseCallback>::const_iterator referenceToCallback, Key::Keycode key);
+    static void removeMouseMotionCallback(std::list<MouseMotionCallback>::const_iterator referenceToCallback);
+    static void removeMouseWheelUpCallback(std::list<MouseWheelCallback>::const_iterator referenceToCallback);
+    static void removeMouseWheelDownCallback(std::list<MouseWheelCallback>::const_iterator referenceToCallback);
 };

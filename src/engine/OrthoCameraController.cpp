@@ -4,9 +4,15 @@
 OrthoCameraController::OrthoCameraController(float aspectRatio)
     : m_aspectRatio(aspectRatio), m_camera(-m_aspectRatio*m_zoom, m_aspectRatio*m_zoom, -m_zoom, m_zoom)
 {
-    std::function<void(MouseWheelEvent&)> callback = [this](MouseWheelEvent &event) { onMouseScroll(event); };
-    Input::addMouseWheelDownCallback(callback); // TODO: remove callback on destructor
-    Input::addMouseWheelUpCallback(callback); // TODO: remove callback on destructor
+    MouseWheelCallback callback = [this](MouseWheelEvent &event) { onMouseScroll(event); };
+    m_mouseWheelDownCallbackReference = Input::addMouseWheelDownCallback(callback); // TODO: remove callback on destructor
+    m_mouseWheelUpCallbackReference = Input::addMouseWheelUpCallback(callback); // TODO: remove callback on destructor
+}
+
+OrthoCameraController::~OrthoCameraController()
+{
+    Input::removeMouseWheelDownCallback(m_mouseWheelDownCallbackReference);
+    Input::removeMouseWheelUpCallback(m_mouseWheelUpCallbackReference);
 }
 
 void OrthoCameraController::onUpdate(float ms)

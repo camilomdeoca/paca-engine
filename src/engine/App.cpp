@@ -48,6 +48,7 @@ void App::run()
 {
     Input::restrainMouseToWindow(true);
     PerspectiveCameraController cameraController((float)m_window.getWidth() / m_window.getHeight(), 90.0f);
+    cameraController.resumeControl();
     OrthoCamera uiCamera(0.0f, m_window.getWidth(), 0.0f, m_window.getHeight());
     Font font("assets/fonts/DejaVuSansFontAtlas.png", "assets/fonts/DejaVuSansFontAtlas.fntat");
 
@@ -55,13 +56,13 @@ void App::run()
     mainModel.setScale(glm::vec3(10.0f));
     Model plane("assets/meshes/plane/plane.gltf");
     plane.setPosition({0.0f, -3.0f, 0.0f});
-    Model lightBulb("assets/meshes/light/scene.gltf");
-    lightBulb.setPosition({3.0f, 4.0f, -3.0f});
-    lightBulb.setRotation({-90.0f, 0.0f, 0.0f});
-    lightBulb.setScale(glm::vec3(10.0f));
+    std::shared_ptr<Model> lightBulb = std::make_shared<Model>("assets/meshes/light/scene.gltf");
+    lightBulb->setPosition({3.0f, 4.0f, -3.0f});
+    lightBulb->setRotation({-90.0f, 0.0f, 0.0f});
+    lightBulb->setScale(glm::vec3(3.0f));
 
     std::vector<std::shared_ptr<Light>> lights;
-    std::shared_ptr<Light> light = std::make_shared<Light>(glm::vec3(3.0f, 4.0f, -3.0f), glm::vec3(1.0f, 1.0f, 1.0f), 1.0f, 0.0075f);
+    std::shared_ptr<Light> light = std::make_shared<Light>(glm::vec3(3.0f, 4.0f, -3.0f), glm::vec3(1.0f, 1.0f, 1.0f), 1.0f, 0.0075f, lightBulb);
     lights.push_back(light);
 
     Input::addKeyPressCallback([light](KeyPressEvent &event) {
@@ -80,11 +81,20 @@ void App::run()
         light->setAttenuation(light->getAttenuation() * 0.95);
         printf("attenuation = %f\n", light->getAttenuation());
     }, Key::right);
-    Input::addMouseButtonPressCallback([&light, &cameraController, &lightBulb](ButtonPressEvent &event) {
+    Input::addMouseButtonPressCallback([&light, &cameraController](ButtonPressEvent &event) {
         glm::vec3 newPos = cameraController.getCamera().getPosition();
         light->setPosition(newPos);
-        lightBulb.setPosition(newPos);
     }, Button::left);
+
+    Input::addKeyPressCallback([&cameraController](KeyPressEvent &event) {
+        static bool val = true;
+        val = !val;
+        Input::restrainMouseToWindow(val);
+        if (!val)
+            cameraController.pauseControl();
+        else
+            cameraController.resumeControl();
+    }, Key::esc);
 
     float lastFrameTime = SDL_GetTicks();
     while (true) {
@@ -121,7 +131,6 @@ void App::run()
         Renderer::beginScene(cameraController.getCamera(), environment);
         Renderer::drawModel(plane);
         Renderer::drawModel(mainModel);
-        Renderer::drawModel(lightBulb);
         Renderer::endScene();
 
         // Render UI
