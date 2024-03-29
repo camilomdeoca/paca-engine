@@ -26,6 +26,7 @@ add_executable(${PROJECT_NAME}
 )
 
 add_subdirectory(lib/fontatlas)
+add_subdirectory(lib/paca-tools)
 
 # Link libraries
 target_link_libraries(${PROJECT_NAME}
@@ -35,4 +36,5 @@ target_link_libraries(${PROJECT_NAME}
     png
     assimp
     fontatlas
+    pacaread
 )

@@ -150,11 +150,8 @@ void Renderer::beginScene(const Camera &camera, const RenderEnvironment &environ
     //s_data.shader->setMat4("u_viewModelMatrix", s_data.viewMatrix); // TODO: Change when we are able to move models
 }
 
-void Renderer::endScene()
+void lightPass()
 {
-    // TODO: Break each pass to a new function
-
-    // light Pass
     s_data.postprocessFramebuffer->bind();
     GL::clear();
     s_data.lightPassShader->bind();
@@ -182,8 +179,10 @@ void Renderer::endScene()
         s_data.fullscreenQuad->bind();
         GL::drawIndexed(s_data.fullscreenQuad);
     }
+}
 
-    // Render Light models
+void lightModelsPass()
+{
     FrameBuffer::copy(*s_data.gBuffer, *s_data.postprocessFramebuffer);
     s_data.lightShader->bind();
     GL::setDepthTest(true);
@@ -210,30 +209,33 @@ void Renderer::endScene()
             }
         }
     }
+}
 
-    // Post-process
+void postProcessPass()
+{
     s_data.postprocessFramebuffer->unbind();
     GL::setClearColor({0.1f, 0.1f, 0.15f, 1.0f});
     GL::clear();
     s_data.postProcessingShader->bind();
     GL::setDepthTest(false);
     s_data.postprocessColorTexture->bind(0);
-    s_data.postProcessingShader->setFloat("u_screenWidth", s_data.width);
-    s_data.postProcessingShader->setFloat("u_screenHeight", s_data.height);
     s_data.postProcessingShader->setMat3("u_kernel", s_data.kernel);
     s_data.postProcessingShader->setInt("u_screenTexture", 0);
     s_data.fullscreenQuad->bind();
     GL::drawIndexed(s_data.fullscreenQuad);
 }
 
+void Renderer::endScene()
+{
+    lightPass();
+    lightModelsPass();
+    postProcessPass();
+}
+
 void Renderer::drawMesh(Mesh &mesh, const glm::mat4 &modelMatrix)
 {
     s_data.gBufferShader->bind();
     s_data.gBufferShader->setMat4("u_viewModelMatrix", s_data.viewMatrix * modelMatrix);
-
-    //s_data.shader->bind();
-    //s_data.shader->setFloat4("u_color", {1.0f, 0.8f, 0.7f, 1.0f});
-    //s_data.shader->setMat4("u_viewModelMatrix", s_data.viewMatrix * modelMatrix);
 
     unsigned int slot = 0;
     for (unsigned int i = 0; i < MaterialTextureType::last; i++) {
@@ -242,7 +244,6 @@ void Renderer::drawMesh(Mesh &mesh, const glm::mat4 &modelMatrix)
         {
             texture->bind(slot);
             s_data.gBufferShader->setInt(textureTypeToUniformName(MaterialTextureType::Type(i)) + std::to_string(indexOfTextureOfType), slot);
-            s_data.shader->setInt(textureTypeToUniformName(MaterialTextureType::Type(i)) + std::to_string(indexOfTextureOfType), slot);
             slot++, indexOfTextureOfType++;
         }
     }

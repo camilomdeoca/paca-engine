@@ -55,6 +55,8 @@ struct MouseWheelEvent {
     int amount;
 };
 
+// TODO: Do something better than this :)
+
 typedef std::function<void(ButtonPressEvent&)> ButtonPressCallback;
 typedef std::function<void(ButtonReleaseEvent&)> ButtonReleaseCallback;
 typedef std::function<void(KeyPressEvent&)> KeyPressCallback;

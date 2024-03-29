@@ -1,6 +1,7 @@
 #include "App.hpp"
 #include "Input.hpp"
 #include "engine/OrthoCamera.hpp"
+#include "engine/ResourceManager.hpp"
 #include "opengl/gl.hpp"
 #include "Renderer2D.hpp"
 #include "engine/PerspectiveCameraController.hpp"
@@ -52,11 +53,15 @@ void App::run()
     OrthoCamera uiCamera(0.0f, m_window.getWidth(), 0.0f, m_window.getHeight());
     Font font("assets/fonts/DejaVuSansFontAtlas.png", "assets/fonts/DejaVuSansFontAtlas.fntat");
 
-    Model mainModel("assets/meshes/f1961_33-part_01-laser-ortery_texture-150k-4096-gltf_std/f1961_33-part_01-laser-ortery_texture-150k-4096.gltf");
-    mainModel.setScale(glm::vec3(10.0f));
-    Model plane("assets/meshes/plane/plane.gltf");
-    plane.setPosition({0.0f, -3.0f, 0.0f});
-    std::shared_ptr<Model> lightBulb = std::make_shared<Model>("assets/meshes/light/scene.gltf");
+    ResourceManager::addMaterial("assets/materials/thing.pmat");
+    ResourceManager::addMaterial("assets/materials/plane.pmat");
+    ResourceManager::addMaterial("assets/materials/lightBulb.pmat");
+
+    std::shared_ptr<Model> mainModel = ResourceManager::addModel("assets/models/thing.pmdl");
+    mainModel->setScale(glm::vec3(10.0f));
+    std::shared_ptr<Model> plane = ResourceManager::addModel("assets/models/plane.pmdl");
+    plane->setPosition({0.0f, -3.0f, 0.0f});
+    std::shared_ptr<Model> lightBulb = ResourceManager::addModel("assets/models/lightBulb.pmdl");
     lightBulb->setPosition({3.0f, 4.0f, -3.0f});
     lightBulb->setRotation({-90.0f, 0.0f, 0.0f});
     lightBulb->setScale(glm::vec3(3.0f));
@@ -129,8 +134,8 @@ void App::run()
         environment.pointLights = &lights;
 
         Renderer::beginScene(cameraController.getCamera(), environment);
-        Renderer::drawModel(plane);
-        Renderer::drawModel(mainModel);
+        Renderer::drawModel(*plane);
+        Renderer::drawModel(*mainModel);
         Renderer::endScene();
 
         // Render UI
