@@ -49,8 +49,14 @@ void App::run()
 {
     Input::restrainMouseToWindow(true);
     PerspectiveCameraController cameraController((float)m_window.getWidth() / m_window.getHeight(), 90.0f);
-    cameraController.resumeControl();
     OrthoCamera uiCamera(0.0f, m_window.getWidth(), 0.0f, m_window.getHeight());
+
+    //Input::addResizeCallback([&cameraController](ResizeEvent &event) {
+    //    GL::viewport(event.w, event.h);
+    //    Renderer::resize(event.w, event.h);
+    //    cameraController.setAspect((float)event.w/(float)event.h);
+    //});
+
     Font font("assets/fonts/DejaVuSansFontAtlas.png", "assets/fonts/DejaVuSansFontAtlas.fntat");
 
     ResourceManager::addMaterial("assets/materials/thing.pmat");
@@ -70,36 +76,36 @@ void App::run()
     std::shared_ptr<Light> light = std::make_shared<Light>(glm::vec3(3.0f, 4.0f, -3.0f), glm::vec3(1.0f, 1.0f, 1.0f), 1.0f, 0.0075f, lightBulb);
     lights.push_back(light);
 
-    Input::addKeyPressCallback([light](KeyPressEvent &event) {
-        light->setIntensity(light->getIntensity() - 0.1);
-        printf("intensity = %f\n", light->getIntensity());
-    }, Key::down);
-    Input::addKeyPressCallback([light](KeyPressEvent &event) {
-        light->setIntensity(light->getIntensity() + 0.1);
-        printf("intensity = %f\n", light->getIntensity());
-    }, Key::up);
-    Input::addKeyPressCallback([light](KeyPressEvent &event) {
-        light->setAttenuation(light->getAttenuation() * 1.05);
-        printf("attenuation = %f\n", light->getAttenuation());
-    }, Key::left);
-    Input::addKeyPressCallback([light](KeyPressEvent &event) {
-        light->setAttenuation(light->getAttenuation() * 0.95);
-        printf("attenuation = %f\n", light->getAttenuation());
-    }, Key::right);
-    Input::addMouseButtonPressCallback([&light, &cameraController](ButtonPressEvent &event) {
-        glm::vec3 newPos = cameraController.getCamera().getPosition();
-        light->setPosition(newPos);
-    }, Button::left);
+    //Input::addKeyPressCallback([light](KeyPressEvent &event) {
+    //    light->setIntensity(light->getIntensity() - 0.1);
+    //    printf("intensity = %f\n", light->getIntensity());
+    //}, Key::down);
+    //Input::addKeyPressCallback([light](KeyPressEvent &event) {
+    //    light->setIntensity(light->getIntensity() + 0.1);
+    //    printf("intensity = %f\n", light->getIntensity());
+    //}, Key::up);
+    //Input::addKeyPressCallback([light](KeyPressEvent &event) {
+    //    light->setAttenuation(light->getAttenuation() * 1.05);
+    //    printf("attenuation = %f\n", light->getAttenuation());
+    //}, Key::left);
+    //Input::addKeyPressCallback([light](KeyPressEvent &event) {
+    //    light->setAttenuation(light->getAttenuation() * 0.95);
+    //    printf("attenuation = %f\n", light->getAttenuation());
+    //}, Key::right);
+    //Input::addMouseButtonPressCallback([&light, &cameraController](ButtonPressEvent &event) {
+    //    glm::vec3 newPos = cameraController.getCamera().getPosition();
+    //    light->setPosition(newPos);
+    //}, Button::left);
 
-    Input::addKeyPressCallback([&cameraController](KeyPressEvent &event) {
-        static bool val = true;
-        val = !val;
-        Input::restrainMouseToWindow(val);
-        if (!val)
-            cameraController.pauseControl();
-        else
-            cameraController.resumeControl();
-    }, Key::esc);
+    //Input::addKeyPressCallback([&cameraController](KeyPressEvent &event) {
+    //    static bool val = true;
+    //    val = !val;
+    //    Input::restrainMouseToWindow(val);
+    //    if (!val)
+    //        cameraController.pauseControl();
+    //    else
+    //        cameraController.resumeControl();
+    //}, Key::esc);
 
     float lastFrameTime = SDL_GetTicks();
     while (true) {

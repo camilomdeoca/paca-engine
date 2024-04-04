@@ -33,6 +33,13 @@ void PerspectiveCamera::setFov(float fov)
     recalculateViewProjectionMatrix();
 }
 
+void PerspectiveCamera::setAspect(float aspect)
+{
+    m_aspect = aspect;
+    m_projectionMatrix = glm::perspective(glm::radians(m_fov), m_aspect, 0.1f, 10000.0f);
+    recalculateViewProjectionMatrix();
+}
+
 void PerspectiveCamera::recalculateViewProjectionMatrix()
 {
     glm::mat4 transform = glm::lookAt(m_position, m_position + m_direction, m_up);

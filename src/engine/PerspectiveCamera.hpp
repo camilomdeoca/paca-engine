@@ -20,6 +20,7 @@ public:
 
     float getFov() { return m_fov; }
     void setFov(float fov);
+    void setAspect(float aspect);
 
 private:
     void recalculateViewProjectionMatrix();

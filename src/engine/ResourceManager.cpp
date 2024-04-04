@@ -24,12 +24,12 @@ static struct {
 
 std::shared_ptr<Model> ResourceManager::addModel(const std::string &path)
 {
-    std::optional<paca_read::model> pacaModel = paca_read::read_model(path);
+    std::optional<paca_format::Model> pacaModel = paca_format::readModel(path);
     std::vector<std::shared_ptr<Mesh>> meshes;
 
-    for (const paca_read::mesh &pacaMesh : pacaModel->meshes)
+    for (const paca_format::Mesh &pacaMesh : pacaModel->meshes)
     {
-        meshes.emplace_back(std::make_shared<Mesh>(pacaMesh.vertices, pacaMesh.indices, getMaterial(pacaMesh.material_name)));
+        meshes.emplace_back(std::make_shared<Mesh>(pacaMesh.vertices, pacaMesh.indices, getMaterial(pacaMesh.materialName)));
     }
 
     std::shared_ptr<Model> model = std::make_shared<Model>(meshes);
@@ -37,13 +37,13 @@ std::shared_ptr<Model> ResourceManager::addModel(const std::string &path)
     return s_data.models.insert(std::make_pair(pacaModel.value().name, toInsertPtr)).first->second;
 }
 
-MaterialTextureType::Type pacaTextureTypeToMaterialTextureType(paca_read::texture_type::type type)
+MaterialTextureType::Type pacaTextureTypeToMaterialTextureType(paca_format::TextureType::Type type)
 {
     switch (type) {
-        case paca_read::texture_type::diffuse:  return MaterialTextureType::diffuse;
-        case paca_read::texture_type::specular: return MaterialTextureType::specular;
-        case paca_read::texture_type::normal:   return MaterialTextureType::normal;
-        case paca_read::texture_type::depth:    return MaterialTextureType::height;
+        case paca_format::TextureType::diffuse:  return MaterialTextureType::diffuse;
+        case paca_format::TextureType::specular: return MaterialTextureType::specular;
+        case paca_format::TextureType::normal:   return MaterialTextureType::normal;
+        case paca_format::TextureType::depth:    return MaterialTextureType::height;
         default: break;
     }
 
@@ -52,13 +52,13 @@ MaterialTextureType::Type pacaTextureTypeToMaterialTextureType(paca_read::textur
 
 std::shared_ptr<Material> ResourceManager::addMaterial(const std::string &path)
 {
-    std::optional<paca_read::material> pacaMaterial = paca_read::read_material(path);
+    std::optional<paca_format::Material> pacaMaterial = paca_format::readMaterial(path);
     MaterialSpecification materialSpec;
-    for (uint32_t i = paca_read::texture_type::none; i < paca_read::texture_type::last; i++)
+    for (uint32_t i = paca_format::TextureType::none; i < paca_format::TextureType::last; i++)
     {
-        for (const paca_read::texture &texture : pacaMaterial->textures[i])
+        for (const paca_format::Texture &texture : pacaMaterial->textures[i])
         {
-            materialSpec.textureMaps[pacaTextureTypeToMaterialTextureType(paca_read::texture_type::type(i))]
+            materialSpec.textureMaps[pacaTextureTypeToMaterialTextureType(paca_format::TextureType::Type(i))]
                 .emplace_back(getTexture(texture.path));
         }
     }

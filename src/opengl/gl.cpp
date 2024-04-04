@@ -1,6 +1,7 @@
 #include "gl.hpp"
 
 #include <GL/glew.h>
+#include <SDL2/SDL_opengl.h>
 
 void GL::init()
 {
@@ -49,3 +50,9 @@ void GL::setBlending(bool value)
         glDisable(GL_BLEND);
 
 }
+
+void GL::viewport(unsigned int width, unsigned int height)
+{
+    glViewport(0, 0, width, height);
+}
+

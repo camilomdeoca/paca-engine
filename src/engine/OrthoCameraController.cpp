@@ -4,16 +4,19 @@
 OrthoCameraController::OrthoCameraController(float aspectRatio)
     : m_aspectRatio(aspectRatio), m_camera(-m_aspectRatio*m_zoom, m_aspectRatio*m_zoom, -m_zoom, m_zoom)
 {
-    MouseWheelCallback callback = [this](MouseWheelEvent &event) { onMouseScroll(event); };
-    m_mouseWheelDownCallbackReference = Input::addMouseWheelDownCallback(callback); // TODO: remove callback on destructor
-    m_mouseWheelUpCallbackReference = Input::addMouseWheelUpCallback(callback); // TODO: remove callback on destructor
+    m_eventReceiver.setEventsMask(EventMask::mouseWheelDown | EventMask::mouseWheelUp);
+    m_eventReceiver.setEventHandler([this] (const Event &event) {
+        switch (event.getType()) {
+        case EventType::mouseWheelDown:
+        case EventType::mouseWheelUp:
+            onMouseScroll(static_cast<const MouseWheelEvent&>(event));
+        default: break;
+        }
+    });
 }
 
 OrthoCameraController::~OrthoCameraController()
-{
-    Input::removeMouseWheelDownCallback(m_mouseWheelDownCallbackReference);
-    Input::removeMouseWheelUpCallback(m_mouseWheelUpCallbackReference);
-}
+{}
 
 void OrthoCameraController::onUpdate(float ms)
 {
@@ -53,10 +56,10 @@ void OrthoCameraController::onUpdate(float ms)
     getCamera().setPosition(position);
 }
 
-void OrthoCameraController::onMouseScroll(MouseWheelEvent &event)
+void OrthoCameraController::onMouseScroll(const MouseWheelEvent &event)
 {
-    m_zoom *= 1.0f - event.amount * 0.1f;
-    // m_zoom -= event.amount * 0.25f;
+    m_zoom *= 1.0f - event.getAmmount() * 0.1f;
+    // m_zoom -= event.getAmount() * 0.25f;
     m_camera.setProjection(-m_aspectRatio*m_zoom, m_aspectRatio*m_zoom, -m_zoom, m_zoom);
 }
 

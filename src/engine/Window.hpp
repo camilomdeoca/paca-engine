@@ -24,4 +24,5 @@ private:
 
     std::unique_ptr<SDL_Window, deleter> m_window;
     unsigned int m_width = 0, m_height = 0;
+    SDL_GLContext m_glContext;
 };

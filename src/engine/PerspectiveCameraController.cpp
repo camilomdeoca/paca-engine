@@ -4,16 +4,26 @@
 
 PerspectiveCameraController::PerspectiveCameraController(float aspect, float fov)
     : m_camera(aspect, fov)
-{}
+{
+    m_eventReceiver.setEventsMask(EventMask::mouseWheelDown
+            | EventMask::mouseWheelUp
+            | EventMask::mouseMotion);
+    m_eventReceiver.setEventHandler([this] (const Event &event) {
+        switch (event.getType()) {
+        case EventType::mouseMotion:
+            onMouseMotion(static_cast<const MouseMotionEvent&>(event));
+            break;
+        case EventType::mouseWheelDown:
+        case EventType::mouseWheelUp:
+            onMouseScroll(static_cast<const MouseWheelEvent&>(event));
+            break;
+        default: break;
+        }
+    });
+}
 
 PerspectiveCameraController::~PerspectiveCameraController()
-{
-    if (m_haveControl) {
-        Input::removeMouseWheelDownCallback(m_mouseWheelDownCallbackReference);
-        Input::removeMouseWheelUpCallback(m_mouseWheelUpCallbackReference);
-        Input::removeMouseMotionCallback(m_mouseMotionCallbackReference);
-    }
-}
+{}
 
 void PerspectiveCameraController::onUpdate(float ms)
 {
@@ -49,47 +59,25 @@ void PerspectiveCameraController::onUpdate(float ms)
     }
 }
 
-void PerspectiveCameraController::onMouseScroll(MouseWheelEvent &event)
+void PerspectiveCameraController::onMouseScroll(const MouseWheelEvent &event)
 {
     float fov = m_camera.getFov();
-    fov *= 1.0f - event.amount * 0.1f;
+    fov *= 1.0f - event.getAmmount() * 0.1f;
     if (fov > 120.0f) fov = 120.0f;
     // fov -= event.amount * 0.25f;
     m_camera.setFov(fov);
 }
 
-void PerspectiveCameraController::onMouseMotion(MouseMotionEvent &event)
+void PerspectiveCameraController::onMouseMotion(const MouseMotionEvent &event)
 {
     const float sensitivity = 0.1f;
     glm::vec3 rotation = m_camera.getRotation();
     float fov = m_camera.getFov();
 
-    rotation.x -= event.yRel * sensitivity * (fov/90.0f);
-    rotation.y += event.xRel * sensitivity * (fov/90.0f);
+    rotation.x -= event.getRelativeY() * sensitivity * (fov/90.0f);
+    rotation.y += event.getRelativeX() * sensitivity * (fov/90.0f);
 
     rotation.x = std::clamp(rotation.x, -89.0f, 89.0f);
 
     m_camera.setRotation(rotation);
 }
-
-void PerspectiveCameraController::pauseControl()
-{
-    if (m_haveControl) {
-        Input::removeMouseWheelDownCallback(m_mouseWheelDownCallbackReference);
-        Input::removeMouseWheelUpCallback(m_mouseWheelUpCallbackReference);
-        Input::removeMouseMotionCallback(m_mouseMotionCallbackReference);
-        m_haveControl = false;
-    }
-}
-
-void PerspectiveCameraController::resumeControl()
-{
-    if (!m_haveControl) {
-        MouseWheelCallback callback = [this](MouseWheelEvent &event) { onMouseScroll(event); };
-        m_mouseWheelDownCallbackReference = Input::addMouseWheelDownCallback(callback); // TODO: remove callback on destructor
-        m_mouseWheelUpCallbackReference = Input::addMouseWheelUpCallback(callback); // TODO: remove callback on destructor
-        m_mouseMotionCallbackReference = Input::addMouseMotionCallback([this](MouseMotionEvent &event) { onMouseMotion(event); });
-        m_haveControl = true;
-    }
-}
-

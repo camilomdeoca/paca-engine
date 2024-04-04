@@ -13,5 +13,6 @@ public:
     static void drawIndexed(const std::shared_ptr<VertexArray> &vertexArray, uint32_t indexCount = 0);
     static void setDepthTest(bool value);
     static void setBlending(bool value);
+    static void viewport(unsigned int width, unsigned int height);
 };
 

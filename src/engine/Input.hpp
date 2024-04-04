@@ -3,10 +3,9 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_scancode.h>
 #include <functional>
-#include <list>
 
 namespace Key {
-    enum Keycode {
+    enum KeyCode {
         q      = SDL_SCANCODE_Q,
         w      = SDL_SCANCODE_W,
         e      = SDL_SCANCODE_E,
@@ -32,37 +31,129 @@ namespace Button {
     };
 }
 
-struct ButtonEvent {
-    Button::ButtonCode button;
+enum class EventType {
+    buttonDown, buttonUp,
+    keyDown, keyUp,
+    mouseMotion,
+    mouseWheelDown, mouseWheelUp,
+    windowResize,
+    last
 };
 
-struct ButtonPressEvent : public ButtonEvent {};
-struct ButtonReleaseEvent : public ButtonEvent {};
-
-struct KeyEvent {
-    Key::Keycode key;
+class Event {
+public:
+    virtual EventType getType() const = 0;
 };
 
-struct KeyPressEvent : public KeyEvent {};
-struct KeyReleaseEvent : public KeyEvent {};
-
-struct MouseMotionEvent {
-    int x, y;
-    int xRel, yRel;
+class ButtonEvent : public Event {
+public:
+    ButtonEvent(Button::ButtonCode button) : m_button(button) {}
+    Button::ButtonCode getButton() const { return m_button; }
+private:
+    Button::ButtonCode m_button;
 };
 
-struct MouseWheelEvent {
-    int amount;
+class ButtonPressEvent : public ButtonEvent {
+public:
+    ButtonPressEvent(Button::ButtonCode button) : ButtonEvent(button) {}
+    EventType getType() const override { return EventType::buttonDown; }
 };
 
-// TODO: Do something better than this :)
+class ButtonReleaseEvent : public ButtonEvent {
+public:
+    ButtonReleaseEvent(Button::ButtonCode button) : ButtonEvent(button) {}
+    EventType getType() const override { return EventType::buttonUp; }
+};
 
-typedef std::function<void(ButtonPressEvent&)> ButtonPressCallback;
-typedef std::function<void(ButtonReleaseEvent&)> ButtonReleaseCallback;
-typedef std::function<void(KeyPressEvent&)> KeyPressCallback;
-typedef std::function<void(KeyReleaseEvent&)> KeyReleaseCallback;
-typedef std::function<void(MouseMotionEvent&)> MouseMotionCallback;
-typedef std::function<void(MouseWheelEvent&)> MouseWheelCallback;
+class KeyEvent : public Event {
+public:
+    KeyEvent(Key::KeyCode key) : m_key(key) {}
+    Key::KeyCode getKey() const { return m_key; }
+private:
+    Key::KeyCode m_key;
+};
+
+class KeyPressEvent : public KeyEvent {
+public:
+    KeyPressEvent(Key::KeyCode key) : KeyEvent(key) {}
+    EventType getType() const override { return EventType::keyDown; }
+};
+
+class KeyReleaseEvent : public KeyEvent {
+public:
+    KeyReleaseEvent(Key::KeyCode key) : KeyEvent(key) {}
+    EventType getType() const override { return EventType::keyDown; }
+};
+
+class MouseMotionEvent : public Event {
+public:
+    MouseMotionEvent(int x, int y, int xRelative, int yRelative)
+        : m_x(x), m_y(y), m_xRel(xRelative), m_yRel(yRelative) {}
+    EventType getType() const override { return EventType::mouseMotion; }
+    int getX() const { return m_x; }
+    int getY() const { return m_y; }
+    int getRelativeX() const { return m_xRel; }
+    int getRelativeY() const { return m_yRel; }
+private:
+    int m_x, m_y;
+    int m_xRel, m_yRel;
+};
+
+class MouseWheelEvent : public Event {
+public:
+    MouseWheelEvent(int ammount) : m_amount(ammount) {}
+    int getAmmount() const { return m_amount; }
+private:
+    int m_amount;
+};
+
+class MouseWheelDownEvent : public MouseWheelEvent {
+public:
+    MouseWheelDownEvent(int ammount) : MouseWheelEvent(ammount) {}
+    EventType getType() const override { return EventType::mouseWheelDown; }
+};
+
+class MouseWheelUpEvent : public MouseWheelEvent {
+public:
+    MouseWheelUpEvent(int ammount) : MouseWheelEvent(ammount) {}
+    EventType getType() const override { return EventType::mouseWheelUp; }
+};
+
+class ResizeEvent : public Event {
+public:
+    ResizeEvent(unsigned int width, unsigned int height) : m_w(width), m_h(height) {}
+    EventType getType() const override { return EventType::windowResize; }
+    unsigned int getWidth() const { return m_w; }
+    unsigned int getHeight() const { return m_h; }
+private:
+    unsigned int m_w, m_h;
+};
+
+namespace EventMask {
+    enum Mask : uint32_t {
+        buttonDown     = 1 << 0,
+        buttonUp       = 1 << 1,
+        keyDown        = 1 << 2,
+        keyUp          = 1 << 3,
+        mouseMotion    = 1 << 4,
+        mouseWheelDown = 1 << 5,
+        mouseWheelUp   = 1 << 6,
+        windowResize   = 1 << 7,
+    };
+}
+
+class EventReceiver {
+public:
+    EventReceiver();
+    ~EventReceiver();
+
+    void setEventsMask(uint32_t eventsMask);
+    void setEventHandler(std::function<void(const Event&)> handler) { m_eventHandler = handler; }
+    void onEvent(const Event &event) { m_eventHandler(event); }
+private:
+    std::function<void(const Event&)> m_eventHandler;
+    uint32_t m_eventsMask = 0;
+};
 
 class Input {
 public:
@@ -73,22 +164,6 @@ public:
 
     static void restrainMouseToWindow(bool enabled);
 
-    static bool isKeyPressed(Key::Keycode key);
+    static bool isKeyPressed(Key::KeyCode key);
     static bool isMouseButtonPressed(Button::ButtonCode button);
-
-    static std::list<ButtonPressCallback>::const_iterator addMouseButtonPressCallback(ButtonPressCallback callback, Button::ButtonCode button);
-    static std::list<ButtonReleaseCallback>::const_iterator addMouseButtonReleaseCallback(ButtonReleaseCallback callback, Button::ButtonCode button);
-    static std::list<KeyPressCallback>::const_iterator addKeyPressCallback(KeyPressCallback callback, Key::Keycode key);
-    static std::list<KeyReleaseCallback>::const_iterator addKeyReleaseCallback(KeyReleaseCallback callback, Key::Keycode key);
-    static std::list<MouseMotionCallback>::const_iterator addMouseMotionCallback(MouseMotionCallback callback);
-    static std::list<MouseWheelCallback>::const_iterator addMouseWheelUpCallback(MouseWheelCallback callback);
-    static std::list<MouseWheelCallback>::const_iterator addMouseWheelDownCallback(MouseWheelCallback callback);
-
-    static void removeMouseButtonPressCallback(std::list<ButtonPressCallback>::const_iterator referenceToCallback, Button::ButtonCode button);
-    static void removeMouseButtonReleaseCallback(std::list<ButtonReleaseCallback>::const_iterator referenceToCallback, Button::ButtonCode button);
-    static void removeKeyPressCallback(std::list<KeyPressCallback>::const_iterator referenceToCallback, Key::Keycode key);
-    static void removeKeyReleaseCallback(std::list<KeyReleaseCallback>::const_iterator referenceToCallback, Key::Keycode key);
-    static void removeMouseMotionCallback(std::list<MouseMotionCallback>::const_iterator referenceToCallback);
-    static void removeMouseWheelUpCallback(std::list<MouseWheelCallback>::const_iterator referenceToCallback);
-    static void removeMouseWheelDownCallback(std::list<MouseWheelCallback>::const_iterator referenceToCallback);
 };

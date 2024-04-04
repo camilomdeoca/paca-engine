@@ -11,17 +11,17 @@ public:
     void onUpdate(float ms);
 
     const PerspectiveCamera &getCamera() { return m_camera; }
+    void setAspect(float aspect) { m_camera.setAspect(aspect); }
 
-    void onMouseScroll(MouseWheelEvent &event);
-    void onMouseMotion(MouseMotionEvent &event);
+    void onMouseScroll(const MouseWheelEvent &event);
+    void onMouseMotion(const MouseMotionEvent &event);
 
-    void pauseControl();
-    void resumeControl();
+    //void pauseControl();
+    //void resumeControl();
 
 private:
     PerspectiveCamera m_camera;
-    std::list<MouseMotionCallback>::const_iterator m_mouseMotionCallbackReference;
-    std::list<MouseWheelCallback>::const_iterator m_mouseWheelUpCallbackReference, m_mouseWheelDownCallbackReference;
-    bool m_haveControl = false;
+    EventReceiver m_eventReceiver;
+    bool m_haveControl = true;
 };
 

@@ -1,25 +1,63 @@
 #include "Input.hpp"
 
 #include <SDL2/SDL.h>
-#include <SDL2/SDL_events.h>
-#include <SDL2/SDL_mouse.h>
-#include <SDL2/SDL_scancode.h>
+#include <array>
+#include <set>
 
 static const Uint8 *s_keyboardState = nullptr;
 
-constexpr int NUM_OF_MOUSE_BUTTONS = 5;
+struct Pair { uint32_t mask; EventType type; };
 
-static std::array<std::list<std::function<void(ButtonPressEvent&)>>, NUM_OF_MOUSE_BUTTONS> s_buttonPressCallbacks;
-static std::array<std::list<std::function<void(ButtonReleaseEvent&)>>, NUM_OF_MOUSE_BUTTONS> s_buttonReleaseCallbacks;
-static std::array<std::list<std::function<void(KeyPressEvent&)>>, SDL_NUM_SCANCODES> s_keyPressCallbacks;
-static std::array<std::list<std::function<void(KeyReleaseEvent&)>>, SDL_NUM_SCANCODES> s_keyReleaseCallbacks;
-static std::list<std::function<void(MouseMotionEvent&)>> s_mouseMotionCallbacks;
-static std::list<std::function<void(MouseWheelEvent&)>> s_scrollWheelUpCallbacks;
-static std::list<std::function<void(MouseWheelEvent&)>> s_scrollWheelDownCallbacks;
+constexpr std::array<Pair, static_cast<size_t>(EventType::last)> maskEnumMapping {{
+    {EventMask::buttonDown, EventType::buttonDown},
+    {EventMask::buttonUp, EventType::buttonUp},
+    {EventMask::keyDown, EventType::keyDown},
+    {EventMask::keyUp, EventType::keyUp},
+    {EventMask::mouseMotion, EventType::mouseMotion},
+    {EventMask::mouseWheelDown, EventType::mouseWheelDown},
+    {EventMask::mouseWheelUp, EventType::mouseWheelUp},
+    {EventMask::windowResize, EventType::windowResize}
+}};
+
+static struct {
+    std::array<std::set<EventReceiver*>, static_cast<size_t>(EventType::last)> eventReceivers;
+} s_data;
+
+EventReceiver::EventReceiver()
+{}
+
+EventReceiver::~EventReceiver()
+{
+    for (const auto &[bit, type] : maskEnumMapping)
+        if (m_eventsMask & bit)
+            s_data.eventReceivers[static_cast<size_t>(type)].erase(this);
+}
+
+void EventReceiver::setEventsMask(uint32_t eventsMask)
+{
+    uint32_t changedBits = m_eventsMask ^ eventsMask;
+    uint32_t changeDirection = changedBits & eventsMask; // 1 if changed from 0 to 1
+    m_eventsMask = eventsMask;
+
+    for (const auto &[bit, type] : maskEnumMapping)
+        if (changedBits & bit)
+        {
+            if (changeDirection & bit)
+                s_data.eventReceivers[static_cast<size_t>(type)].emplace(this);
+            else
+                s_data.eventReceivers[static_cast<size_t>(type)].erase(this);
+        }
+}
 
 void Input::init()
 {
     s_keyboardState = SDL_GetKeyboardState(nullptr);
+}
+
+void sendEventToReceiversForType(const Event &event, EventType type)
+{
+    for (EventReceiver *receiver : s_data.eventReceivers[static_cast<size_t>(type)])
+        receiver->onEvent(event);
 }
 
 void Input::processInput()
@@ -27,65 +65,84 @@ void Input::processInput()
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
         switch (event.type) {
-            case SDL_QUIT:
-                exit(0);
-                break;
-            case SDL_KEYDOWN:
-                {
-                    KeyPressEvent keyPressEvent = {
-                        Key::Keycode(event.key.keysym.scancode)
-                    };
-                    for (std::function<void(KeyPressEvent&)> callback : s_keyPressCallbacks[keyPressEvent.key])
-                        callback(keyPressEvent);
+        case SDL_QUIT:
+            // TODO: Cleanup before exiting
+            exit(0);
+            break;
+        case SDL_WINDOWEVENT:
+            {
+                switch (event.window.event) {
+                case SDL_WINDOWEVENT_RESIZED:
+                    {
+                        ResizeEvent resizeEvent = {
+                            static_cast<unsigned int>(event.window.data1),
+                            static_cast<unsigned int>(event.window.data2)
+                        };
+                        sendEventToReceiversForType(resizeEvent, EventType::windowResize);
+                    }
+                    break;
                 }
-                break;
-            case SDL_KEYUP:
+            }
+            break;
+        case SDL_KEYDOWN:
+            {
+                KeyPressEvent keyPressEvent = {
+                    Key::KeyCode(event.key.keysym.scancode)
+                };
+                sendEventToReceiversForType(keyPressEvent, EventType::keyDown);
+            }
+            break;
+        case SDL_KEYUP:
+            {
+                KeyReleaseEvent keyReleaseEvent = {
+                    Key::KeyCode(event.key.keysym.scancode)
+                };
+                sendEventToReceiversForType(keyReleaseEvent, EventType::keyUp);
+            }
+            break;
+        case SDL_MOUSEMOTION:
+            {
+                MouseMotionEvent mouseMotionEvent = {
+                    event.motion.x, event.motion.y,
+                    event.motion.xrel, event.motion.yrel
+                };
+                sendEventToReceiversForType(mouseMotionEvent, EventType::mouseMotion);
+            }
+            break;
+        case SDL_MOUSEBUTTONDOWN:
+            {
+                ButtonPressEvent buttonPressEvent = {
+                    Button::ButtonCode(event.button.button)
+                };
+                sendEventToReceiversForType(buttonPressEvent, EventType::buttonDown);
+            }
+            break;
+        case SDL_MOUSEBUTTONUP:
+            {
+                ButtonReleaseEvent buttonReleaseEvent = {
+                    Button::ButtonCode(event.button.button)
+                };
+                sendEventToReceiversForType(buttonReleaseEvent, EventType::buttonUp);
+            }
+            break;
+        case SDL_MOUSEWHEEL:
+            {
+                if (event.wheel.y < 0)
                 {
-                    KeyReleaseEvent keyReleaseEvent = {
-                        Key::Keycode(event.key.keysym.scancode)
-                    };
-                    for (std::function<void(KeyReleaseEvent&)> callback : s_keyReleaseCallbacks[keyReleaseEvent.key])
-                        callback(keyReleaseEvent);
-                }
-                break;
-            case SDL_MOUSEMOTION:
-                {
-                    MouseMotionEvent mouseMotionEvent = {
-                        event.motion.x, event.motion.y,
-                        event.motion.xrel, event.motion.yrel
-                    };
-                    for (std::function<void(MouseMotionEvent&)> callback : s_mouseMotionCallbacks)
-                        callback(mouseMotionEvent);
-                }
-                break;
-            case SDL_MOUSEBUTTONDOWN:
-                {
-                    ButtonPressEvent buttonPressEvent = {
-                        Button::ButtonCode(event.button.button)
-                    };
-                    for (std::function<void(ButtonPressEvent&)> callback : s_buttonPressCallbacks[buttonPressEvent.button])
-                        callback(buttonPressEvent);
-                }
-                break;
-            case SDL_MOUSEBUTTONUP:
-                {
-                    ButtonReleaseEvent buttonReleaseEvent = {
-                        Button::ButtonCode(event.button.button)
-                    };
-                    for (std::function<void(ButtonReleaseEvent&)> callback : s_buttonReleaseCallbacks[buttonReleaseEvent.button])
-                        callback(buttonReleaseEvent);
-                }
-                break;
-            case SDL_MOUSEWHEEL:
-                {
-                    MouseWheelEvent mouseWheelEvent = {
+                    MouseWheelDownEvent mouseWheelEvent = {
                         event.wheel.y
                     };
-                    auto callbacks = mouseWheelEvent.amount > 0 ? s_scrollWheelUpCallbacks : s_scrollWheelDownCallbacks;
-                    for (std::function<void(MouseWheelEvent&)> callback : callbacks)
-                        callback(mouseWheelEvent);
+                    sendEventToReceiversForType(mouseWheelEvent, EventType::mouseWheelDown);
                 }
-                break;
+                else
+                {
+                    MouseWheelUpEvent mouseWheelEvent = {
+                        event.wheel.y
+                    };
+                    sendEventToReceiversForType(mouseWheelEvent, EventType::mouseWheelUp);
+                }
+            }
+            break;
         }
     }
 }
@@ -95,7 +152,7 @@ void Input::restrainMouseToWindow(bool enabled)
     SDL_SetRelativeMouseMode(enabled ? SDL_TRUE : SDL_FALSE);
 }
 
-bool Input::isKeyPressed(Key::Keycode key)
+bool Input::isKeyPressed(Key::KeyCode key)
 {
     return s_keyboardState[key];
 }
@@ -103,76 +160,5 @@ bool Input::isKeyPressed(Key::Keycode key)
 bool Input::isMouseButtonPressed(Button::ButtonCode button)
 {
     return SDL_GetMouseState(nullptr, nullptr) & SDL_BUTTON(button);
-}
-
-std::list<ButtonPressCallback>::const_iterator Input::addMouseButtonPressCallback(ButtonPressCallback callback, Button::ButtonCode button)
-{
-    return s_buttonPressCallbacks[button].insert(s_buttonPressCallbacks[button].end(), callback);
-}
-
-std::list<ButtonReleaseCallback>::const_iterator Input::addMouseButtonReleaseCallback(ButtonReleaseCallback callback, Button::ButtonCode button)
-{
-    return s_buttonReleaseCallbacks[button].insert(s_buttonReleaseCallbacks[button].end(), callback);
-}
-
-std::list<KeyPressCallback>::const_iterator Input::addKeyPressCallback(KeyPressCallback callback, Key::Keycode key)
-{
-    return s_keyPressCallbacks[key].insert(s_keyPressCallbacks[key].end(), callback);
-}
-
-std::list<KeyReleaseCallback>::const_iterator Input::addKeyReleaseCallback(KeyReleaseCallback callback, Key::Keycode key)
-{
-     return s_keyReleaseCallbacks[key].insert(s_keyReleaseCallbacks[key].end(), callback);
-}
-
-std::list<MouseMotionCallback>::const_iterator Input::addMouseMotionCallback(MouseMotionCallback callback)
-{
-    return s_mouseMotionCallbacks.insert(s_mouseMotionCallbacks.end(), callback);
-}
-
-std::list<MouseWheelCallback>::const_iterator Input::addMouseWheelUpCallback(MouseWheelCallback callback)
-{
-    return s_scrollWheelUpCallbacks.insert(s_scrollWheelUpCallbacks.end(), callback);
-}
-
-std::list<MouseWheelCallback>::const_iterator Input::addMouseWheelDownCallback(MouseWheelCallback callback)
-{
-    return s_scrollWheelDownCallbacks.insert(s_scrollWheelDownCallbacks.end(), callback);
-}
-
-
-void Input::removeMouseButtonPressCallback(std::list<ButtonPressCallback>::const_iterator referenceToCallback, Button::ButtonCode button)
-{
-    s_buttonPressCallbacks[button].erase(referenceToCallback);
-}
-
-void Input::removeMouseButtonReleaseCallback(std::list<ButtonReleaseCallback>::const_iterator referenceToCallback, Button::ButtonCode button)
-{
-    s_buttonReleaseCallbacks[button].erase(referenceToCallback);
-}
-
-void Input::removeKeyPressCallback(std::list<KeyPressCallback>::const_iterator referenceToCallback, Key::Keycode key)
-{
-    s_keyPressCallbacks[key].erase(referenceToCallback);
-}
-
-void Input::removeKeyReleaseCallback(std::list<KeyReleaseCallback>::const_iterator referenceToCallback, Key::Keycode key)
-{
-    s_keyReleaseCallbacks[key].erase(referenceToCallback);
-}
-
-void Input::removeMouseMotionCallback(std::list<MouseMotionCallback>::const_iterator referenceToCallback)
-{
-    s_mouseMotionCallbacks.erase(referenceToCallback);
-}
-
-void Input::removeMouseWheelUpCallback(std::list<MouseWheelCallback>::const_iterator referenceToCallback)
-{
-    s_scrollWheelUpCallbacks.erase(referenceToCallback);
-}
-
-void Input::removeMouseWheelDownCallback(std::list<MouseWheelCallback>::const_iterator referenceToCallback)
-{
-    s_scrollWheelDownCallbacks.erase(referenceToCallback);
 }
 

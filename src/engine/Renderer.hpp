@@ -20,10 +20,14 @@ class Renderer {
 public:
     static void init(RendererParameters parameters);
 
+    static void resize(uint32_t width, uint32_t height);
+
     static void beginScene(const Camera &camera, const RenderEnvironment &environment);
     static void endScene();
 
     static void drawMesh(Mesh &mesh, const glm::mat4 &modelMatrix);
     static void drawModel(Model &model);
+private:
+    static void createFramebuffers();
 };
 
