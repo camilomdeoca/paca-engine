@@ -24,7 +24,7 @@ static struct {
     std::unordered_map<std::string, std::shared_ptr<Model>, StringAndViewHash, std::equal_to<>> models; 
 } s_data;
 
-std::shared_ptr<Model> ResourceManager::addModel(std::string_view &path)
+std::shared_ptr<Model> ResourceManager::addModel(const std::string &path)
 {
     std::optional<paca_format::Model> pacaModel = paca_format::readModel(path);
     std::vector<std::shared_ptr<Mesh>> meshes;
@@ -52,7 +52,7 @@ MaterialTextureType::Type pacaTextureTypeToMaterialTextureType(paca_format::Text
     exit(1);
 }
 
-std::shared_ptr<Material> ResourceManager::addMaterial(std::string_view path)
+std::shared_ptr<Material> ResourceManager::addMaterial(const std::string &path)
 {
     std::optional<paca_format::Material> pacaMaterial = paca_format::readMaterial(path);
     MaterialSpecification materialSpec;
@@ -69,7 +69,7 @@ std::shared_ptr<Material> ResourceManager::addMaterial(std::string_view path)
     return s_data.materials.insert(std::make_pair(pacaMaterial->name, material)).first->second;
 }
 
-std::shared_ptr<Texture> ResourceManager::getTexture(std::string_view path)
+std::shared_ptr<Texture> ResourceManager::getTexture(const std::string &path)
 {
     const std::string texturesFolder = "assets/textures/";
     std::unordered_map<std::string, std::weak_ptr<Texture>>::iterator iter =
@@ -94,7 +94,7 @@ std::shared_ptr<Texture> ResourceManager::getTexture(std::string_view path)
     return texture;
 }
 
-std::shared_ptr<Model> ResourceManager::getModel(std::string_view name)
+std::shared_ptr<Model> ResourceManager::getModel(const std::string &name)
 {
     std::unordered_map<std::string, std::shared_ptr<Model>>::iterator iter =
         s_data.models.find(name);
@@ -113,7 +113,7 @@ std::shared_ptr<Model> ResourceManager::getModel(std::string_view name)
     ASSERT(false);
 }
 
-std::shared_ptr<Material> ResourceManager::getMaterial(std::string_view name)
+std::shared_ptr<Material> ResourceManager::getMaterial(const std::string &name)
 {
     std::unordered_map<std::string, std::shared_ptr<Material>>::iterator iter =
         s_data.materials.find(name);
