@@ -10,7 +10,6 @@
 #include "opengl/Shader.hpp"
 
 #include <cstdint>
-#include <cstdio>
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/ext/quaternion_common.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -61,8 +60,8 @@ std::string textureTypeToUniformName(MaterialTextureType::Type type)
         default: break;
     }
 
-    fprintf(stderr, "Invalid Material Texture Type!\n");
-    exit(1);
+    ERROR("Invalid Material Texture Type!");
+    ASSERT(false);
 }
 
 void Renderer::init(RendererParameters parameters)

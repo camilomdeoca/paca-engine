@@ -1,10 +1,10 @@
 #include "Texture.hpp"
-#include "util/ImageLoader.hpp"
 
-#include <cstdio>
+#include "engine/Assert.hpp"
+#include "engine/Log.hpp"
+
 #include <stb_image.h>
 #include <GL/glew.h>
-#include <vector>
 
 GLenum formatToOpenGLFormat(Texture::Format format)
 {
@@ -37,15 +37,14 @@ Texture::Texture(const std::string &path)
     int width, height, channels;
     stbi_set_flip_vertically_on_load(1);
     stbi_uc *data = stbi_load(path.c_str(), &width, &height, &channels, 0);
-    //std::vector<unsigned char> data = ImageLoader::loadPNG(path, width, height, channels);
 
     if (!data)
     {
-        fprintf(stderr, "Failed to load image: %s!\n", path.c_str());
-        exit(1);
+        ERROR("Failed to load image: {}!", path);
+        ASSERT(false);
     }
     Format format;
-    printf("%s (%dx%d) has %d channels\n", path.c_str(), width, height, channels);
+    INFO("{} ({}x{}) has {} channels.", path, width, height, channels);
     switch (channels)
     {
         case 1: format = Format::G8; break;

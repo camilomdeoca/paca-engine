@@ -2,6 +2,8 @@
 
 #include "engine/Input.hpp"
 
+#include <algorithm>
+
 PerspectiveCameraController::PerspectiveCameraController(float aspect, float fov)
     : m_camera(aspect, fov)
 {

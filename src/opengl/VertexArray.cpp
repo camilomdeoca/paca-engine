@@ -1,8 +1,10 @@
 #include "VertexArray.hpp"
+
 #include "VertexBuffer.hpp"
+#include "engine/Assert.hpp"
+#include "engine/Log.hpp"
 
 #include <GL/glew.h>
-#include <cstdio>
 #include <memory>
 
 static GLenum ShaderDataTypeToOpenGLBaseType(ShaderDataType type)
@@ -16,8 +18,8 @@ static GLenum ShaderDataTypeToOpenGLBaseType(ShaderDataType type)
         default: break;
     }
 
-    fprintf(stderr, "Invalid ShaderDataType!\n");
-    exit(1);
+    ERROR("Invalid ShaderDataType!");
+    ASSERT(false)
     return 0;
 }
 

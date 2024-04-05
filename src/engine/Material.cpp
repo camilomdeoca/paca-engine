@@ -1,7 +1,5 @@
 #include "Material.hpp"
 
-#include <cstdio>
-
 Material::Material(MaterialSpecification maps)
     : m_maps(maps.textureMaps)
 {}

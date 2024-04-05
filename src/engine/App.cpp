@@ -8,8 +8,6 @@
 #include "engine/Renderer.hpp"
 
 #include <SDL2/SDL.h>
-#include <cstdio>
-#include <cstdlib>
 #include <format>
 #include <glm/glm.hpp>
 #include <memory>
@@ -26,8 +24,8 @@ App::~App()
 void App::init(std::string title)
 {
     if (SDL_Init(SDL_INIT_EVERYTHING) < 0) {
-        fprintf(stderr, "Error initializing SDL: %s\n", SDL_GetError());
-        exit(1);
+        ERROR("Error initializing SDL: {}", SDL_GetError());
+        ASSERT(false);
     }
 
     m_window.create(title);

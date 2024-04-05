@@ -1,8 +1,10 @@
 #include "Window.hpp"
 
+#include "engine/Assert.hpp"
+#include "engine/Log.hpp"
+
 #include <GL/glew.h>
 #include <SDL2/SDL_video.h>
-#include <cstdio>
 
 Window::Window()
 {}
@@ -20,19 +22,19 @@ void Window::create(std::string title, int w, int h)
     m_window.reset(SDL_CreateWindow(title.c_str(), SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, w, h, SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE));
 
     if (!m_window) {
-        fprintf(stderr, "Error creating window: %s\n", SDL_GetError());
-        exit(1);
+        ERROR("Error creating window: {}", SDL_GetError());
+        ASSERT(false);
     }
 
     m_glContext = SDL_GL_CreateContext(m_window.get());
     if (!m_glContext) {
-        fprintf(stderr, "Error creating GL context: %s\n", SDL_GetError());
-        exit(1);
+        ERROR("Error creating GL context: {}", SDL_GetError());
+        ASSERT(false);
     }
 
     if (glewInit() != GLEW_OK) {
-        fprintf(stderr, "Error initializing glew.\n");
-        exit(1);
+        ERROR("Error initializing glew.");
+        ASSERT(false);
     }
 
     SDL_GL_SetSwapInterval(1);

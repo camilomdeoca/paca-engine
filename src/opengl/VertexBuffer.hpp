@@ -1,8 +1,10 @@
 #pragma once
 
+#include "engine/Assert.hpp"
+#include "engine/Log.hpp"
+
 #include <cstddef>
 #include <cstdint>
-#include <cstdio>
 #include <string>
 #include <vector>
 
@@ -27,8 +29,8 @@ static uint32_t getSizeOfDataType(ShaderDataType type)
         default: break;
     }
 
-    fprintf(stderr, "Invalid ShaderDatatype!\n");
-    exit(1);
+    ERROR("Invalid ShaderDatatype!");
+    ASSERT(false);
     return 0;
 }
 
@@ -54,8 +56,8 @@ struct BufferElement {
             default: break;
         }
 
-        fprintf(stderr, "Invalid ShaderDataType!\n");
-        exit(1);
+        ERROR("Invalid ShaderDataType!");
+        ASSERT(false);
         return 0;
     }
 };

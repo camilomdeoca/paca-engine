@@ -4,7 +4,6 @@
 #include "engine/Model.hpp"
 #include "opengl/Texture.hpp"
 
-#include <cstdio>
 #include <optional>
 #include <pacaread/pacaread.hpp>
 #include <memory>
@@ -99,16 +98,16 @@ std::shared_ptr<Model> ResourceManager::getModel(const std::string &name)
 
     if (iter == s_data.models.end())
     {
-        fprintf(stderr, "Model: %s wasn't added yet.\n", name.c_str());
-        exit(1);
+        ERROR("Model: {} wasn't added yet.", name);
+        ASSERT(false);
     }
 
     std::shared_ptr<Model> model = iter->second;
     if (model)
         return model;
 
-    fprintf(stderr, "Model: %s was deleted", name.c_str());
-    exit(1);
+    ERROR("Model: {} was deleted", name);
+    ASSERT(false);
 }
 
 std::shared_ptr<Material> ResourceManager::getMaterial(const std::string &name)
@@ -118,13 +117,13 @@ std::shared_ptr<Material> ResourceManager::getMaterial(const std::string &name)
 
     if (iter == s_data.materials.end())
     {
-        fprintf(stderr, "Material: %s wasn't added yet.\n", name.c_str());
-        exit(1);
+        ERROR("Material: {} wasn't added yet.", name);
+        ASSERT(false);
     }
 
     std::shared_ptr<Material> material = iter->second;
     if (material)
         return material;
 
-    exit(1);
+    ASSERT_MSG(false, "Material is null");
 }

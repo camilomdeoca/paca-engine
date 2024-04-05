@@ -8,7 +8,6 @@
 #include <assimp/mesh.h>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
-#include <cstdio>
 #include <memory>
 #include <optional>
 #include <vector>
@@ -93,8 +92,8 @@ std::optional<ModelData> ModelLoader::loadModel(const std::string &path)
 
     if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
     {
-        fprintf(stderr, "%s", importer.GetErrorString());
-        fprintf(stderr, "Error loading file: %s.\n", path.c_str());
+        ERROR("{}", importer.GetErrorString());
+        ERROR("Error loading file: {}.", path);
         return {};
     }
 

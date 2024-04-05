@@ -1,8 +1,10 @@
 #include "Shader.hpp"
 
+#include "engine/Assert.hpp"
+#include "engine/Log.hpp"
+
 #include <GL/glew.h>
 #include <glm/gtc/type_ptr.hpp>
-#include <cstdio>
 #include <fstream>
 #include <iosfwd>
 #include <vector>
@@ -58,9 +60,9 @@ Shader::Shader(const std::string &vertexPath, const std::string &fragmentPath)
     	glDeleteShader(vertexShader);
     
     	// Use the infoLog as you see fit.
-        fprintf(stderr, "%s\n", infoLog.data());
-        fprintf(stderr, "Error compiling vertex shader!: %s.\n", vertexPath.c_str());
-        exit(1);
+        ERROR("{}", infoLog.data());
+        ERROR("Error compiling vertex shader!: %s.", vertexPath);
+        ASSERT(false);
     	
     	// In this simple program, we'll just leave
     	return;
@@ -93,9 +95,9 @@ Shader::Shader(const std::string &vertexPath, const std::string &fragmentPath)
     	glDeleteShader(vertexShader);
     
     	// Use the infoLog as you see fit.
-        fprintf(stderr, "%s\n", infoLog.data());
-        fprintf(stderr, "Error compiling fragment shader!: %s.\n", fragmentPath.c_str());
-        exit(1);
+        ERROR("{}", infoLog.data());
+        ERROR("Error compiling fragment shader!: {}.", fragmentPath);
+        ASSERT(false);
     	
     	// In this simple program, we'll just leave
     	return;
@@ -132,9 +134,9 @@ Shader::Shader(const std::string &vertexPath, const std::string &fragmentPath)
     	glDeleteShader(fragmentShader);
     
     	// Use the infoLog as you see fit.
-        fprintf(stderr, "%s\n", infoLog.data());
-        fprintf(stderr, "Error linking shader program!\n");
-        exit(1);
+        ERROR("{}", infoLog.data());
+        ERROR("Error linking shader program!");
+        ASSERT(false);
     	
     	// In this simple program, we'll just leave
     	return;
