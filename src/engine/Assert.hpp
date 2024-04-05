@@ -1,6 +1,8 @@
 #pragma once
 
 #ifdef DEBUG
+    #include "Log.hpp"
+
     #if _MSC_VER
         #include <intrin.h>
         #define DEBUGBREAK() __debugbreak()

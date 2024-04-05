@@ -83,7 +83,7 @@ public:
 class KeyReleaseEvent : public KeyEvent {
 public:
     KeyReleaseEvent(Key::KeyCode key) : KeyEvent(key) {}
-    EventType getType() const override { return EventType::keyDown; }
+    EventType getType() const override { return EventType::keyUp; }
 };
 
 class MouseMotionEvent : public Event {

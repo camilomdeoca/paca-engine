@@ -1,5 +1,6 @@
 #pragma once
 
+#include "engine/Action.hpp"
 #include "engine/Input.hpp"
 #include "engine/PerspectiveCamera.hpp"
 
@@ -16,12 +17,22 @@ public:
     void onMouseScroll(const MouseWheelEvent &event);
     void onMouseMotion(const MouseMotionEvent &event);
 
-    //void pauseControl();
-    //void resumeControl();
-
 private:
+    struct DirectionMask {
+        enum Mask {
+            forward  = 1 << 0,
+            backward = 1 << 1,
+            left     = 1 << 2,
+            right    = 1 << 3,
+            up       = 1 << 4,
+            down     = 1 << 5
+        };
+    };
+
     PerspectiveCamera m_camera;
     EventReceiver m_eventReceiver;
+    std::array<Action, 6> m_actions;
     bool m_haveControl = true;
+    unsigned int m_moving = 0; // bitmask for DirectionMask
 };
 

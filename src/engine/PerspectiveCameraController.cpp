@@ -1,5 +1,6 @@
 #include "PerspectiveCameraController.hpp"
 
+#include "engine/Assert.hpp"
 #include "engine/Input.hpp"
 
 #include <algorithm>
@@ -7,10 +8,26 @@
 PerspectiveCameraController::PerspectiveCameraController(float aspect, float fov)
     : m_camera(aspect, fov)
 {
-    m_eventReceiver.setEventsMask(EventMask::mouseWheelDown
-            | EventMask::mouseWheelUp
-            | EventMask::mouseMotion);
-    m_eventReceiver.setEventHandler([this] (const Event &event) {
+    m_actions[0].init("forward",
+            [this]() { m_moving |= DirectionMask::forward; },
+            [this]() { m_moving &= ~DirectionMask::forward; });
+    m_actions[1].init("backward",
+            [this]() { m_moving |= DirectionMask::backward; },
+            [this]() { m_moving &= ~DirectionMask::backward; });
+    m_actions[2].init("left",
+            [this]() { m_moving |= DirectionMask::left; },
+            [this]() { m_moving &= ~DirectionMask::left; });
+    m_actions[3].init("right",
+            [this]() { m_moving |= DirectionMask::right; },
+            [this]() { m_moving &= ~DirectionMask::right; });
+    m_actions[4].init("up",
+            [this]() { m_moving |= DirectionMask::up; },
+            [this]() { m_moving &= ~DirectionMask::up; });
+    m_actions[5].init("down",
+            [this]() { m_moving |= DirectionMask::down; },
+            [this]() { m_moving &= ~DirectionMask::down; });
+
+    m_eventReceiver.setEventHandler([this](const Event &event) {
         switch (event.getType()) {
         case EventType::mouseMotion:
             onMouseMotion(static_cast<const MouseMotionEvent&>(event));
@@ -19,9 +36,15 @@ PerspectiveCameraController::PerspectiveCameraController(float aspect, float fov
         case EventType::mouseWheelUp:
             onMouseScroll(static_cast<const MouseWheelEvent&>(event));
             break;
-        default: break;
+        default:
+            ASSERT_MSG(false, "Received unrequested event type");
+            break;
         }
     });
+    m_eventReceiver.setEventsMask(
+            EventMask::mouseWheelUp | 
+            EventMask::mouseWheelDown | 
+            EventMask::mouseMotion);
 }
 
 PerspectiveCameraController::~PerspectiveCameraController()
@@ -38,22 +61,22 @@ void PerspectiveCameraController::onUpdate(float ms)
         front = glm::normalize(front);
         glm::vec3 right = glm::normalize(glm::cross(front, getCamera().getUp()));
 
-        if (Input::isKeyPressed(Key::a)) {
+        if (m_moving & DirectionMask::left) {
             position -= right * cameraSpeed * ms;
         }
-        if (Input::isKeyPressed(Key::d)) {
+        if (m_moving & DirectionMask::right) {
             position += right * cameraSpeed * ms;
         }
-        if (Input::isKeyPressed(Key::w)) {
+        if (m_moving & DirectionMask::forward) {
             position += front * cameraSpeed * ms;
         }
-        if (Input::isKeyPressed(Key::s)) {
+        if (m_moving & DirectionMask::backward) {
             position -= front * cameraSpeed * ms;
         }
-        if (Input::isKeyPressed(Key::space)) {
+        if (m_moving & DirectionMask::up) {
             position.y += cameraSpeed * ms;
         }
-        if (Input::isKeyPressed(Key::lshift)) {
+        if (m_moving & DirectionMask::down) {
             position.y -= cameraSpeed * ms;
         }
 

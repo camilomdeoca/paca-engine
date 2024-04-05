@@ -103,11 +103,19 @@ void App::run()
     //    light->setAttenuation(light->getAttenuation() * 0.95);
     //    printf("attenuation = %f\n", light->getAttenuation());
     //}, Key::right);
-    Action setLightPosAction("setLight", [&light, &cameraController]() {
+    Action setLightPosAction;
+    setLightPosAction.init("setLight", [&light, &cameraController]() {
         glm::vec3 newPos = cameraController.getCamera().getPosition();
         light->setPosition(newPos);
     });
-    BindingsManager::bindKeyToAction(Key::left, "setLight");
+    BindingsManager::bind(Key::left, "setLight");
+
+    BindingsManager::bind(Key::w, "forward");
+    BindingsManager::bind(Key::s, "backward");
+    BindingsManager::bind(Key::a, "left");
+    BindingsManager::bind(Key::d, "right");
+    BindingsManager::bind(Key::space, "up");
+    BindingsManager::bind(Key::lshift, "down");
 
     //Input::addKeyPressCallback([&cameraController](KeyPressEvent &event) {
     //    static bool val = true;
