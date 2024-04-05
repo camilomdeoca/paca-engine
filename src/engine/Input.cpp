@@ -16,7 +16,8 @@ constexpr std::array<Pair, static_cast<size_t>(EventType::last)> maskEnumMapping
     {EventMask::mouseMotion, EventType::mouseMotion},
     {EventMask::mouseWheelDown, EventType::mouseWheelDown},
     {EventMask::mouseWheelUp, EventType::mouseWheelUp},
-    {EventMask::windowResize, EventType::windowResize}
+    {EventMask::windowResize, EventType::windowResize},
+    {EventMask::exit, EventType::exit}
 }};
 
 static struct {
@@ -67,7 +68,10 @@ void Input::processInput()
         switch (event.type) {
         case SDL_QUIT:
             // TODO: Cleanup before exiting
-            exit(0);
+            {
+                ExitEvent exitEvent;
+                sendEventToReceiversForType(exitEvent, EventType::exit);
+            }
             break;
         case SDL_WINDOWEVENT:
             {

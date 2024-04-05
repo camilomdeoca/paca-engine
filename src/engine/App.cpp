@@ -1,5 +1,6 @@
 #include "App.hpp"
 #include "Input.hpp"
+#include "engine/Action.hpp"
 #include "engine/OrthoCamera.hpp"
 #include "engine/ResourceManager.hpp"
 #include "opengl/gl.hpp"
@@ -18,6 +19,7 @@ App::App()
 
 App::~App()
 {
+    BindingsManager::shutdown();
     SDL_Quit();
 }
 
@@ -39,8 +41,19 @@ void App::init(std::string title)
 
     GL::init();
     Input::init();
+    BindingsManager::init();
     Renderer::init(rendererParams);
     Renderer2D::init();
+
+    m_eventReceiver.setEventHandler([this] (const Event &event) {
+        switch (event.getType()) {
+        case EventType::exit:
+            m_running = false;
+            break;
+        default: break;
+        }
+    });
+    m_eventReceiver.setEventsMask(EventMask::exit);
 }
 
 void App::run()
@@ -90,10 +103,11 @@ void App::run()
     //    light->setAttenuation(light->getAttenuation() * 0.95);
     //    printf("attenuation = %f\n", light->getAttenuation());
     //}, Key::right);
-    //Input::addMouseButtonPressCallback([&light, &cameraController](ButtonPressEvent &event) {
-    //    glm::vec3 newPos = cameraController.getCamera().getPosition();
-    //    light->setPosition(newPos);
-    //}, Button::left);
+    Action setLightPosAction("setLight", [&light, &cameraController]() {
+        glm::vec3 newPos = cameraController.getCamera().getPosition();
+        light->setPosition(newPos);
+    });
+    BindingsManager::bindKeyToAction(Key::left, "setLight");
 
     //Input::addKeyPressCallback([&cameraController](KeyPressEvent &event) {
     //    static bool val = true;
@@ -106,7 +120,7 @@ void App::run()
     //}, Key::esc);
 
     float lastFrameTime = SDL_GetTicks();
-    while (true) {
+    while (m_running) {
         float time = SDL_GetTicks();
         float timeDelta = time - lastFrameTime;
         lastFrameTime = time;

@@ -37,6 +37,7 @@ enum class EventType {
     mouseMotion,
     mouseWheelDown, mouseWheelUp,
     windowResize,
+    exit,
     last
 };
 
@@ -129,6 +130,11 @@ private:
     unsigned int m_w, m_h;
 };
 
+class ExitEvent : public Event {
+public:
+    EventType getType() const override { return EventType::exit; }
+};
+
 namespace EventMask {
     enum Mask : uint32_t {
         buttonDown     = 1 << 0,
@@ -139,6 +145,7 @@ namespace EventMask {
         mouseWheelDown = 1 << 5,
         mouseWheelUp   = 1 << 6,
         windowResize   = 1 << 7,
+        exit           = 1 << 8,
     };
 }
 
