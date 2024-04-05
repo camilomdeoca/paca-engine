@@ -41,7 +41,7 @@ struct BufferElement {
     size_t offset;
     bool normalized;
 
-    BufferElement(ShaderDataType type, const std::string &name, bool normalized = false)
+    BufferElement(ShaderDataType type, std::string_view name, bool normalized = false)
         : name(name), type(type), size(getSizeOfDataType(type)), offset(0), normalized(normalized)
     {}
 

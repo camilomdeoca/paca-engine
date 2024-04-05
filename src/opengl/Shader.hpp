@@ -5,7 +5,7 @@
 
 class Shader {
 public:
-    Shader(const std::string &vertexPath, const std::string &fragmentPath);
+    Shader(std::string_view vertexPath, std::string_view fragmentPath);
     ~Shader();
 
     void bind();

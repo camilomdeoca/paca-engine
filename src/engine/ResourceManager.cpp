@@ -4,6 +4,7 @@
 #include "engine/Model.hpp"
 #include "opengl/Texture.hpp"
 
+#include <functional>
 #include <optional>
 #include <pacaread/pacaread.hpp>
 #include <memory>
@@ -11,17 +12,19 @@
 #include <utility>
 #include <vector>
 
+struct StringAndViewHash : public std::hash<std::string_view> { using is_transparent = void; };
+
 static struct {
-    std::unordered_map<std::string, std::weak_ptr<Texture>> textures;
+    std::unordered_map<std::string, std::weak_ptr<Texture>, StringAndViewHash, std::equal_to<>> textures;
 
     // TODO: Change to weak_ptr so the materials and models get deleted when not used.
     // TODO: Add an index file of in wich files are what materials so when the materials are loaded
     // when wanted.
-    std::unordered_map<std::string, std::shared_ptr<Material>> materials;
-    std::unordered_map<std::string, std::shared_ptr<Model>> models; 
+    std::unordered_map<std::string, std::shared_ptr<Material>, StringAndViewHash, std::equal_to<>> materials;
+    std::unordered_map<std::string, std::shared_ptr<Model>, StringAndViewHash, std::equal_to<>> models; 
 } s_data;
 
-std::shared_ptr<Model> ResourceManager::addModel(const std::string &path)
+std::shared_ptr<Model> ResourceManager::addModel(std::string_view &path)
 {
     std::optional<paca_format::Model> pacaModel = paca_format::readModel(path);
     std::vector<std::shared_ptr<Mesh>> meshes;
@@ -49,7 +52,7 @@ MaterialTextureType::Type pacaTextureTypeToMaterialTextureType(paca_format::Text
     exit(1);
 }
 
-std::shared_ptr<Material> ResourceManager::addMaterial(const std::string &path)
+std::shared_ptr<Material> ResourceManager::addMaterial(std::string_view path)
 {
     std::optional<paca_format::Material> pacaMaterial = paca_format::readMaterial(path);
     MaterialSpecification materialSpec;
@@ -66,7 +69,7 @@ std::shared_ptr<Material> ResourceManager::addMaterial(const std::string &path)
     return s_data.materials.insert(std::make_pair(pacaMaterial->name, material)).first->second;
 }
 
-std::shared_ptr<Texture> ResourceManager::getTexture(const std::string &path)
+std::shared_ptr<Texture> ResourceManager::getTexture(std::string_view path)
 {
     const std::string texturesFolder = "assets/textures/";
     std::unordered_map<std::string, std::weak_ptr<Texture>>::iterator iter =
@@ -91,7 +94,7 @@ std::shared_ptr<Texture> ResourceManager::getTexture(const std::string &path)
     return texture;
 }
 
-std::shared_ptr<Model> ResourceManager::getModel(const std::string &name)
+std::shared_ptr<Model> ResourceManager::getModel(std::string_view name)
 {
     std::unordered_map<std::string, std::shared_ptr<Model>>::iterator iter =
         s_data.models.find(name);
@@ -110,7 +113,7 @@ std::shared_ptr<Model> ResourceManager::getModel(const std::string &name)
     ASSERT(false);
 }
 
-std::shared_ptr<Material> ResourceManager::getMaterial(const std::string &name)
+std::shared_ptr<Material> ResourceManager::getMaterial(std::string_view name)
 {
     std::unordered_map<std::string, std::shared_ptr<Material>>::iterator iter =
         s_data.materials.find(name);
