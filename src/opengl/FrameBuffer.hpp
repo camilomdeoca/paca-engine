@@ -6,6 +6,8 @@
 #include <memory>
 #include <vector>
 
+// TODO: add clear(vec3 color = {0, 0, 0}) method
+
 struct FrameBufferParameters {
     uint32_t width = 0, height = 0;
     std::vector<Texture::Format> textureAttachmentFormats;

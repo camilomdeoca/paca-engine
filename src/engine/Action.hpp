@@ -13,6 +13,8 @@
 
 // TODO: Create ToggleaAction class that has two functions one on enable and one on disable
 
+// TODO: bind buttons and mouse wheel in the same way
+
 class Action {
 public:
     Action();
@@ -21,7 +23,7 @@ public:
     void init(std::string_view name, std::function<void()> enable, std::function<void()> disable = nullptr);
 
     std::string_view getName() const { return m_name; }
-    void exec(bool enable);
+    void exec(bool enable = true);
 
 private:
     std::string m_name;
@@ -32,7 +34,10 @@ class BindingsManager {
 public:
     static void init();
     static void shutdown();
-    static bool bind(Key::KeyCode key, std::string actionName);
+    static bool bind(Key::KeyCode key, std::string_view actionName);
+    static bool bind(Button::ButtonCode button, std::string_view actionName);
+    static bool bindMouseWheelUp(std::string_view actionName);
+    static bool bindMouseWheelDown(std::string_view actionName);
 };
 
 

@@ -19,6 +19,9 @@ public:
     const glm::vec3 &getDirection() const override { return m_direction; }
     const glm::vec3 &getUp() const override { return m_up; }
 
+    float getNear() const override { return m_near; }
+    float getFar() const override { return m_far; }
+
     const glm::mat4 &getProjectionMatrix() const override { return m_projectionMatrix; }
     const glm::mat4 &getViewMatrix() const override { return m_viewMatrix; }
     const glm::mat4 &getViewProjectionMatrix() const override { return m_viewProjectionMatrix; }
@@ -26,6 +29,7 @@ public:
 private:
     void recalculateViewProjectionMatrix();
 
+    float m_near, m_far;
     glm::mat4 m_projectionMatrix;
     glm::mat4 m_viewMatrix;
     glm::mat4 m_viewProjectionMatrix;

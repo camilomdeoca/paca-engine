@@ -14,7 +14,6 @@ public:
     const PerspectiveCamera &getCamera() { return m_camera; }
     void setAspect(float aspect) { m_camera.setAspect(aspect); }
 
-    void onMouseScroll(const MouseWheelEvent &event);
     void onMouseMotion(const MouseMotionEvent &event);
 
 private:
@@ -31,7 +30,7 @@ private:
 
     PerspectiveCamera m_camera;
     EventReceiver m_eventReceiver;
-    std::array<Action, 6> m_actions;
+    std::array<Action, 8> m_actions;
     bool m_haveControl = true;
     unsigned int m_moving = 0; // bitmask for DirectionMask
 };

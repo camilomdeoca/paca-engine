@@ -26,25 +26,20 @@ PerspectiveCameraController::PerspectiveCameraController(float aspect, float fov
     m_actions[5].init("down",
             [this]() { m_moving |= DirectionMask::down; },
             [this]() { m_moving &= ~DirectionMask::down; });
+    m_actions[6].init("zoom_in", [this]() { m_camera.setFov(std::clamp(m_camera.getFov() * 1/1.1f, 0.0f, 120.0f)); });
+    m_actions[7].init("zoom_out", [this]() { m_camera.setFov(std::clamp(m_camera.getFov() * 1.1f, 0.0f, 120.0f)); });
 
     m_eventReceiver.setEventHandler([this](const Event &event) {
         switch (event.getType()) {
         case EventType::mouseMotion:
             onMouseMotion(static_cast<const MouseMotionEvent&>(event));
             break;
-        case EventType::mouseWheelDown:
-        case EventType::mouseWheelUp:
-            onMouseScroll(static_cast<const MouseWheelEvent&>(event));
-            break;
         default:
             ASSERT_MSG(false, "Received unrequested event type");
             break;
         }
     });
-    m_eventReceiver.setEventsMask(
-            EventMask::mouseWheelUp | 
-            EventMask::mouseWheelDown | 
-            EventMask::mouseMotion);
+    m_eventReceiver.setEventsMask(EventMask::mouseMotion);
 }
 
 PerspectiveCameraController::~PerspectiveCameraController()
@@ -82,15 +77,6 @@ void PerspectiveCameraController::onUpdate(float ms)
 
         m_camera.setPosition(position);
     }
-}
-
-void PerspectiveCameraController::onMouseScroll(const MouseWheelEvent &event)
-{
-    float fov = m_camera.getFov();
-    fov *= 1.0f - event.getAmmount() * 0.1f;
-    if (fov > 120.0f) fov = 120.0f;
-    // fov -= event.amount * 0.25f;
-    m_camera.setFov(fov);
 }
 
 void PerspectiveCameraController::onMouseMotion(const MouseMotionEvent &event)

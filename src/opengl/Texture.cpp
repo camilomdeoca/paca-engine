@@ -3,6 +3,7 @@
 #include "engine/Assert.hpp"
 #include "engine/Log.hpp"
 
+#include <glm/gtc/type_ptr.hpp>
 #include <stb_image.h>
 #include <GL/glew.h>
 
@@ -16,6 +17,7 @@ GLenum formatToOpenGLFormat(Texture::Format format)
         case Texture::Format::RGBA8: return GL_RGBA;
         case Texture::Format::RGBA16F: return GL_RGBA;
         case Texture::Format::depth24stencil8: return GL_DEPTH_STENCIL;
+        case Texture::Format::depth24: return GL_DEPTH_COMPONENT;
         }
 }
 
@@ -29,6 +31,7 @@ GLenum formatToOpenGLInternalFormat(Texture::Format format)
         case Texture::Format::RGBA8: return GL_RGBA8;
         case Texture::Format::RGBA16F: return GL_RGBA16F;
         case Texture::Format::depth24stencil8: return GL_DEPTH24_STENCIL8;
+        case Texture::Format::depth24: return GL_DEPTH_COMPONENT24;
         }
 }
 
@@ -82,6 +85,7 @@ void Texture::create(unsigned char *data, uint32_t width, uint32_t height, Forma
 
     glCreateTextures(GL_TEXTURE_2D, 1, &m_id);
     glTextureStorage2D(m_id, 1, formatToOpenGLInternalFormat(format), m_width, m_height);
+    ASSERT(glGetError() == 0);
 
     glTextureParameteri(m_id, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTextureParameteri(m_id, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -92,6 +96,7 @@ void Texture::create(unsigned char *data, uint32_t width, uint32_t height, Forma
 
     if (data)
         glTextureSubImage2D(m_id, 0, 0, 0, m_width, m_height, formatToOpenGLFormat(format), GL_UNSIGNED_BYTE, data);
+    ASSERT(glGetError() == 0);
 }
 
 //void Texture::setData(void *data, uint32_t size)
@@ -115,5 +120,13 @@ void Texture::setRepeat(bool value)
     glTextureParameteri(m_id, GL_TEXTURE_WRAP_R, value ? GL_REPEAT : GL_CLAMP_TO_EDGE);
     glTextureParameteri(m_id, GL_TEXTURE_WRAP_S, value ? GL_REPEAT : GL_CLAMP_TO_EDGE);
     glTextureParameteri(m_id, GL_TEXTURE_WRAP_T, value ? GL_REPEAT : GL_CLAMP_TO_EDGE);
+}
+
+void Texture::setBorderColor(const glm::vec4 color)
+{
+    glTextureParameteri(m_id, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_BORDER);
+    glTextureParameteri(m_id, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    glTextureParameteri(m_id, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    glTextureParameterfv(m_id, GL_TEXTURE_BORDER_COLOR, glm::value_ptr(color));
 }
 

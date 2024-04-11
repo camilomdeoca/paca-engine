@@ -2,6 +2,7 @@
 
 #include <GL/glew.h>
 #include <SDL2/SDL_opengl.h>
+#include <cstddef>
 
 void GL::init()
 {
@@ -48,7 +49,18 @@ void GL::setBlending(bool value)
         glEnable(GL_BLEND);
     else
         glDisable(GL_BLEND);
+}
 
+void GL::setBlendFunction(BlendFunction src, BlendFunction dst)
+{
+    constexpr GLenum blendFuncToGLBlendFunc[static_cast<size_t>(BlendFunction::last)] = {
+        GL_ONE,
+        GL_SRC_ALPHA,
+        GL_ONE_MINUS_SRC_ALPHA
+    };
+
+    glBlendFunc(blendFuncToGLBlendFunc[static_cast<size_t>(src)],
+                blendFuncToGLBlendFunc[static_cast<size_t>(dst)]);
 }
 
 void GL::viewport(unsigned int width, unsigned int height)

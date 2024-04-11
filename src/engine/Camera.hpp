@@ -12,7 +12,9 @@ public:
     //virtual void setRotation(glm::vec3 rotation) = 0;
     virtual const glm::vec3 &getDirection() const = 0;
     virtual const glm::vec3 &getUp() const = 0;
-
+    
+    virtual float getNear() const = 0;
+    virtual float getFar() const = 0;
 
     virtual const glm::mat4 &getViewProjectionMatrix() const = 0;
     virtual const glm::mat4 &getProjectionMatrix() const = 0;

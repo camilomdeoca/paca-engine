@@ -43,5 +43,5 @@ void main()
     float gamma = 2.2;
     color = vec4(pow(col, vec3(1.0/gamma)), 1.0);
     //color = vec4(col, 1.0);
-    //color = texture(u_screenTexture, o_uv);
+    //color = vec4(texture(u_screenTexture, o_uv).r);
 }

@@ -19,7 +19,9 @@ namespace Key {
         up     = SDL_SCANCODE_UP,
         lshift = SDL_SCANCODE_LSHIFT,
         space  = SDL_SCANCODE_SPACE,
-        esc    = SDL_SCANCODE_ESCAPE
+        esc    = SDL_SCANCODE_ESCAPE,
+
+        last   = SDL_NUM_SCANCODES
     };
 }
 
@@ -27,7 +29,9 @@ namespace Button {
     enum ButtonCode {
         left = SDL_BUTTON_LEFT,
         middle = SDL_BUTTON_MIDDLE,
-        right = SDL_BUTTON_RIGHT
+        right = SDL_BUTTON_RIGHT,
+
+        last
     };
 }
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <glm/glm.hpp>
 #include <string>
 
 class Texture {
@@ -11,7 +12,8 @@ public:
         RGB8,
         RGBA8,
         RGBA16F,
-        depth24stencil8
+        depth24stencil8,
+        depth24
     };
 
     Texture(const std::string &path);
@@ -30,6 +32,7 @@ public:
 
     void setInterpolate(bool value);
     void setRepeat(bool value);
+    void setBorderColor(const glm::vec4 color);
 
     // Needed for the framebuffer class. Is there a better way without exposing the id?
     uint32_t getId() { return m_id; }

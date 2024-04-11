@@ -4,7 +4,6 @@
 #include "engine/Input.hpp"
 
 #include <memory>
-#include <unordered_map>
 #include <unordered_set>
 
 // using is_transparent for searching for action with name without duplicating the action name as
@@ -42,7 +41,9 @@ struct ActionEqual {
 static struct {
     std::unique_ptr<EventReceiver> eventReceiver;
     std::unordered_set<Action*, ActionHash, ActionEqual> actions;
-    std::unordered_map<Key::KeyCode, Action*> bindings;
+    std::array<Action*, Key::last> keyBindings;
+    std::array<Action*, Button::last> buttonBindings;
+    Action *mouseWheelDownBinding, *mouseWheelUpBinding;
 } s_data;
 
 Action::Action()
@@ -55,14 +56,27 @@ Action::~Action()
     // This deletes all bindings that use the action
     // TODO: find something better to not iterate through the bindings
     // maybe store all keys the action is bound to, but i dont like it
-    auto it = s_data.bindings.begin();
-    while (it != s_data.bindings.end())
+    auto keyIter = s_data.keyBindings.begin();
+    while (keyIter != s_data.keyBindings.end())
     {
-        if (it->second == this)
-            it = s_data.bindings.erase(it);
-        else
-            it++;
+        if (*keyIter == this)
+            *keyIter = nullptr;
+        keyIter++;
     }
+
+    auto buttonIter = s_data.buttonBindings.begin();
+    while (buttonIter != s_data.buttonBindings.end())
+    {
+        if (*buttonIter == this)
+            *buttonIter = nullptr;
+        buttonIter++;
+    }
+
+    if (s_data.mouseWheelDownBinding == this)
+        s_data.mouseWheelDownBinding = nullptr;
+
+    if (s_data.mouseWheelUpBinding == this)
+        s_data.mouseWheelUpBinding = nullptr;
 }
 
 void Action::init(std::string_view name, std::function<void()> enable, std::function<void()> disable)
@@ -94,17 +108,45 @@ void BindingsManager::init()
         case EventType::keyDown:
             {
                 const KeyEvent &keyEvent = static_cast<const KeyEvent&>(event);
-                auto it = s_data.bindings.find(keyEvent.getKey());
-                if (it != s_data.bindings.end())
-                    it->second->exec(true);
+                Action *&action = s_data.keyBindings[keyEvent.getKey()];
+                if (action) action->exec(true);
                 break;
             }
         case EventType::keyUp:
             {
                 const KeyEvent &keyEvent = static_cast<const KeyEvent&>(event);
-                auto it = s_data.bindings.find(keyEvent.getKey());
-                if (it != s_data.bindings.end())
-                    it->second->exec(false);
+                Action *&action = s_data.keyBindings[keyEvent.getKey()];
+                if (action) action->exec(false);
+                break;
+            }
+        case EventType::buttonDown:
+            {
+                const ButtonEvent &buttonEvent = static_cast<const ButtonEvent&>(event);
+                Action *&action = s_data.buttonBindings[buttonEvent.getButton()];
+                if (action) action->exec(true);
+                break;
+            }
+        case EventType::buttonUp:
+            {
+                const ButtonEvent &buttonEvent = static_cast<const ButtonEvent&>(event);
+                Action *&action = s_data.buttonBindings[buttonEvent.getButton()];
+                if (action) action->exec(false);
+                break;
+            }
+        case EventType::mouseWheelDown:
+            {
+                const MouseWheelEvent &wheelEvent = static_cast<const MouseWheelEvent&>(event);
+                if (s_data.mouseWheelDownBinding)
+                    for (unsigned int i = 0; i < -wheelEvent.getAmmount(); i++)
+                        s_data.mouseWheelDownBinding->exec();
+                break;
+            }
+        case EventType::mouseWheelUp:
+            {
+                const MouseWheelEvent &wheelEvent = static_cast<const MouseWheelEvent&>(event);
+                if (s_data.mouseWheelUpBinding)
+                    for (unsigned int i = 0; i < wheelEvent.getAmmount(); i++)
+                        s_data.mouseWheelUpBinding->exec();
                 break;
             }
         default:
@@ -112,7 +154,13 @@ void BindingsManager::init()
             break;
         }
     });
-    s_data.eventReceiver->setEventsMask(EventMask::keyDown | EventMask::keyUp);
+    s_data.eventReceiver->setEventsMask(
+            EventMask::keyDown |
+            EventMask::keyUp |
+            EventMask::buttonDown |
+            EventMask::buttonUp |
+            EventMask::mouseWheelDown |
+            EventMask::mouseWheelUp);
 }
 
 void BindingsManager::shutdown()
@@ -120,13 +168,38 @@ void BindingsManager::shutdown()
     s_data.eventReceiver.reset();
 }
 
-bool BindingsManager::bind(Key::KeyCode key, std::string actionName)
+bool BindingsManager::bind(Key::KeyCode key, std::string_view actionName)
 {
     auto it = s_data.actions.find(actionName);
     if (it == s_data.actions.end())
-    {
         return false;
-    }
-    s_data.bindings[key] = *it;
+    s_data.keyBindings[key] = *it;
+    return true;
+}
+
+bool BindingsManager::bind(Button::ButtonCode button, std::string_view actionName)
+{
+    auto it = s_data.actions.find(actionName);
+    if (it == s_data.actions.end())
+        return false;
+    s_data.buttonBindings[button] = *it;
+    return true;
+}
+
+bool BindingsManager::bindMouseWheelUp(std::string_view actionName)
+{
+    auto it = s_data.actions.find(actionName);
+    if (it == s_data.actions.end())
+        return false;
+    s_data.mouseWheelUpBinding = *it;
+    return true;
+}
+
+bool BindingsManager::bindMouseWheelDown(std::string_view actionName)
+{
+    auto it = s_data.actions.find(actionName);
+    if (it == s_data.actions.end())
+        return false;
+    s_data.mouseWheelDownBinding = *it;
     return true;
 }

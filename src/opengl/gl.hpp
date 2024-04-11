@@ -6,6 +6,14 @@
 
 class GL {
 public:
+    enum class BlendFunction {
+        one,
+        srcAlpha,
+        oneMinusSrcAlpha,
+
+        last
+    };
+
     static void init();
 
     static void setClearColor(const glm::vec4 &color);
@@ -13,6 +21,7 @@ public:
     static void drawIndexed(const std::shared_ptr<VertexArray> &vertexArray, uint32_t indexCount = 0);
     static void setDepthTest(bool value);
     static void setBlending(bool value);
+    static void setBlendFunction(BlendFunction src, BlendFunction dst);
     static void viewport(unsigned int width, unsigned int height);
 };
 
