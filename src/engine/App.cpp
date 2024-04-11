@@ -39,8 +39,8 @@ void App::init(std::string title)
     RendererParameters rendererParams;
     rendererParams.width = m_window.getWidth();
     rendererParams.height = m_window.getHeight();
-    rendererParams.shadowMapSize = 1024;
-    rendererParams.viewFrustumSplits = {5.0f, 10.0f, 20.0f, 50.0f};
+    rendererParams.shadowMapSize = 2048;
+    rendererParams.viewFrustumSplits = {10.0f, 25.0f, 100.0f};
 
     GL::init();
     Input::init();
@@ -76,6 +76,8 @@ void App::run()
     ResourceManager::addMaterial("assets/materials/thing.pmat");
     ResourceManager::addMaterial("assets/materials/plane.pmat");
     ResourceManager::addMaterial("assets/materials/lightBulb.pmat");
+
+    std::shared_ptr<Texture> skybox = ResourceManager::getCubeMap("skybox/");
 
     std::shared_ptr<Model> mainModel = ResourceManager::addModel("assets/models/thing.pmdl");
     mainModel->setScale(glm::vec3(10.0f));
@@ -172,6 +174,7 @@ void App::run()
         RenderEnvironment environment;
         environment.pointLights = &lights;
         environment.directionalLight = directionalLight;
+        environment.skybox = skybox;
 
         Renderer::beginScene(cameraController.getCamera(), environment);
         Renderer::drawModel(*plane);
@@ -197,7 +200,7 @@ void App::run()
         );
 #ifdef DEBUG
         std::vector<std::shared_ptr<Texture>> shadowMaps = getShadowMaps();
-        float height = 120.0f;
+        float height = 240.0f;
         for (unsigned int i = 0; i < shadowMaps.size(); i++)
         {
             Renderer2D::drawQuad({0.0f, height*i, 0.0f}, {height, height}, shadowMaps[i]);

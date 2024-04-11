@@ -61,7 +61,7 @@ Shader::Shader(std::string_view vertexPath, std::string_view fragmentPath)
     
     	// Use the infoLog as you see fit.
         ERROR("{}", infoLog.data());
-        ERROR("Error compiling vertex shader!: %s.", vertexPath);
+        ERROR("Error compiling vertex shader!: {}.", vertexPath);
         ASSERT(false);
     	
     	// In this simple program, we'll just leave

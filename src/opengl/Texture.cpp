@@ -3,9 +3,19 @@
 #include "engine/Assert.hpp"
 #include "engine/Log.hpp"
 
+#include <array>
 #include <glm/gtc/type_ptr.hpp>
 #include <stb_image.h>
 #include <GL/glew.h>
+
+GLenum typeToOpenGLType(Texture::Type type)
+{
+    switch (type) {
+        case Texture::Type::texture2D: return GL_TEXTURE_2D;
+        case Texture::Type::cubeMap: return GL_TEXTURE_CUBE_MAP;
+    }
+    ASSERT_MSG(false, "Invalid Texture Type!");
+}
 
 GLenum formatToOpenGLFormat(Texture::Format format)
 {
@@ -18,7 +28,8 @@ GLenum formatToOpenGLFormat(Texture::Format format)
         case Texture::Format::RGBA16F: return GL_RGBA;
         case Texture::Format::depth24stencil8: return GL_DEPTH_STENCIL;
         case Texture::Format::depth24: return GL_DEPTH_COMPONENT;
-        }
+    }
+    ASSERT_MSG(false, "Invalid Texture Format!");
 }
 
 GLenum formatToOpenGLInternalFormat(Texture::Format format)
@@ -32,7 +43,8 @@ GLenum formatToOpenGLInternalFormat(Texture::Format format)
         case Texture::Format::RGBA16F: return GL_RGBA16F;
         case Texture::Format::depth24stencil8: return GL_DEPTH24_STENCIL8;
         case Texture::Format::depth24: return GL_DEPTH_COMPONENT24;
-        }
+    }
+    ASSERT_MSG(false, "Invalid Texture Format!");
 }
 
 Texture::Texture(const std::string &path)
@@ -42,23 +54,48 @@ Texture::Texture(const std::string &path)
     stbi_uc *data = stbi_load(path.c_str(), &width, &height, &channels, 0);
 
     if (!data)
-    {
-        ERROR("Failed to load image: {}!", path);
-        ASSERT(false);
-    }
-    Format format;
+        ASSERT_MSG(false, "Failed to load image: {}!", path);
+
     INFO("{} ({}x{}) has {} channels.", path, width, height, channels);
     switch (channels)
     {
-        case 1: format = Format::G8; break;
-        case 2: format = Format::GA8; break;
-        case 3: format = Format::RGB8; break;
-        case 4: format = Format::RGBA8; break;
+        case 1: m_format = Format::G8; break;
+        case 2: m_format = Format::GA8; break;
+        case 3: m_format = Format::RGB8; break;
+        case 4: m_format = Format::RGBA8; break;
     }
 
-    create(data, width, height, format);
+    create(data, width, height, m_format);
 
     stbi_image_free(data);
+}
+
+Texture::Texture(const std::array<std::string, 6> paths)
+{
+    int width, height, channels;
+    stbi_set_flip_vertically_on_load(0);
+    std::array<unsigned char*, 6> facesData;
+    for (unsigned int i = 0; i < paths.size(); i++)
+    {
+        facesData[i] = stbi_load(paths[i].c_str(), &width, &height, &channels, 0);
+        if (!facesData[i])
+            ASSERT_MSG(false, "Failed to load {}th cubemap image: {}!", i, paths[i]);
+    }
+
+    switch (channels)
+    {
+        case 1: m_format = Format::G8; break;
+        case 2: m_format = Format::GA8; break;
+        case 3: m_format = Format::RGB8; break;
+        case 4: m_format = Format::RGBA8; break;
+    }
+
+    createCubeMap(facesData, width, height, m_format);
+
+    for (unsigned char *data : facesData)
+    {
+        stbi_image_free(data);
+    }
 }
 
 Texture::Texture(unsigned char *data, uint32_t width, uint32_t height, Format format)
@@ -87,16 +124,29 @@ void Texture::create(unsigned char *data, uint32_t width, uint32_t height, Forma
     glTextureStorage2D(m_id, 1, formatToOpenGLInternalFormat(format), m_width, m_height);
     ASSERT(glGetError() == 0);
 
-    glTextureParameteri(m_id, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTextureParameteri(m_id, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    glTextureParameteri(m_id, GL_TEXTURE_WRAP_R, GL_REPEAT);
-    glTextureParameteri(m_id, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTextureParameteri(m_id, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    setInterpolate(true);
+    setRepeat(true);
 
     if (data)
         glTextureSubImage2D(m_id, 0, 0, 0, m_width, m_height, formatToOpenGLFormat(format), GL_UNSIGNED_BYTE, data);
     ASSERT(glGetError() == 0);
+}
+
+void Texture::createCubeMap(std::array<unsigned char*, 6> facesData, uint32_t width, uint32_t height, Format format)
+{
+    m_width = width;
+    m_height = height;
+
+    glCreateTextures(GL_TEXTURE_CUBE_MAP, 1, &m_id);
+    glTextureStorage2D(m_id, 1, formatToOpenGLInternalFormat(format), m_width, m_height);
+
+    setInterpolate(true);
+    setRepeat(false);
+
+    for (unsigned int i = 0; i < facesData.size(); i++)
+    {
+        glTextureSubImage3D(m_id, 0, 0, 0, i, m_width, m_height, 1, formatToOpenGLFormat(format), GL_UNSIGNED_BYTE, facesData[i]);
+    }
 }
 
 //void Texture::setData(void *data, uint32_t size)

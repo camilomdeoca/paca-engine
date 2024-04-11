@@ -43,6 +43,15 @@ void GL::setDepthTest(bool value)
         glDisable(GL_DEPTH_TEST);
 }
 
+void GL::setDepthTestFunction(DepthTestFunction function)
+{
+    constexpr GLenum depthTestFuncToGLDepthFunc[static_cast<size_t>(DepthTestFunction::last)] = {
+        GL_LESS,
+        GL_LEQUAL
+    };
+    glDepthFunc(depthTestFuncToGLDepthFunc[static_cast<size_t>(function)]);
+}
+
 void GL::setBlending(bool value)
 {
     if (value)

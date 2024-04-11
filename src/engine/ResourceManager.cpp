@@ -16,6 +16,7 @@ struct StringAndViewHash : public std::hash<std::string_view> { using is_transpa
 
 static struct {
     std::unordered_map<std::string, std::weak_ptr<Texture>, StringAndViewHash, std::equal_to<>> textures;
+    std::unordered_map<std::string, std::weak_ptr<Texture>, StringAndViewHash, std::equal_to<>> cubeMaps;
 
     // TODO: Change to weak_ptr so the materials and models get deleted when not used.
     // TODO: Add an index file of in wich files are what materials so when the materials are loaded
@@ -92,6 +93,45 @@ std::shared_ptr<Texture> ResourceManager::getTexture(const std::string &path)
     std::weak_ptr<Texture> toInsertPtr = texture;
     s_data.textures.insert(std::make_pair(path, toInsertPtr));
     return texture;
+}
+
+std::shared_ptr<Texture> ResourceManager::getCubeMap(const std::string &folder)
+{
+    const std::string cubeMapsFolder = "assets/textures/cubemaps/";
+    const std::array<std::string, 6> facesNames = {
+        "right.jpg",
+        "left.jpg",
+        "top.jpg",
+        "bottom.jpg",
+        "front.jpg",
+        "back.jpg"
+    };
+    std::unordered_map<std::string, std::weak_ptr<Texture>>::iterator iter =
+        s_data.cubeMaps.find(folder);
+
+    if (iter == s_data.cubeMaps.end())
+    {
+        std::array<std::string, 6> filePaths;
+        for (unsigned int i = 0; i < facesNames.size(); i++)
+            filePaths[i] = cubeMapsFolder + folder + facesNames[i];
+        std::shared_ptr<Texture> cubeMap = std::make_shared<Texture>(filePaths);
+        std::weak_ptr<Texture> toInsertPtr = cubeMap;
+        s_data.cubeMaps.insert(std::make_pair(folder, toInsertPtr));
+        return cubeMap;
+    }
+
+    std::shared_ptr<Texture> cubeMap = iter->second.lock();
+    if (cubeMap)
+        return cubeMap;
+
+    s_data.cubeMaps.erase(folder);
+    std::array<std::string, 6> filePaths;
+    for (unsigned int i = 0; i < facesNames.size(); i++)
+        filePaths[i] = cubeMapsFolder + folder + facesNames[i];
+    cubeMap = std::make_shared<Texture>(filePaths);
+    std::weak_ptr<Texture> toInsertPtr = cubeMap;
+    s_data.cubeMaps.insert(std::make_pair(folder, toInsertPtr));
+    return cubeMap;
 }
 
 std::shared_ptr<Model> ResourceManager::getModel(const std::string &name)

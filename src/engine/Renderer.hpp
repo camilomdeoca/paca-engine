@@ -4,6 +4,7 @@
 #include "engine/Mesh.hpp"
 #include "engine/Model.hpp"
 #include "engine/PerspectiveCamera.hpp"
+#include "opengl/Texture.hpp"
 
 #include <memory>
 
@@ -12,6 +13,7 @@
 struct RenderEnvironment {
     std::vector<std::shared_ptr<PointLight>> *pointLights;
     std::shared_ptr<DirectionalLight> directionalLight; // Only 1 for now
+    std::shared_ptr<Texture> skybox;
 };
 
 struct RendererParameters {

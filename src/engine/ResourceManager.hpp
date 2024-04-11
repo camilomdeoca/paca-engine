@@ -13,6 +13,7 @@ public:
     static std::shared_ptr<Material> addMaterial(const std::string &path);
 
     static std::shared_ptr<Texture> getTexture(const std::string &path);
+    static std::shared_ptr<Texture> getCubeMap(const std::string &folder);
     static std::shared_ptr<Model> getModel(const std::string &name);
     static std::shared_ptr<Material> getMaterial(const std::string &name);
 };

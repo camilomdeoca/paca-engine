@@ -63,12 +63,17 @@ static struct {
     std::shared_ptr<Shader> shadowMapShader;
     uint32_t shadowMapSize;
 
+    // Skybox
+    std::shared_ptr<Shader> skyboxShader;
+    std::shared_ptr<Texture> skyboxCubeMap;
+
     // Post-process
     std::shared_ptr<FrameBuffer> postprocessFramebuffer;
     std::shared_ptr<Texture> postprocessColorTexture, postprocessDepthStencilTexture; 
     std::shared_ptr<Shader> postProcessingShader;
 
     std::shared_ptr<VertexArray> fullscreenQuad;
+    std::shared_ptr<VertexArray> cube;
     //glm::mat3 kernel = {
     //    -1.0f, -1.0f, -1.0f,
     //    -1.0f,  9.0f, -1.0f,
@@ -136,6 +141,8 @@ void Renderer::init(RendererParameters parameters)
     }
     s_data.shadowMapShader = std::make_shared<Shader>("assets/shaders/shadowMapVertex.glsl", "assets/shaders/shadowMapFragment.glsl");
 
+    s_data.skyboxShader = std::make_shared<Shader>("assets/shaders/skyboxVertex.glsl", "assets/shaders/skyboxFragment.glsl");
+
     s_data.gBufferShader = std::make_shared<Shader>("assets/shaders/gBufferVertex.glsl", "assets/shaders/gBufferFragment.glsl");
     s_data.lightPassShader = std::make_shared<Shader>("assets/shaders/lightPassVertex.glsl", "assets/shaders/lightPassFragment.glsl");
     s_data.directionalLightPassShader = std::make_shared<Shader>("assets/shaders/directionalLightPassVertex.glsl", "assets/shaders/directionalLightPassFragment.glsl");
@@ -144,24 +151,67 @@ void Renderer::init(RendererParameters parameters)
 
     // Full screen quad for lighting pass and postprocessing
     s_data.fullscreenQuad = std::make_shared<VertexArray>();
-    float quadVertices[] = {
+    float fullscreenQuadVertices[] = {
         // positions   // texCoords
         -1.0f, -1.0f,  0.0f, 0.0f, // bl
          1.0f, -1.0f,  1.0f, 0.0f, // br
          1.0f,  1.0f,  1.0f, 1.0f, // tr
         -1.0f,  1.0f,  0.0f, 1.0f, // tl
     };
-    uint32_t indices[] = { 0, 1, 2, 2, 3, 0 };
+    uint32_t fullscreenQuadIndices[] = { 0, 1, 2, 2, 3, 0 };
 
-    std::shared_ptr<VertexBuffer> vertexBuffer = std::make_shared<VertexBuffer>(quadVertices, sizeof(quadVertices));
-    vertexBuffer->setLayout({
+    std::shared_ptr<VertexBuffer> fullscreenQuadVertexBuffer = std::make_shared<VertexBuffer>(fullscreenQuadVertices, sizeof(fullscreenQuadVertices));
+    fullscreenQuadVertexBuffer->setLayout({
         {ShaderDataType::float2, "a_position"},
         {ShaderDataType::float2, "a_uv"}
     });
-    s_data.fullscreenQuad->addVertexBuffer(vertexBuffer);
+    s_data.fullscreenQuad->addVertexBuffer(fullscreenQuadVertexBuffer);
 
-    std::shared_ptr<IndexBuffer> indexBuffer = std::make_shared<IndexBuffer>(indices, sizeof(indices) / sizeof(uint32_t));
-    s_data.fullscreenQuad->setIndexBuffer(indexBuffer);
+    std::shared_ptr<IndexBuffer> fullscreenQuadIndexBuffer = std::make_shared<IndexBuffer>(fullscreenQuadIndices, sizeof(fullscreenQuadIndices) / sizeof(uint32_t));
+    s_data.fullscreenQuad->setIndexBuffer(fullscreenQuadIndexBuffer);
+
+    s_data.cube = std::make_shared<VertexArray>();
+    float cubeVertices[] = {
+        -1.0f, -1.0f,  1.0f,
+         1.0f, -1.0f,  1.0f,
+        -1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,
+        -1.0f, -1.0f, -1.0f,
+         1.0f, -1.0f, -1.0f,
+        -1.0f,  1.0f, -1.0f,
+         1.0f,  1.0f, -1.0f
+    };
+    uint32_t cubeIndices[] = {
+        // Front face (inverted)
+        2, 1, 0,
+        3, 1, 2,
+
+        // Back face (inverted)
+        5, 6, 4,
+        7, 6, 5,
+
+        // Left face (inverted)
+        4, 2, 0,
+        6, 2, 4,
+
+        // Right face (inverted)
+        3, 5, 1,
+        7, 5, 3,
+
+        // Top face (inverted)
+        6, 3, 2,
+        7, 3, 6,
+
+        // Bottom face (inverted)
+        1, 4, 0,
+        5, 4, 1
+    };
+    std::shared_ptr<VertexBuffer> cubeVertexBuffer = std::make_shared<VertexBuffer>(cubeVertices, sizeof(cubeVertices));
+    cubeVertexBuffer->setLayout({ {ShaderDataType::float3, "a_position"} });
+    s_data.cube->addVertexBuffer(cubeVertexBuffer);
+
+    std::shared_ptr<IndexBuffer> cubeIndexBuffer = std::make_shared<IndexBuffer>(cubeIndices, sizeof(cubeIndices) / sizeof(uint32_t));
+    s_data.cube->setIndexBuffer(cubeIndexBuffer);
 }
 
 void Renderer::createFramebuffers()
@@ -200,6 +250,7 @@ void Renderer::beginScene(const PerspectiveCamera &camera, const RenderEnvironme
 {
     s_data.lights = environment.pointLights;
     s_data.directionalLight = environment.directionalLight;
+    s_data.skyboxCubeMap = environment.skybox;
 
     // set up to render to G-Buffer
     s_data.gBuffer->bind();
@@ -338,6 +389,7 @@ void lightPass()
 void lightModelsPass()
 {
     FrameBuffer::copy(*s_data.gBuffer, *s_data.postprocessFramebuffer);
+    s_data.postprocessFramebuffer->bind();
     s_data.lightModelsShader->bind();
     GL::setDepthTest(true);
     s_data.lightModelsShader->setMat4("u_projectionMatrix", s_data.projectionMatrix);
@@ -365,6 +417,18 @@ void lightModelsPass()
     }
 }
 
+void skyboxPass()
+{
+    GL::setDepthTest(true);
+    GL::setDepthTestFunction(GL::DepthTestFunction::lessEqual);
+    s_data.skyboxShader->bind();
+    s_data.skyboxShader->setMat4("u_projectionView", s_data.projectionMatrix * glm::mat4(glm::mat3(s_data.viewMatrix)));
+    s_data.skyboxCubeMap->bind(0);
+    s_data.skyboxShader->setInt("u_skybox", 0);
+    GL::drawIndexed(s_data.cube);
+    GL::setDepthTestFunction(GL::DepthTestFunction::less);
+}
+
 void postProcessPass()
 {
     s_data.postprocessFramebuffer->unbind();
@@ -384,6 +448,7 @@ void Renderer::endScene()
 {
     lightPass();
     lightModelsPass();
+    skyboxPass();
     postProcessPass();
 }
 
