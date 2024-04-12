@@ -10,6 +10,7 @@ struct DirectionalLight {
     float intensity;
 };
 
+#ifdef USE_SHADOW_MAPPING
 struct ShadowMapLevel {
     sampler2D texture;
     mat4 cameraSpaceToLightSpace;
@@ -18,17 +19,20 @@ struct ShadowMapLevel {
 
 #define MAX_SHADOW_MAP_LEVELS 5
 #define SHADOW_CALCULATIONS_BIAS 0.005
+#endif // USE_SHADOW_MAPPING
 
 uniform DirectionalLight u_light;
 
-uniform mat4 u_inverseProjectionMatrix; // This is actually only inverse projection TODO: change name
+uniform mat4 u_inverseProjectionMatrix;
 
 uniform sampler2D u_gNormal;
 uniform sampler2D u_gColorSpec;
 uniform sampler2D u_gDepth;
 
+#ifdef USE_SHADOW_MAPPING
 uniform ShadowMapLevel u_shadowMaps[MAX_SHADOW_MAP_LEVELS];
 uniform int u_numOfShadowMapLevels;
+#endif // USE_SHADOW_MAPPING
 
 // Get position in camera space
 vec3 getPosition()
@@ -39,7 +43,8 @@ vec3 getPosition()
     return pos.xyz / pos.w;
 }
 
-float shadowCalculation(vec4 fragPosLightSpace, unsigned int level, float bias)
+#ifdef USE_SHADOW_MAPPING
+float shadowCalculation(vec4 fragPosLightSpace, uint level, float bias)
 {
     vec3 projectedCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
     projectedCoords = projectedCoords * 0.5 + 0.5;
@@ -60,6 +65,7 @@ float shadowCalculation(vec4 fragPosLightSpace, unsigned int level, float bias)
     if (projectedCoords.z > 1.0) shadow = 0.0;
     return shadow;
 }
+#endif // USE_SHADOW_MAPPING
 
 void main()
 {
@@ -81,8 +87,10 @@ void main()
 
     final += diffuse * color * u_light.intensity * u_light.color;
     final += specular * u_light.color * u_light.intensity;
-    unsigned int level;
-    for (unsigned int i = 0; i < u_numOfShadowMapLevels; i++)
+
+#ifdef USE_SHADOW_MAPPING
+    uint level;
+    for (uint i = 0; i < u_numOfShadowMapLevels; i++)
     {
         if (abs(position.z) < u_shadowMaps[i].cutoffDistance)
         {
@@ -97,9 +105,9 @@ void main()
 
     float shadow = shadowCalculation(u_shadowMaps[level].cameraSpaceToLightSpace * vec4(position, 1.0), level, bias);
     final *= (1.0 - shadow);
+#endif // USE_SHADOW_MAPPING
     
-//#define DEBUG_CASCADING_SHADOW_MAPS
-#ifdef DEBUG_CASCADING_SHADOW_MAPS
+#if defined(DEBUG_CASCADING_SHADOW_MAPS) && defined(USE_SHADOW_MAPPING) 
     vec3 colors[] = {
         vec3(1.0, 0.0, 0.0),
         vec3(1.0, 1.0, 0.0),

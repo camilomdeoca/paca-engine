@@ -17,6 +17,10 @@ struct RenderEnvironment {
 };
 
 struct RendererParameters {
+    enum FlagsMasks : uint32_t {
+        enableParallaxMapping = 0x1,
+        enableShadowMapping = 0x2
+    };
     // size to render to
     uint32_t width, height;
     uint32_t shadowMapSize;
@@ -24,6 +28,8 @@ struct RendererParameters {
     // for shadowMap levels for example and in the future model LODs
     // all values should be between 0.0f and 1.0f and in order
     std::vector<float> viewFrustumSplits;
+
+    uint32_t flags;
 };
 
 class Renderer {

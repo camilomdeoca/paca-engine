@@ -1,11 +1,26 @@
 #pragma once
 
 #include <glm/glm.hpp>
+#include <list>
 #include <string>
+
+struct ShaderCompileTimeParameter {
+    ShaderCompileTimeParameter(const std::string &name)
+        : value(name) {}
+
+    ShaderCompileTimeParameter(const std::string &name, const std::string &value)
+        : value(name + " " + value) {}
+
+    template<typename T>
+    ShaderCompileTimeParameter(const std::string &name, T value)
+        : value(name + " " + std::to_string(value)) {}
+
+    std::string value;
+};
 
 class Shader {
 public:
-    Shader(std::string_view vertexPath, std::string_view fragmentPath);
+    Shader(std::string_view vertexPath, std::string_view fragmentPath, std::list<ShaderCompileTimeParameter> parameters = {});
     ~Shader();
 
     void bind();

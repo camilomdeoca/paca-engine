@@ -28,11 +28,22 @@ std::string readFile(std::string_view path)
     return result;
 }
 
-Shader::Shader(std::string_view vertexPath, std::string_view fragmentPath)
+Shader::Shader(std::string_view vertexPath, std::string_view fragmentPath, std::list<ShaderCompileTimeParameter> parameters)
 {
     // Read our shaders into the appropriate buffers
     std::string vertexSource = readFile(vertexPath); // Get source code for vertex shader.
     std::string fragmentSource = readFile(fragmentPath); // Get source code for fragment shader.
+    
+    // Set parameters (#define)
+    std::string parametersAll;
+    for (const ShaderCompileTimeParameter &param : parameters)
+    {
+        parametersAll += "#define " + param.value + "\n";
+    }
+    size_t secondLinePosVertex = vertexSource.find('\n') + 1;
+    size_t secondLinePosFragment = fragmentSource.find('\n') + 1;
+    vertexSource.insert(secondLinePosVertex, parametersAll);
+    fragmentSource.insert(secondLinePosFragment, parametersAll);
     
     // Create an empty vertex shader handle
     GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);

@@ -39,8 +39,11 @@ void App::init(std::string title)
     RendererParameters rendererParams;
     rendererParams.width = m_window.getWidth();
     rendererParams.height = m_window.getHeight();
-    rendererParams.shadowMapSize = 2048;
-    rendererParams.viewFrustumSplits = {10.0f, 25.0f, 100.0f};
+    rendererParams.shadowMapSize = 1024;
+    rendererParams.viewFrustumSplits = {5.0f, 10.0f, 30.0f, 100.0f};
+    rendererParams.flags =
+        RendererParameters::enableParallaxMapping |
+        RendererParameters::enableShadowMapping;
 
     GL::init();
     Input::init();
@@ -198,7 +201,8 @@ void App::run()
             font,
             {1.0f, 1.0f, 1.0f, 1.0f}
         );
-#ifdef DEBUG
+//#define ENABLE_SHOW_DEPTH_TEXTURES
+#ifdef ENABLE_SHOW_DEPTH_TEXTURES
         std::vector<std::shared_ptr<Texture>> shadowMaps = getShadowMaps();
         float height = 240.0f;
         for (unsigned int i = 0; i < shadowMaps.size(); i++)

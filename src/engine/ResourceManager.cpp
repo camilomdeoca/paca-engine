@@ -1,5 +1,6 @@
 #include "ResourceManager.hpp"
 
+#include "engine/Assert.hpp"
 #include "engine/Material.hpp"
 #include "engine/Model.hpp"
 #include "opengl/Texture.hpp"
@@ -30,10 +31,18 @@ std::shared_ptr<Model> ResourceManager::addModel(const std::string &path)
     std::optional<paca_format::Model> pacaModel = paca_format::readModel(path);
     std::vector<std::shared_ptr<Mesh>> meshes;
 
+#ifdef DEBUG
+    size_t vertexCount = 0;
+#endif // DEBUG
+
     for (const paca_format::Mesh &pacaMesh : pacaModel->meshes)
     {
+#ifdef DEBUG
+        vertexCount += pacaMesh.vertices.size() / paca_format::vertexTypeToSize(pacaMesh.vertexType);
+#endif // DEBUG
         meshes.emplace_back(std::make_shared<Mesh>(pacaMesh.vertices, pacaMesh.indices, getMaterial(pacaMesh.materialName)));
     }
+    INFO("Model {} has {} vertices", path, vertexCount);
 
     std::shared_ptr<Model> model = std::make_shared<Model>(meshes);
     std::weak_ptr<Model> toInsertPtr = model;
@@ -50,7 +59,7 @@ MaterialTextureType::Type pacaTextureTypeToMaterialTextureType(paca_format::Text
         default: break;
     }
 
-    exit(1);
+    ASSERT_MSG(false, "Invalid paca texture type!");
 }
 
 std::shared_ptr<Material> ResourceManager::addMaterial(const std::string &path)

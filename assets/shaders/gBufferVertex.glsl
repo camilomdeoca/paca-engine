@@ -6,7 +6,8 @@ layout (location = 2) in vec3 a_tangent;
 layout (location = 3) in vec2 a_uvCoords;
 
 layout (location = 0) out vec2 o_uvCoords;
-layout (location = 1) out mat3 o_TBN;
+layout (location = 1) out vec3 o_position;
+layout (location = 2) out mat3 o_TBN;
 
 uniform mat4 u_projectionMatrix;
 uniform mat4 u_viewModelMatrix;
@@ -18,6 +19,8 @@ void main()
     vec3 B = normalize(cross(N, T));
     o_TBN = mat3(T, B, N);
     o_uvCoords = a_uvCoords;
-    gl_Position = u_projectionMatrix * u_viewModelMatrix * vec4(a_position, 1.0);
+    vec4 position = u_viewModelMatrix * vec4(a_position, 1.0);
+    gl_Position = u_projectionMatrix * position;
+    o_position = position.xyz/position.w;
 }
 

@@ -12,7 +12,6 @@
 #include "opengl/gl.hpp"
 #include "opengl/Shader.hpp"
 
-#include <cstddef>
 #include <cstdint>
 #include <glm/ext/matrix_clip_space.hpp>
 #include <glm/ext/matrix_transform.hpp>
@@ -20,8 +19,10 @@
 #include <glm/fwd.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/matrix.hpp>
+#include <list>
 #include <memory>
 #include <string>
+#include <type_traits>
 #include <vector>
 
 struct ShadowMapLevel {
@@ -39,6 +40,9 @@ struct ShadowMapLevel {
 
 static struct {
     uint32_t width, height;
+    uint32_t flags;
+
+    std::vector<std::underlying_type_t<MaterialTextureType::Type>> materialTextureTypesToUse;
     
     glm::mat4 projectionMatrix;
     glm::mat4 viewMatrix;
@@ -114,38 +118,64 @@ void Renderer::init(RendererParameters parameters)
 {
     s_data.width = parameters.width;
     s_data.height = parameters.height;
+    s_data.flags = parameters.flags;
 
-    s_data.shadowMapSize = parameters.shadowMapSize;
+    s_data.materialTextureTypesToUse = {
+        MaterialTextureType::diffuse,
+        MaterialTextureType::specular,
+        MaterialTextureType::normal
+    };
 
-    float prevSplit = 0.0f;
-    s_data.shadowMap.resize(parameters.viewFrustumSplits.size());
-    for (unsigned int i = 0; i < parameters.viewFrustumSplits.size(); i++)
+    // Set flags
+    std::list<ShaderCompileTimeParameter> gBufferShaderParams;
+    std::list<ShaderCompileTimeParameter> directionalLightPassShaderParams;
+
+    if (parameters.flags & RendererParameters::enableParallaxMapping)
     {
-        s_data.shadowMap[i].near = prevSplit;
-        s_data.shadowMap[i].far = parameters.viewFrustumSplits[i];
-        prevSplit = parameters.viewFrustumSplits[i];
-        s_data.shadowMap[i].cutoffDistance = parameters.viewFrustumSplits[i];
-        INFO("SPLIT {} {}", s_data.shadowMap[i].near, s_data.shadowMap[i].far);
+        gBufferShaderParams.emplace_back("USE_PARALLAX_MAPPING");
+        s_data.materialTextureTypesToUse.emplace_back(MaterialTextureType::height);
+    }
+
+    if (parameters.flags & RendererParameters::enableShadowMapping)
+    {
+        directionalLightPassShaderParams.emplace_back("USE_SHADOW_MAPPING");
     }
 
     createFramebuffers();
 
-    FrameBufferParameters shadowDepthMapBufferParams;
-    shadowDepthMapBufferParams.width = s_data.shadowMapSize;
-    shadowDepthMapBufferParams.height = s_data.shadowMapSize;
-    shadowDepthMapBufferParams.textureAttachmentFormats = { Texture::Format::depth24 };
-    for (ShadowMapLevel &shadowMapLevel : s_data.shadowMap)
+    if (parameters.flags & RendererParameters::enableShadowMapping)
     {
-        shadowMapLevel.framebuffer = std::make_shared<FrameBuffer>(shadowDepthMapBufferParams);
-        shadowMapLevel.framebuffer->getDepthAttachment()->setBorderColor({1.0f, 1.0f, 1.0f, 1.0f});
+        s_data.shadowMapSize = parameters.shadowMapSize;
+
+        float prevSplit = 0.0f;
+        s_data.shadowMap.resize(parameters.viewFrustumSplits.size());
+        INFO("Shadow map levels limits:");
+        for (unsigned int i = 0; i < parameters.viewFrustumSplits.size(); i++)
+        {
+            s_data.shadowMap[i].near = prevSplit;
+            s_data.shadowMap[i].far = parameters.viewFrustumSplits[i];
+            prevSplit = parameters.viewFrustumSplits[i];
+            s_data.shadowMap[i].cutoffDistance = parameters.viewFrustumSplits[i];
+            INFO("\t Level {}: {} {}", i, s_data.shadowMap[i].near, s_data.shadowMap[i].far);
+        }
+
+        FrameBufferParameters shadowDepthMapBufferParams;
+        shadowDepthMapBufferParams.width = s_data.shadowMapSize;
+        shadowDepthMapBufferParams.height = s_data.shadowMapSize;
+        shadowDepthMapBufferParams.textureAttachmentFormats = { Texture::Format::depth24 };
+        for (ShadowMapLevel &shadowMapLevel : s_data.shadowMap)
+        {
+            shadowMapLevel.framebuffer = std::make_shared<FrameBuffer>(shadowDepthMapBufferParams);
+            shadowMapLevel.framebuffer->getDepthAttachment()->setBorderColor({1.0f, 1.0f, 1.0f, 1.0f});
+        }
+        s_data.shadowMapShader = std::make_shared<Shader>("assets/shaders/shadowMapVertex.glsl", "assets/shaders/shadowMapFragment.glsl");
     }
-    s_data.shadowMapShader = std::make_shared<Shader>("assets/shaders/shadowMapVertex.glsl", "assets/shaders/shadowMapFragment.glsl");
 
     s_data.skyboxShader = std::make_shared<Shader>("assets/shaders/skyboxVertex.glsl", "assets/shaders/skyboxFragment.glsl");
 
-    s_data.gBufferShader = std::make_shared<Shader>("assets/shaders/gBufferVertex.glsl", "assets/shaders/gBufferFragment.glsl");
+    s_data.gBufferShader = std::make_shared<Shader>("assets/shaders/gBufferVertex.glsl", "assets/shaders/gBufferFragment.glsl", gBufferShaderParams);
     s_data.lightPassShader = std::make_shared<Shader>("assets/shaders/lightPassVertex.glsl", "assets/shaders/lightPassFragment.glsl");
-    s_data.directionalLightPassShader = std::make_shared<Shader>("assets/shaders/directionalLightPassVertex.glsl", "assets/shaders/directionalLightPassFragment.glsl");
+    s_data.directionalLightPassShader = std::make_shared<Shader>("assets/shaders/directionalLightPassVertex.glsl", "assets/shaders/directionalLightPassFragment.glsl", directionalLightPassShaderParams);
     s_data.lightModelsShader = std::make_shared<Shader>("assets/shaders/lightShaderVertex.glsl", "assets/shaders/lightShaderFragment.glsl");
     s_data.postProcessingShader = std::make_shared<Shader>("assets/shaders/vertexPostProcess.glsl","assets/shaders/fragmentPostProcess.glsl");
 
@@ -265,61 +295,64 @@ void Renderer::beginScene(const PerspectiveCamera &camera, const RenderEnvironme
     s_data.gBufferShader->setMat4("u_projectionMatrix", s_data.projectionMatrix);
 
     // Calculate view and projection (if the camera's projection changed) for redering each shadowMap
-    float near = camera.getNear(), far = camera.getFar();
-    static glm::mat4 previousProjectionMatrix = glm::mat4(0.0f);
-    bool projectionChanged = previousProjectionMatrix != s_data.projectionMatrix;
-    previousProjectionMatrix = s_data.projectionMatrix;
-    for (ShadowMapLevel &shadowMap : s_data.shadowMap)
+    if (s_data.flags & RendererParameters::enableShadowMapping)
     {
-        // Clear the shadowMap
-        shadowMap.framebuffer->bind();
-        GL::clear();
-
-        // If the camera's projection changed the frustum that the shadowMap has to contain changed
-        // so we need to recalculate it
-        if (projectionChanged)
+        float near = camera.getNear(), far = camera.getFar();
+        static glm::mat4 previousProjectionMatrix = glm::mat4(0.0f);
+        bool projectionChanged = previousProjectionMatrix != s_data.projectionMatrix;
+        previousProjectionMatrix = s_data.projectionMatrix;
+        for (ShadowMapLevel &shadowMap : s_data.shadowMap)
         {
-            shadowMap.frustumProjectionMatrix = glm::perspective(
-                    glm::radians(camera.getFov()), 
-                    camera.getAspect(), 
-                    std::max(shadowMap.near, near), 
-                    std::min(shadowMap.far, far));
-        }
+            // Clear the shadowMap
+            shadowMap.framebuffer->bind();
+            GL::clear();
 
-        std::array<glm::vec3, 8> corners = getFrustumCorners(shadowMap.frustumProjectionMatrix * s_data.viewMatrix);
-        ASSERT_MSG(corners.size() == 8, "There is {} corners instead of 8", corners.size());
+            // If the camera's projection changed the frustum that the shadowMap has to contain changed
+            // so we need to recalculate it
+            if (projectionChanged)
+            {
+                shadowMap.frustumProjectionMatrix = glm::perspective(
+                        glm::radians(camera.getFov()), 
+                        camera.getAspect(), 
+                        std::max(shadowMap.near, near), 
+                        std::min(shadowMap.far, far));
+            }
 
-        // calculate max diagonal of frustum if the projection changed
-        if (projectionChanged)
-        {
-            shadowMap.maxDiagonal = 0.0f;
+            std::array<glm::vec3, 8> corners = getFrustumCorners(shadowMap.frustumProjectionMatrix * s_data.viewMatrix);
+            ASSERT_MSG(corners.size() == 8, "There is {} corners instead of 8", corners.size());
+
+            // calculate max diagonal of frustum if the projection changed
+            if (projectionChanged)
+            {
+                shadowMap.maxDiagonal = 0.0f;
+                for (const glm::vec3 &p1 : corners)
+                    for (const glm::vec3 &p2 : corners)
+                        shadowMap.maxDiagonal = std::max(glm::distance(p1, p2), shadowMap.maxDiagonal);
+            }
+
+            // Calculate the center of the frustum
+            glm::vec3 center = glm::vec3(0.0f);
             for (const glm::vec3 &p1 : corners)
-                for (const glm::vec3 &p2 : corners)
-                    shadowMap.maxDiagonal = std::max(glm::distance(p1, p2), shadowMap.maxDiagonal);
+                center += p1;
+            center /= corners.size();
+
+            const glm::vec3 &lightDirection = s_data.directionalLight->getDirection();
+            glm::mat3 lightRotMatrix = glm::mat3(glm::lookAt(-lightDirection, {0.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}));
+            const float pixelSize = shadowMap.maxDiagonal / s_data.shadowMapSize;
+
+            // Align coordinate axis to lightView so when the position of the shadowMap is rounded
+            // It is rounded aligned with the pixels
+            center = lightRotMatrix * center;
+            center.x = std::round(center.x / pixelSize) * pixelSize;
+            center.y = std::round(center.y / pixelSize) * pixelSize;
+            center = glm::inverse(lightRotMatrix) * center;
+            //center.z = std::round(center.z / pixelSize) * pixelSize;
+
+            float &side = shadowMap.maxDiagonal;
+            float depthOfShadowMap = 5.0f; // Tune this parameter
+            shadowMap.projectionView = glm::ortho(-side/2, side/2, -side/2, side/2, -side*depthOfShadowMap, side*depthOfShadowMap)
+                    * glm::lookAt(center - lightDirection, center, glm::vec3(0.0f, 1.0f, 0.0f));
         }
-
-        // Calculate the center of the frustum
-        glm::vec3 center = glm::vec3(0.0f);
-        for (const glm::vec3 &p1 : corners)
-            center += p1;
-        center /= corners.size();
-
-        const glm::vec3 &lightDirection = s_data.directionalLight->getDirection();
-        glm::mat3 lightRotMatrix = glm::mat3(glm::lookAt(-lightDirection, {0.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}));
-        const float pixelSize = shadowMap.maxDiagonal / s_data.shadowMapSize;
-
-        // Align coordinate axis to lightView so when the position of the shadowMap is rounded
-        // It is rounded aligned with the pixels
-        center = lightRotMatrix * center;
-        center.x = std::round(center.x / pixelSize) * pixelSize;
-        center.y = std::round(center.y / pixelSize) * pixelSize;
-        center = glm::inverse(lightRotMatrix) * center;
-        //center.z = std::round(center.z / pixelSize) * pixelSize;
-
-        float &side = shadowMap.maxDiagonal;
-        float depthOfShadowMap = 2.0f; // Tune this parameter
-        shadowMap.projectionView = glm::ortho(-side/2, side/2, -side/2, side/2, -side*depthOfShadowMap, side*depthOfShadowMap)
-                * glm::lookAt(center - lightDirection, center, glm::vec3(0.0f, 1.0f, 0.0f));
     }
 }
 
@@ -366,16 +399,19 @@ void lightPass()
         s_data.directionalLightPassShader->setInt("u_gDepth", 2);
         s_data.directionalLightPassShader->setMat4("u_inverseProjectionMatrix", glm::inverse(s_data.projectionMatrix));
 
-        for (unsigned int i = 0; i < s_data.shadowMap.size(); i++)
+        if (s_data.flags & RendererParameters::enableShadowMapping)
         {
-            ShadowMapLevel &shadowMap = s_data.shadowMap[i];
-            shadowMap.framebuffer->getDepthAttachment()->bind(3 + i);
-            s_data.directionalLightPassShader->setInt("u_shadowMaps[" + std::to_string(i) + "].texture", 3 + i);
-            glm::mat4 cameraSpaceToLightSpace = shadowMap.projectionView * glm::inverse(s_data.viewMatrix);
-            s_data.directionalLightPassShader->setMat4("u_shadowMaps[" + std::to_string(i) + "].cameraSpaceToLightSpace", cameraSpaceToLightSpace);
-            s_data.directionalLightPassShader->setFloat("u_shadowMaps[" + std::to_string(i) + "].cutoffDistance", shadowMap.cutoffDistance);
+            for (unsigned int i = 0; i < s_data.shadowMap.size(); i++)
+            {
+                ShadowMapLevel &shadowMap = s_data.shadowMap[i];
+                shadowMap.framebuffer->getDepthAttachment()->bind(3 + i);
+                s_data.directionalLightPassShader->setInt("u_shadowMaps[" + std::to_string(i) + "].texture", 3 + i);
+                glm::mat4 cameraSpaceToLightSpace = shadowMap.projectionView * glm::inverse(s_data.viewMatrix);
+                s_data.directionalLightPassShader->setMat4("u_shadowMaps[" + std::to_string(i) + "].cameraSpaceToLightSpace", cameraSpaceToLightSpace);
+                s_data.directionalLightPassShader->setFloat("u_shadowMaps[" + std::to_string(i) + "].cutoffDistance", shadowMap.cutoffDistance);
+            }
+            s_data.directionalLightPassShader->setInt("u_numOfShadowMapLevels", s_data.shadowMap.size());
         }
-        s_data.directionalLightPassShader->setInt("u_numOfShadowMapLevels", s_data.shadowMap.size());
 
         s_data.directionalLightPassShader->setFloat3("u_light.directionInViewSpace", glm::mat3(s_data.viewMatrix) * s_data.directionalLight->getDirection());
         s_data.directionalLightPassShader->setFloat3("u_light.color", s_data.directionalLight->getColor());
@@ -438,6 +474,7 @@ void postProcessPass()
     GL::setDepthTest(false);
     s_data.postprocessColorTexture->bind(0);
     //s_data.shadowMap[0].framebuffer->getDepthAttachment()->bind(0);
+    //s_data.gDepthTexture->bind(0);
     s_data.postProcessingShader->setMat3("u_kernel", s_data.kernel);
     s_data.postProcessingShader->setInt("u_screenTexture", 0);
     s_data.fullscreenQuad->bind();
@@ -483,9 +520,11 @@ void Renderer::drawMesh(Mesh &mesh, const glm::mat4 &modelMatrix)
     s_data.gBuffer->bind();
     s_data.gBufferShader->bind();
     s_data.gBufferShader->setMat4("u_viewModelMatrix", s_data.viewMatrix * modelMatrix);
+    s_data.gBufferShader->setFloat("u_parallaxScale", 0.05f);
+    GL::setDepthTest(true);
 
     unsigned int slot = 0;
-    for (unsigned int i = 0; i < MaterialTextureType::last; i++) {
+    for (unsigned int i : s_data.materialTextureTypesToUse) {
         // Set uniform telling the shader if a texture of the type was provided
         s_data.gBufferShader->setInt(
                 textureTypeToHasTextureUniformName(MaterialTextureType::Type(i)),
@@ -503,15 +542,19 @@ void Renderer::drawMesh(Mesh &mesh, const glm::mat4 &modelMatrix)
     GL::drawIndexed(mesh.getVertexArray());
 
     // Draw for shadow map
-    s_data.shadowMapShader->bind();
-    GL::viewport(s_data.shadowMapSize, s_data.shadowMapSize);
-    for (ShadowMapLevel &shadowMap : s_data.shadowMap)
+    if (s_data.flags & RendererParameters::enableShadowMapping)
     {
-        s_data.shadowMapShader->setMat4("u_lightSpaceModelMatrix", shadowMap.projectionView * modelMatrix);
-        shadowMap.framebuffer->bind();
-        GL::drawIndexed(mesh.getVertexArray());
+        GL::setDepthTest(true);
+        s_data.shadowMapShader->bind();
+        GL::viewport(s_data.shadowMapSize, s_data.shadowMapSize);
+        for (ShadowMapLevel &shadowMap : s_data.shadowMap)
+        {
+            s_data.shadowMapShader->setMat4("u_lightSpaceModelMatrix", shadowMap.projectionView * modelMatrix);
+            shadowMap.framebuffer->bind();
+            GL::drawIndexed(mesh.getVertexArray());
+        }
+        GL::viewport(s_data.width, s_data.height);
     }
-    GL::viewport(s_data.width, s_data.height);
 }
 
 void Renderer::drawModel(Model &model)
