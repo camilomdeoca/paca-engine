@@ -22,11 +22,17 @@ public:
     std::shared_ptr<Texture> getDepthAttachment() { return m_depthAttachment; }
 
     static void copy(const FrameBuffer &from, const FrameBuffer &to); // TODO: Specify what attachment is copied
+    
+    static const FrameBuffer &getDefault() { return defaultFramebuffer; };
 
     void bind();
     void unbind();
 
 private:
+    // This framebuffer is used only to create the defaultFramebuffer object do not call
+    FrameBuffer(uint32_t id) {}
+    static const FrameBuffer defaultFramebuffer;
+
     uint32_t m_id;
     uint32_t m_width, m_height;
     std::vector<std::shared_ptr<Texture>> m_colorAttachments;

@@ -1,14 +1,15 @@
 # Game engine in OpenGL
 
-![Screenshot](screenshot.png)
+![Screenshot](recording.gif)
 
 ### Features
 
 * Deferred rendering
-
 * Normal Mapping
-
 * Text Rendering
+* Parallax Mapping
+* Cascaded shadow mapping
+* Skeletal animations
 
 ## Building and Running
 

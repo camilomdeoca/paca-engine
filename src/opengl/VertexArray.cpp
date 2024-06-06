@@ -15,6 +15,14 @@ static GLenum ShaderDataTypeToOpenGLBaseType(ShaderDataType type)
         case ShaderDataType::float3: return GL_FLOAT;
         case ShaderDataType::float4: return GL_FLOAT;
         case ShaderDataType::mat4:   return GL_FLOAT;
+        case ShaderDataType::int1:   return GL_INT;
+        case ShaderDataType::int2:   return GL_INT;
+        case ShaderDataType::int3:   return GL_INT;
+        case ShaderDataType::int4:   return GL_INT;
+        case ShaderDataType::uint1:  return GL_UNSIGNED_INT;
+        case ShaderDataType::uint2:  return GL_UNSIGNED_INT;
+        case ShaderDataType::uint3:  return GL_UNSIGNED_INT;
+        case ShaderDataType::uint4:  return GL_UNSIGNED_INT;
         default: break;
     }
 
@@ -51,30 +59,40 @@ void VertexArray::addVertexBuffer(const std::shared_ptr<VertexBuffer> &vertexBuf
     const BufferLayout &layout = vertexBuffer->getLayout();
     for (const BufferElement &element : layout) // BUG: Cant iterate through layout
     {
-        glEnableVertexAttribArray(m_vertexBufferIndex);
-        glVertexAttribPointer(m_vertexBufferIndex,
-                element.getComponentCount(),
-                ShaderDataTypeToOpenGLBaseType(element.type),
-                element.normalized ? GL_TRUE : GL_FALSE,
-                layout.getStride(),
-                (const void*)(intptr_t)element.offset);
-        m_vertexBufferIndex++;
-        //switch (element.type) {
-        //case ShaderDataType::float1:
-        //case ShaderDataType::float2:
-        //case ShaderDataType::float3:
-        //case ShaderDataType::float4:
-        //    {
-        //        glEnableVertexAttribArray(m_vertexBufferIndex);
-        //        glVertexAttribPointer(m_vertexBufferIndex,
-        //                element.getComponentCount(),
-        //                ShaderDataTypeToOpenGLBaseType(element.type),
-        //                element.normalized ? GL_TRUE : GL_FALSE,
-        //                layout.getStride(),
-        //                (const void*)element.offset);
-        //        m_vertexBufferIndex++;
-        //    }
-        //    break;
+        switch (element.type) {
+        case ShaderDataType::float1:
+        case ShaderDataType::float2:
+        case ShaderDataType::float3:
+        case ShaderDataType::float4:
+            {
+                glEnableVertexAttribArray(m_vertexBufferIndex);
+                glVertexAttribPointer(m_vertexBufferIndex,
+                        element.getComponentCount(),
+                        ShaderDataTypeToOpenGLBaseType(element.type),
+                        element.normalized ? GL_TRUE : GL_FALSE,
+                        layout.getStride(),
+                        (const void*)element.offset);
+                m_vertexBufferIndex++;
+                break;
+            }
+        case ShaderDataType::int1:
+        case ShaderDataType::int2:
+        case ShaderDataType::int3:
+        case ShaderDataType::int4:
+        case ShaderDataType::uint1:
+        case ShaderDataType::uint2:
+        case ShaderDataType::uint3:
+        case ShaderDataType::uint4:
+            {
+                glEnableVertexAttribArray(m_vertexBufferIndex);
+                glVertexAttribIPointer(m_vertexBufferIndex,
+                        element.getComponentCount(),
+                        ShaderDataTypeToOpenGLBaseType(element.type),
+                        layout.getStride(),
+                        (const void*)element.offset);
+                m_vertexBufferIndex++;
+                break;
+            }
         //case ShaderDataType::mat4:
         //    {
         //        uint8_t count = element.getComponentCount();
@@ -89,15 +107,14 @@ void VertexArray::addVertexBuffer(const std::shared_ptr<VertexBuffer> &vertexBuf
         //            glVertexAttribDivisor(m_vertexBufferIndex, 1);
         //            m_vertexBufferIndex++;
         //        }
+        //        break;
         //    }
-        //    break;
-        //default:
-        //    {
-        //        fprintf(stderr, "invalid ShaderDataType!\n");
-        //        exit(1);
-        //    }
-        //    break;
-        //}
+        default:
+            {
+                ASSERT_MSG(false, "Invalid ShaderDataType!");
+                break;
+            }
+        }
     }
     m_vertexBuffers.push_back(vertexBuffer);
 }

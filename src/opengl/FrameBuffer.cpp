@@ -7,6 +7,8 @@
 #include <memory>
 #include <vector>
 
+const FrameBuffer FrameBuffer::defaultFramebuffer(0);
+
 GLenum depthBufferFormatToAttachment(Texture::Format format)
 {
     switch (format) {

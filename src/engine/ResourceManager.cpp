@@ -1,8 +1,11 @@
 #include "ResourceManager.hpp"
 
+#include "engine/AnimatedMesh.hpp"
 #include "engine/Assert.hpp"
 #include "engine/Material.hpp"
+#include "engine/Mesh.hpp"
 #include "engine/Model.hpp"
+#include "engine/StaticMesh.hpp"
 #include "opengl/Texture.hpp"
 
 #include <functional>
@@ -24,6 +27,7 @@ static struct {
     // when wanted.
     std::unordered_map<std::string, std::shared_ptr<Material>, StringAndViewHash, std::equal_to<>> materials;
     std::unordered_map<std::string, std::shared_ptr<Model>, StringAndViewHash, std::equal_to<>> models; 
+    std::unordered_map<std::string, std::shared_ptr<Animation>, StringAndViewHash, std::equal_to<>> animations; 
 } s_data;
 
 std::shared_ptr<Model> ResourceManager::addModel(const std::string &path)
@@ -35,12 +39,29 @@ std::shared_ptr<Model> ResourceManager::addModel(const std::string &path)
     size_t vertexCount = 0;
 #endif // DEBUG
 
-    for (const paca_format::Mesh &pacaMesh : pacaModel->meshes)
+    for (paca_format::Mesh &pacaMesh : pacaModel->meshes)
     {
 #ifdef DEBUG
         vertexCount += pacaMesh.vertices.size() / paca_format::vertexTypeToSize(pacaMesh.vertexType);
 #endif // DEBUG
-        meshes.emplace_back(std::make_shared<Mesh>(pacaMesh.vertices, pacaMesh.indices, getMaterial(pacaMesh.materialName)));
+        
+        std::vector<std::shared_ptr<Animation>> animations;
+        for (const std::string &animName : pacaMesh.animations)
+            animations.emplace_back(getAnimation(animName));
+        // if mesh is animated
+        if (pacaMesh.vertexType == paca_format::VertexType::float3pos_float3norm_float3tang_float2texture_int4boneIds_float4boneWeights)
+            meshes.emplace_back(std::make_shared<AnimatedMesh>(
+                        pacaMesh.vertices,
+                        pacaMesh.indices,
+                        getMaterial(pacaMesh.materialName),
+                        animations,
+                        std::move(pacaMesh.skeleton)));
+        // else (mesh is static)
+        else
+            meshes.emplace_back(std::make_shared<StaticMesh>(
+                        pacaMesh.vertices,
+                        pacaMesh.indices,
+                        getMaterial(pacaMesh.materialName)));
     }
     INFO("Model {} has {} vertices", path, vertexCount);
 
@@ -77,6 +98,18 @@ std::shared_ptr<Material> ResourceManager::addMaterial(const std::string &path)
 
     std::shared_ptr<Material> material = std::make_shared<Material>(materialSpec);
     return s_data.materials.insert(std::make_pair(pacaMaterial->name, material)).first->second;
+}
+
+std::shared_ptr<Animation> ResourceManager::addAnimation(const std::string &path)
+{
+    std::optional<paca_format::Animation> pacaAnimation = paca_format::readAnimation(path);
+    ASSERT(pacaAnimation.has_value());
+    std::shared_ptr<Animation> animation = std::make_shared<Animation>(
+            pacaAnimation->duration,
+            pacaAnimation->ticksPerSecond,
+            std::move(pacaAnimation->keyframes));
+
+    return s_data.animations.insert(std::make_pair(pacaAnimation->name, animation)).first->second;
 }
 
 std::shared_ptr<Texture> ResourceManager::getTexture(const std::string &path)
@@ -147,35 +180,32 @@ std::shared_ptr<Model> ResourceManager::getModel(const std::string &name)
 {
     std::unordered_map<std::string, std::shared_ptr<Model>>::iterator iter =
         s_data.models.find(name);
-
-    if (iter == s_data.models.end())
-    {
-        ERROR("Model: {} wasn't added yet.", name);
-        ASSERT(false);
-    }
+    ASSERT_MSG(iter != s_data.models.end(), "Model: {} wasn't added yet.", name);
 
     std::shared_ptr<Model> model = iter->second;
-    if (model)
-        return model;
-
-    ERROR("Model: {} was deleted", name);
-    ASSERT(false);
+    ASSERT_MSG(model, "Model: {} was deleted", name);
+    return model;
 }
 
 std::shared_ptr<Material> ResourceManager::getMaterial(const std::string &name)
 {
     std::unordered_map<std::string, std::shared_ptr<Material>>::iterator iter =
         s_data.materials.find(name);
-
-    if (iter == s_data.materials.end())
-    {
-        ERROR("Material: {} wasn't added yet.", name);
-        ASSERT(false);
-    }
+    ASSERT_MSG(iter != s_data.materials.end(), "Material: {} wasn't added yet.", name);
 
     std::shared_ptr<Material> material = iter->second;
-    if (material)
-        return material;
-
-    ASSERT_MSG(false, "Material is null");
+    ASSERT_MSG(material, "Material is null");
+    return material;
 }
+
+std::shared_ptr<Animation> ResourceManager::getAnimation(const std::string &name)
+{
+    std::unordered_map<std::string, std::shared_ptr<Animation>>::iterator iter =
+        s_data.animations.find(name);
+    ASSERT_MSG(iter != s_data.animations.end(), "Animation: {} wasn't added yet.", name);
+
+    std::shared_ptr<Animation> animation = iter->second;
+    ASSERT_MSG(animation, "Animation is null");
+    return animation;
+}
+

@@ -13,6 +13,7 @@ namespace Key {
         s      = SDL_SCANCODE_S,
         d      = SDL_SCANCODE_D,
         f      = SDL_SCANCODE_F,
+        b      = SDL_SCANCODE_B,
         right  = SDL_SCANCODE_RIGHT,
         left   = SDL_SCANCODE_LEFT,
         down   = SDL_SCANCODE_DOWN,

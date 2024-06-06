@@ -1,5 +1,7 @@
 #include "Renderer.hpp"
 
+#include "engine/AnimatedMesh.hpp"
+#include "engine/Animation.hpp"
 #include "engine/Assert.hpp"
 #include "engine/Light.hpp"
 #include "engine/Material.hpp"
@@ -12,6 +14,7 @@
 #include "opengl/gl.hpp"
 #include "opengl/Shader.hpp"
 
+#include <cmath>
 #include <cstdint>
 #include <glm/ext/matrix_clip_space.hpp>
 #include <glm/ext/matrix_transform.hpp>
@@ -56,6 +59,7 @@ static struct {
     std::shared_ptr<FrameBuffer> gBuffer;
     std::shared_ptr<Texture> gNormalTexture, gAlbedoSpecularTexture, gDepthTexture;
     std::shared_ptr<Shader> gBufferShader;
+    std::shared_ptr<Shader> gBufferShaderForAnimated;
 
     // Light pass
     std::shared_ptr<Shader> lightPassShader;
@@ -65,6 +69,7 @@ static struct {
     // Shadow Mapping
     std::vector<ShadowMapLevel> shadowMap;
     std::shared_ptr<Shader> shadowMapShader;
+    std::shared_ptr<Shader> shadowMapShaderForAnimated;
     uint32_t shadowMapSize;
 
     // Skybox
@@ -169,11 +174,13 @@ void Renderer::init(RendererParameters parameters)
             shadowMapLevel.framebuffer->getDepthAttachment()->setBorderColor({1.0f, 1.0f, 1.0f, 1.0f});
         }
         s_data.shadowMapShader = std::make_shared<Shader>("assets/shaders/shadowMapVertex.glsl", "assets/shaders/shadowMapFragment.glsl");
+        s_data.shadowMapShaderForAnimated = std::make_shared<Shader>("assets/shaders/shadowMapVertexForAnimated.glsl", "assets/shaders/shadowMapFragmentForAnimated.glsl");
     }
 
     s_data.skyboxShader = std::make_shared<Shader>("assets/shaders/skyboxVertex.glsl", "assets/shaders/skyboxFragment.glsl");
 
     s_data.gBufferShader = std::make_shared<Shader>("assets/shaders/gBufferVertex.glsl", "assets/shaders/gBufferFragment.glsl", gBufferShaderParams);
+    s_data.gBufferShaderForAnimated = std::make_shared<Shader>("assets/shaders/gBufferVertexForAnimated.glsl", "assets/shaders/gBufferFragmentForAnimated.glsl", gBufferShaderParams);
     s_data.lightPassShader = std::make_shared<Shader>("assets/shaders/lightPassVertex.glsl", "assets/shaders/lightPassFragment.glsl");
     s_data.directionalLightPassShader = std::make_shared<Shader>("assets/shaders/directionalLightPassVertex.glsl", "assets/shaders/directionalLightPassFragment.glsl", directionalLightPassShaderParams);
     s_data.lightModelsShader = std::make_shared<Shader>("assets/shaders/lightShaderVertex.glsl", "assets/shaders/lightShaderFragment.glsl");
@@ -190,7 +197,7 @@ void Renderer::init(RendererParameters parameters)
     };
     uint32_t fullscreenQuadIndices[] = { 0, 1, 2, 2, 3, 0 };
 
-    std::shared_ptr<VertexBuffer> fullscreenQuadVertexBuffer = std::make_shared<VertexBuffer>(fullscreenQuadVertices, sizeof(fullscreenQuadVertices));
+    std::shared_ptr<VertexBuffer> fullscreenQuadVertexBuffer = std::make_shared<VertexBuffer>(reinterpret_cast<char*>(fullscreenQuadVertices), sizeof(fullscreenQuadVertices));
     fullscreenQuadVertexBuffer->setLayout({
         {ShaderDataType::float2, "a_position"},
         {ShaderDataType::float2, "a_uv"}
@@ -236,7 +243,7 @@ void Renderer::init(RendererParameters parameters)
         1, 4, 0,
         5, 4, 1
     };
-    std::shared_ptr<VertexBuffer> cubeVertexBuffer = std::make_shared<VertexBuffer>(cubeVertices, sizeof(cubeVertices));
+    std::shared_ptr<VertexBuffer> cubeVertexBuffer = std::make_shared<VertexBuffer>(reinterpret_cast<char*>(cubeVertices), sizeof(cubeVertices));
     cubeVertexBuffer->setLayout({ {ShaderDataType::float3, "a_position"} });
     s_data.cube->addVertexBuffer(cubeVertexBuffer);
 
@@ -288,11 +295,9 @@ void Renderer::beginScene(const PerspectiveCamera &camera, const RenderEnvironme
     GL::setClearColor({0.0f, 0.0f, 0.0f, 0.0f});
     GL::clear();
     GL::setDepthTest(true);
-    s_data.gBufferShader->bind();
     s_data.projectionMatrix = camera.getProjectionMatrix();
     s_data.viewMatrix = camera.getViewMatrix();
     s_data.cameraPos = camera.getPosition();
-    s_data.gBufferShader->setMat4("u_projectionMatrix", s_data.projectionMatrix);
 
     // Calculate view and projection (if the camera's projection changed) for redering each shadowMap
     if (s_data.flags & RendererParameters::enableShadowMapping)
@@ -518,22 +523,35 @@ std::string textureTypeToHasTextureUniformName(MaterialTextureType::Type type)
 void Renderer::drawMesh(Mesh &mesh, const glm::mat4 &modelMatrix)
 {
     s_data.gBuffer->bind();
-    s_data.gBufferShader->bind();
-    s_data.gBufferShader->setMat4("u_viewModelMatrix", s_data.viewMatrix * modelMatrix);
-    s_data.gBufferShader->setFloat("u_parallaxScale", 0.05f);
+    std::shared_ptr<Shader> &shader = mesh.isAnimated() ? s_data.gBufferShaderForAnimated : s_data.gBufferShader;
+    shader->bind();
+    shader->setMat4("u_projectionMatrix", s_data.projectionMatrix);
+    shader->setMat4("u_viewModelMatrix", s_data.viewMatrix * modelMatrix);
+    shader->setFloat("u_parallaxScale", 0.05f);
     GL::setDepthTest(true);
+
+    if (mesh.isAnimated())
+    {
+        AnimatedMesh &animMesh = static_cast<AnimatedMesh&>(mesh);
+        static float tick = 0.0f;
+        const Animation &animation = animMesh.getCurrentAnimation();
+        std::vector<glm::mat4> matrices = animation.getTransformations(tick, animMesh.getSkeleton());
+        for (BoneID boneId = 0; boneId < matrices.size(); boneId++)
+            shader->setMat4("u_finalBonesMatrices[" + std::to_string(boneId) + "]", matrices[boneId]);
+        tick = std::fmod(tick + 10.0f, animation.getDuration());
+    }
 
     unsigned int slot = 0;
     for (unsigned int i : s_data.materialTextureTypesToUse) {
         // Set uniform telling the shader if a texture of the type was provided
-        s_data.gBufferShader->setInt(
+        shader->setInt(
                 textureTypeToHasTextureUniformName(MaterialTextureType::Type(i)),
                 mesh.getMaterial()->getTextures(MaterialTextureType::Type(i)).empty() ? 0 : 1);
         unsigned int indexOfTextureOfType = 0;
         for (const std::shared_ptr<Texture> &texture : mesh.getMaterial()->getTextures(MaterialTextureType::Type(i)))
         {
             texture->bind(slot);
-            s_data.gBufferShader->setInt(textureTypeToUniformName(MaterialTextureType::Type(i)) + std::to_string(indexOfTextureOfType), slot);
+            shader->setInt(textureTypeToUniformName(MaterialTextureType::Type(i)) + std::to_string(indexOfTextureOfType), slot);
             slot++, indexOfTextureOfType++;
         }
     }
@@ -545,11 +563,23 @@ void Renderer::drawMesh(Mesh &mesh, const glm::mat4 &modelMatrix)
     if (s_data.flags & RendererParameters::enableShadowMapping)
     {
         GL::setDepthTest(true);
-        s_data.shadowMapShader->bind();
+
+        std::shared_ptr<Shader> &shadowMapShader = mesh.isAnimated() ? s_data.shadowMapShaderForAnimated : s_data.shadowMapShader;
+        shadowMapShader->bind();
+        if (mesh.isAnimated())
+        {
+            AnimatedMesh &animMesh = static_cast<AnimatedMesh&>(mesh);
+            static float tick = 0.0f;
+            const Animation &animation = animMesh.getCurrentAnimation();
+            std::vector<glm::mat4> matrices = animation.getTransformations(tick, animMesh.getSkeleton());
+            for (BoneID boneId = 0; boneId < matrices.size(); boneId++)
+                shadowMapShader->setMat4("u_finalBonesMatrices[" + std::to_string(boneId) + "]", matrices[boneId]);
+            tick = std::fmod(tick + 10.0f, animation.getDuration());
+        }
         GL::viewport(s_data.shadowMapSize, s_data.shadowMapSize);
         for (ShadowMapLevel &shadowMap : s_data.shadowMap)
         {
-            s_data.shadowMapShader->setMat4("u_lightSpaceModelMatrix", shadowMap.projectionView * modelMatrix);
+            shadowMapShader->setMat4("u_lightSpaceModelMatrix", shadowMap.projectionView * modelMatrix);
             shadowMap.framebuffer->bind();
             GL::drawIndexed(mesh.getVertexArray());
         }

@@ -15,7 +15,15 @@ enum class ShaderDataType {
     float2,
     float3,
     float4,
-    mat4
+    mat4,
+    int1,
+    int2,
+    int3,
+    int4,
+    uint1,
+    uint2,
+    uint3,
+    uint4,
 };
 
 static uint32_t getSizeOfDataType(ShaderDataType type)
@@ -26,6 +34,14 @@ static uint32_t getSizeOfDataType(ShaderDataType type)
         case ShaderDataType::float3: return 4 * 3;
         case ShaderDataType::float4: return 4 * 4;
         case ShaderDataType::mat4:   return 4 * 4 * 4;
+        case ShaderDataType::int1:   return 4;
+        case ShaderDataType::int2:   return 4 * 2;
+        case ShaderDataType::int3:   return 4 * 3;
+        case ShaderDataType::int4:   return 4 * 4;
+        case ShaderDataType::uint1:  return 4;
+        case ShaderDataType::uint2:  return 4 * 2;
+        case ShaderDataType::uint3:  return 4 * 3;
+        case ShaderDataType::uint4:  return 4 * 4;
         default: break;
     }
 
@@ -53,6 +69,14 @@ struct BufferElement {
             case ShaderDataType::float3: return 3;
             case ShaderDataType::float4: return 4;
             case ShaderDataType::mat4:   return 4;
+            case ShaderDataType::int1:   return 1;
+            case ShaderDataType::int2:   return 2;
+            case ShaderDataType::int3:   return 3;
+            case ShaderDataType::int4:   return 4;
+            case ShaderDataType::uint1:  return 1;
+            case ShaderDataType::uint2:  return 2;
+            case ShaderDataType::uint3:  return 3;
+            case ShaderDataType::uint4:  return 4;
             default: break;
         }
 
@@ -98,7 +122,7 @@ private:
 
 class VertexBuffer {
 public:
-    VertexBuffer(const float *vertices, uint32_t size);
+    VertexBuffer(const char *vertices, uint32_t size);
     VertexBuffer(uint32_t size);
     virtual ~VertexBuffer();
 

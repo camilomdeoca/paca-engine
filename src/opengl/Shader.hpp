@@ -27,6 +27,7 @@ public:
     void unbind();
 
     void setInt(const std::string &name, int value);
+    void setUint(const std::string &name, unsigned int value);
     void setFloat(const std::string &name, const float &value);
     void setFloat2(const std::string &name, const glm::vec2 &value);
     void setFloat3(const std::string &name, const glm::vec3 &value);

@@ -1,6 +1,7 @@
 #include "App.hpp"
 #include "Input.hpp"
 #include "engine/Action.hpp"
+#include "engine/Assert.hpp"
 #include "engine/Light.hpp"
 #include "engine/OrthoCamera.hpp"
 #include "engine/ResourceManager.hpp"
@@ -40,7 +41,7 @@ void App::init(std::string title)
     rendererParams.width = m_window.getWidth();
     rendererParams.height = m_window.getHeight();
     rendererParams.shadowMapSize = 1024;
-    rendererParams.viewFrustumSplits = {5.0f, 10.0f, 30.0f, 100.0f};
+    rendererParams.viewFrustumSplits = {5.0f, 10.0f, 25.0f, 50.0f, 100.0f};
     rendererParams.flags =
         RendererParameters::enableParallaxMapping |
         RendererParameters::enableShadowMapping;
@@ -79,9 +80,15 @@ void App::run()
     ResourceManager::addMaterial("assets/materials/thing.pmat");
     ResourceManager::addMaterial("assets/materials/plane.pmat");
     ResourceManager::addMaterial("assets/materials/lightBulb.pmat");
+    ResourceManager::addMaterial("assets/materials/dancing_vampire.pmat");
+
+    ResourceManager::addAnimation("assets/animations/dancing_vampire.pani");
 
     std::shared_ptr<Texture> skybox = ResourceManager::getCubeMap("skybox/");
 
+    std::shared_ptr<Model> vampire = ResourceManager::addModel("assets/models/dancing_vampire.pmdl");
+    vampire->setScale(glm::vec3(0.01f));
+    vampire->setPosition({0.0f, -0.2f, 0.0f});
     std::shared_ptr<Model> mainModel = ResourceManager::addModel("assets/models/thing.pmdl");
     mainModel->setScale(glm::vec3(10.0f));
     std::shared_ptr<Model> plane = ResourceManager::addModel("assets/models/plane.pmdl");
@@ -181,6 +188,7 @@ void App::run()
 
         Renderer::beginScene(cameraController.getCamera(), environment);
         Renderer::drawModel(*plane);
+        Renderer::drawModel(*vampire);
         const int size = 20;
         for (int x = -size; x < size; x+=8)
             for (int z = -size; z < size; z+=8)

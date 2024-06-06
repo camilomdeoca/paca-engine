@@ -25,6 +25,8 @@ std::string readFile(std::string_view path)
             file.read(result.data(), size);
         }
     }
+    else
+        WARN("Tried to load file {} that does not exist", path);
     return result;
 }
 
@@ -177,6 +179,12 @@ void Shader::setInt(const std::string &name, int value)
 {
     GLint location = glGetUniformLocation(m_id, name.c_str());
     glUniform1i(location, value);
+}
+
+void Shader::setUint(const std::string &name, unsigned int value)
+{
+    GLint location = glGetUniformLocation(m_id, name.c_str());
+    glUniform1ui(location, value);
 }
 
 void Shader::setFloat(const std::string &name, const float &value)
