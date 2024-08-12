@@ -77,3 +77,12 @@ void GL::viewport(unsigned int width, unsigned int height)
     glViewport(0, 0, width, height);
 }
 
+void GL::setPolygonMode(PolygonMode mode)
+{
+    constexpr GLenum polygonModeToGLPolygonMode[static_cast<size_t>(PolygonMode::last)] = {
+        GL_FILL,
+        GL_LINE
+    };
+
+    glPolygonMode(GL_FRONT, polygonModeToGLPolygonMode[static_cast<size_t>(mode)]);
+}

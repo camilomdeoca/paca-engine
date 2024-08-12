@@ -20,19 +20,15 @@ struct ActionHash {
 
 struct ActionEqual {
     using is_transparent = void;
-    bool operator()(const Action* const& action1, Action* const& action2) const
+    bool operator()(Action* const &action1, Action* const &action2) const
     {
         return std::equal_to<std::string_view>{}(action1->getName(), action2->getName());
     }
-    bool operator()(const std::string_view &name1, const std::string_view &name2) const
-    {
-        return std::equal_to<std::string_view>{}(name1, name2);
-    }
-    bool operator()(const std::string_view &name, Action* const& action) const
+    bool operator()(const std::string_view &name, Action* const &action) const
     {
         return std::equal_to<std::string_view>{}(action->getName(), name);
     }
-    bool operator()(Action* const& action, const std::string_view &name) const
+    bool operator()(Action* const &action, const std::string_view &name) const
     {
         return std::equal_to<std::string_view>{}(action->getName(), name);
     }

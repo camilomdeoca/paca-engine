@@ -9,7 +9,7 @@
 #include <iosfwd>
 #include <vector>
 
-std::string readFile(std::string_view path)
+std::string readFile(const std::string &path)
 {
     std::string result;
     
@@ -30,7 +30,7 @@ std::string readFile(std::string_view path)
     return result;
 }
 
-Shader::Shader(std::string_view vertexPath, std::string_view fragmentPath, std::list<ShaderCompileTimeParameter> parameters)
+Shader::Shader(const std::string &vertexPath, const std::string &fragmentPath, std::list<ShaderCompileTimeParameter> parameters)
 {
     // Read our shaders into the appropriate buffers
     std::string vertexSource = readFile(vertexPath); // Get source code for vertex shader.

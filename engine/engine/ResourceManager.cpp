@@ -107,6 +107,7 @@ std::shared_ptr<Animation> ResourceManager::addAnimation(const std::string &path
     std::shared_ptr<Animation> animation = std::make_shared<Animation>(
             pacaAnimation->duration,
             pacaAnimation->ticksPerSecond,
+            pacaAnimation->name,
             std::move(pacaAnimation->keyframes));
 
     return s_data.animations.insert(std::make_pair(pacaAnimation->name, animation)).first->second;
@@ -115,8 +116,7 @@ std::shared_ptr<Animation> ResourceManager::addAnimation(const std::string &path
 std::shared_ptr<Texture> ResourceManager::getTexture(const std::string &path)
 {
     const std::string texturesFolder = "assets/textures/";
-    std::unordered_map<std::string, std::weak_ptr<Texture>>::iterator iter =
-        s_data.textures.find(path);
+    auto iter = s_data.textures.find(path);
 
     if (iter == s_data.textures.end())
     {
@@ -148,8 +148,7 @@ std::shared_ptr<Texture> ResourceManager::getCubeMap(const std::string &folder)
         "front.jpg",
         "back.jpg"
     };
-    std::unordered_map<std::string, std::weak_ptr<Texture>>::iterator iter =
-        s_data.cubeMaps.find(folder);
+    auto iter = s_data.cubeMaps.find(folder);
 
     if (iter == s_data.cubeMaps.end())
     {
@@ -178,8 +177,7 @@ std::shared_ptr<Texture> ResourceManager::getCubeMap(const std::string &folder)
 
 std::shared_ptr<Model> ResourceManager::getModel(const std::string &name)
 {
-    std::unordered_map<std::string, std::shared_ptr<Model>>::iterator iter =
-        s_data.models.find(name);
+    auto iter = s_data.models.find(name);
     ASSERT_MSG(iter != s_data.models.end(), "Model: {} wasn't added yet.", name);
 
     std::shared_ptr<Model> model = iter->second;
@@ -189,8 +187,7 @@ std::shared_ptr<Model> ResourceManager::getModel(const std::string &name)
 
 std::shared_ptr<Material> ResourceManager::getMaterial(const std::string &name)
 {
-    std::unordered_map<std::string, std::shared_ptr<Material>>::iterator iter =
-        s_data.materials.find(name);
+    auto iter = s_data.materials.find(name);
     ASSERT_MSG(iter != s_data.materials.end(), "Material: {} wasn't added yet.", name);
 
     std::shared_ptr<Material> material = iter->second;
@@ -200,8 +197,7 @@ std::shared_ptr<Material> ResourceManager::getMaterial(const std::string &name)
 
 std::shared_ptr<Animation> ResourceManager::getAnimation(const std::string &name)
 {
-    std::unordered_map<std::string, std::shared_ptr<Animation>>::iterator iter =
-        s_data.animations.find(name);
+    auto iter = s_data.animations.find(name);
     ASSERT_MSG(iter != s_data.animations.end(), "Animation: {} wasn't added yet.", name);
 
     std::shared_ptr<Animation> animation = iter->second;

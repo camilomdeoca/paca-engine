@@ -43,7 +43,7 @@ void App::init(std::string title)
     rendererParams.shadowMapSize = 1024;
     rendererParams.viewFrustumSplits = {5.0f, 10.0f, 25.0f, 50.0f, 100.0f};
     rendererParams.flags =
-        RendererParameters::enableParallaxMapping |
+        //RendererParameters::enableParallaxMapping |
         RendererParameters::enableShadowMapping;
 
     GL::init();
@@ -141,6 +141,14 @@ void App::run()
     BindingsManager::bind(Key::lshift, "down");
     BindingsManager::bindMouseWheelUp("zoom_in");
     BindingsManager::bindMouseWheelDown("zoom_out");
+
+    Action wireframeModeToggle;
+    wireframeModeToggle.init("wireframe_toggle", []() {
+        static bool wireframeEnabled = false;
+        wireframeEnabled = !wireframeEnabled;
+        GL::setPolygonMode(wireframeEnabled ? GL::PolygonMode::wireframe : GL::PolygonMode::solid);
+    });
+    BindingsManager::bind(Key::q, "wireframe_toggle");
 
     //Input::addKeyPressCallback([&cameraController](KeyPressEvent &event) {
     //    static bool val = true;

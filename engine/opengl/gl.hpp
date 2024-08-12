@@ -21,6 +21,13 @@ public:
         last
     };
 
+    enum class PolygonMode {
+        solid,
+        wireframe,
+
+        last
+    };
+
     static void init();
 
     static void setClearColor(const glm::vec4 &color);
@@ -31,5 +38,7 @@ public:
     static void setBlending(bool value);
     static void setBlendFunction(BlendFunction src, BlendFunction dst);
     static void viewport(unsigned int width, unsigned int height);
+
+    static void setPolygonMode(PolygonMode mode);
 };
 

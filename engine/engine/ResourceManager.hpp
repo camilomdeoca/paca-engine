@@ -8,6 +8,15 @@
 #include <memory>
 #include <string>
 
+enum class ResourceTypes {
+    model,
+    material,
+    animation,
+    texture,
+
+    last
+};
+
 class ResourceManager {
 public:
     static std::shared_ptr<Model> addModel(const std::string &path);
