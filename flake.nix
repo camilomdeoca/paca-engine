@@ -12,14 +12,28 @@
       perSystem = { config, self', inputs', pkgs, system, ... }: {
         devShells.default = pkgs.mkShell {
           buildInputs = with pkgs; [
+            clang
+            libclang
+            llvm
+            libllvm
+            gdb
+            gf
+            valgrind
+            gcc14
             git
             lazygit
             SDL2
             glew
             cmake
             assimp
+            glm
+            libpng
+            pngpp
+            freetype
           ];
-
+          shellHook = ''
+            export CXX=${pkgs.gcc14}/bin/g++
+          '';
         };
       };
       flake = {
