@@ -4,3 +4,6 @@
 [submodule "lib/paca-tools"]
 	path = lib/paca-tools
 	url = https://github.com/camilomdeoca/paca-tools.git
+[submodule "lib/cpp-serializer-generator"]
+	path = lib/cpp-serializer-generator
+	url = https://github.com/camilomdeoca/cpp-serializer-generator.git
