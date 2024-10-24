@@ -1,4 +1,4 @@
-#include "Input.hpp"
+#include "game/Input.hpp"
 
 #include <SDL2/SDL.h>
 #include <array>

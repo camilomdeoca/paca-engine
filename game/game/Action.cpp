@@ -1,7 +1,7 @@
-#include "Action.hpp"
+#include "game/Action.hpp"
 
 #include "utils/Assert.hpp"
-#include "engine/Input.hpp"
+#include "game/Input.hpp"
 
 #include <memory>
 #include <unordered_set>

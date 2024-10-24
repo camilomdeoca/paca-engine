@@ -20,8 +20,6 @@ message(STATUS "CMAKE_BUILD_TYPE = ${CMAKE_BUILD_TYPE}")
 add_subdirectory(lib/fontatlas)
 add_subdirectory(lib/paca-tools EXCLUDE_FROM_ALL)
 
-add_subdirectory(lib/cpp-serializer-generator EXCLUDE_FROM_ALL)
-include(lib/cpp-serializer-generator/serializer-generator.cmake)
 add_subdirectory(lib/stb_image)
 
 add_subdirectory(common/utils)
@@ -30,5 +28,5 @@ add_subdirectory(common/opengl)
 add_subdirectory(common/engine)
 
 add_subdirectory(editor)
-add_subdirectory(engine)
+add_subdirectory(game)
 

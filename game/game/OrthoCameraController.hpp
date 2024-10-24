@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Input.hpp"
+#include "game/Input.hpp"
 #include "engine/OrthoCamera.hpp"
 
 class OrthoCameraController {

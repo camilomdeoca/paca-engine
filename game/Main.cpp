@@ -1,4 +1,4 @@
-#include "engine/App.hpp"
+#include "game/App.hpp"
 
 int main (int argc, char *argv[]) {
     App app;

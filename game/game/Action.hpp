@@ -1,6 +1,6 @@
 #pragma once
 
-#include "engine/Input.hpp"
+#include "game/Input.hpp"
 
 #include <functional>
 #include <string>

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Window.hpp"
-#include "Input.hpp"
+#include "game/Window.hpp"
+#include "game/Input.hpp"
 
 class App {
 public:

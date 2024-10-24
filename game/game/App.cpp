@@ -1,13 +1,13 @@
-#include "App.hpp"
-#include "Input.hpp"
-#include "Action.hpp"
+#include "game/App.hpp"
+#include "game/Input.hpp"
+#include "game/Action.hpp"
 #include "utils/Assert.hpp"
 #include "engine/Light.hpp"
 #include "engine/OrthoCamera.hpp"
 #include "engine/ResourceManager.hpp"
 #include "opengl/gl.hpp"
 #include "engine/Renderer2D.hpp"
-#include "PerspectiveCameraController.hpp"
+#include "game/PerspectiveCameraController.hpp"
 #include "engine/Renderer.hpp"
 
 #include <SDL2/SDL.h>

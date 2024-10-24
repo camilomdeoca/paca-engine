@@ -1,4 +1,4 @@
-#include "Window.hpp"
+#include "game/Window.hpp"
 
 #include "utils/Assert.hpp"
 #include "utils/Log.hpp"
