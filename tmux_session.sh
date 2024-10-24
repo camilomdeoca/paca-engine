@@ -17,10 +17,10 @@ else
     tmux send-keys -t "${SESSION_NAME}:0.0" 'nvim' C-m
 
     tmux new-window
-    tmux split-window -h
-
     tmux send-keys -t "${SESSION_NAME}:1.0" 'cd build' C-m
-    tmux send-keys -t "${SESSION_NAME}:1.1" 'lazygit' C-m
+    
+    #tmux new-window
+    #tmux send-keys -t "${SESSION_NAME}:2.0" 'lazygit' C-m
 
     # Attach to the created session
     tmux attach-session -t $SESSION_NAME

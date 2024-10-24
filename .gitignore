@@ -5,3 +5,4 @@ cmake_install.cmake
 CMakeFiles
 .cache/clangd/index
 compile_commands.json
+.clangd

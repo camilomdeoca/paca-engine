@@ -1,5 +1,5 @@
-cmake_minimum_required(VERSION 3.27)
-project(new_engine CXX)
+cmake_minimum_required(VERSION 3.29)
+project(my-engine CXX)
 
 # Set C++ standard and optimization level
 set(CMAKE_CXX_STANDARD 23)
@@ -7,36 +7,28 @@ set(CMAKE_CXX_STANDARD_REQUIRED on)
 set(CMAKE_BUILD_TYPE Debug)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2")
 set(CMAKE_CXX_FLAGS_DEBUG "-g -O0 -DDEBUG -Wall -Wpedantic")
-#set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -stdlib=libc++ -lc++abi")
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS}")
+
+set(CMAKE_EXPORT_COMPILE_COMMANDS on)
 
 message(STATUS "CMAKE_CXX_COMPILER = ${CMAKE_CXX_COMPILER}")
+message(STATUS "CMAKE_CXX_FLAGS = ${CMAKE_CXX_FLAGS}")
+message(STATUS "CMAKE_EXE_LINKER_FLAGS = ${CMAKE_EXE_LINKER_FLAGS}")
+message(STATUS "CMAKE_CXX_STANDARD = ${CMAKE_CXX_STANDARD}")
 message(STATUS "CMAKE_BUILD_TYPE = ${CMAKE_BUILD_TYPE}")
-
-# Include directories
-include_directories(
-    engine
-    engine/vendor/stb_image/
-)
-
-# Set build path
-set(EXECUTABLE_OUTPUT_PATH ${CMAKE_SOURCE_DIR}/build)
-
-# Add executable
-file(GLOB_RECURSE SOURCES engine/*.cpp )
-add_executable(${PROJECT_NAME}
-    ${SOURCES}
-)
 
 add_subdirectory(lib/fontatlas)
 add_subdirectory(lib/paca-tools EXCLUDE_FROM_ALL)
 
-# Link libraries
-target_link_libraries(${PROJECT_NAME}
-    SDL2
-    GL
-    GLEW
-    png
-    assimp
-    fontatlas
-    pacaread
-)
+add_subdirectory(lib/cpp-serializer-generator EXCLUDE_FROM_ALL)
+include(lib/cpp-serializer-generator/serializer-generator.cmake)
+add_subdirectory(lib/stb_image)
+
+add_subdirectory(common/utils)
+add_subdirectory(common/resource-file-formats)
+add_subdirectory(common/opengl)
+add_subdirectory(common/engine)
+
+add_subdirectory(editor)
+add_subdirectory(engine)
+
