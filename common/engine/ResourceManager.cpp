@@ -8,19 +8,21 @@
 #include "engine/StaticMesh.hpp"
 #include "opengl/Texture.hpp"
 
+#include <ResourceFileFormats.hpp>
+#include <Serializer.hpp>
+
 #include <functional>
-#include <optional>
-#include <pacaread/pacaread.hpp>
 #include <memory>
 #include <unordered_map>
 #include <utility>
 #include <vector>
+#include <fstream>
 
 struct StringAndViewHash : public std::hash<std::string_view> { using is_transparent = void; };
 
 static struct {
-    std::unordered_map<std::string, std::weak_ptr<Texture>, StringAndViewHash, std::equal_to<>> textures;
-    std::unordered_map<std::string, std::weak_ptr<Texture>, StringAndViewHash, std::equal_to<>> cubeMaps;
+    std::unordered_map<std::string, std::shared_ptr<Texture>, StringAndViewHash, std::equal_to<>> textures;
+    std::unordered_map<std::string, std::shared_ptr<Texture>, StringAndViewHash, std::equal_to<>> cubeMaps;
 
     // TODO: Change to weak_ptr so the materials and models get deleted when not used.
     // TODO: Add an index file of in wich files are what materials so when the materials are loaded
@@ -30,26 +32,55 @@ static struct {
     std::unordered_map<std::string, std::shared_ptr<Animation>, StringAndViewHash, std::equal_to<>> animations; 
 } s_data;
 
-std::shared_ptr<Model> ResourceManager::addModel(const std::string &path)
+MaterialTextureType::Type pacaTextureTypeToMaterialTextureType(paca::fileformats::TextureType::Type type)
 {
-    std::optional<paca_format::Model> pacaModel = paca_format::readModel(path);
+    switch (type) {
+        case paca::fileformats::TextureType::diffuse:  return MaterialTextureType::diffuse;
+        case paca::fileformats::TextureType::specular: return MaterialTextureType::specular;
+        case paca::fileformats::TextureType::normal:   return MaterialTextureType::normal;
+        case paca::fileformats::TextureType::depth:    return MaterialTextureType::height;
+        default: break;
+    }
+
+    ASSERT_MSG(false, "Invalid paca texture type!");
+}
+
+void ResourceManager::loadAssetPack(const std::string &path)
+{
+    std::ifstream ifs(path);
+    paca::fileformats::Unserializer unserializer(ifs);
+    paca::fileformats::AssetPack pack;
+    unserializer(pack);
+
+    for (paca::fileformats::Texture &texture : pack.textures)
+        addTexture(texture);
+    for (paca::fileformats::Material &material : pack.materials)
+        addMaterial(material);
+    for (paca::fileformats::Animation &animation : pack.animations)
+        addAnimation(animation);
+    for (paca::fileformats::Model &model : pack.models)
+        addModel(model);
+}
+
+void ResourceManager::addModel(paca::fileformats::Model &model)
+{
     std::vector<std::shared_ptr<Mesh>> meshes;
 
 #ifdef DEBUG
     size_t vertexCount = 0;
 #endif // DEBUG
 
-    for (paca_format::Mesh &pacaMesh : pacaModel->meshes)
+    for (paca::fileformats::Mesh &pacaMesh : model.meshes)
     {
 #ifdef DEBUG
-        vertexCount += pacaMesh.vertices.size() / paca_format::vertexTypeToSize(pacaMesh.vertexType);
+        vertexCount += pacaMesh.vertices.size() / paca::fileformats::vertexTypeToSize(pacaMesh.vertexType);
 #endif // DEBUG
         
         std::vector<std::shared_ptr<Animation>> animations;
         for (const std::string &animName : pacaMesh.animations)
             animations.emplace_back(getAnimation(animName));
         // if mesh is animated
-        if (pacaMesh.vertexType == paca_format::VertexType::float3pos_float3norm_float3tang_float2texture_int4boneIds_float4boneWeights)
+        if (pacaMesh.vertexType == paca::fileformats::VertexType::float3pos_float3norm_float3tang_float2texture_int4boneIds_float4boneWeights)
             meshes.emplace_back(std::make_shared<AnimatedMesh>(
                         pacaMesh.vertices,
                         pacaMesh.indices,
@@ -63,116 +94,89 @@ std::shared_ptr<Model> ResourceManager::addModel(const std::string &path)
                         pacaMesh.indices,
                         getMaterial(pacaMesh.materialName)));
     }
-    INFO("Model {} has {} vertices", path, vertexCount);
+    INFO("Model {} has {} vertices", model.name, vertexCount);
 
-    std::shared_ptr<Model> model = std::make_shared<Model>(meshes);
-    std::weak_ptr<Model> toInsertPtr = model;
-    return s_data.models.insert(std::make_pair(pacaModel.value().name, toInsertPtr)).first->second;
+    std::shared_ptr<Model> outModel = std::make_shared<Model>(meshes);
+    s_data.models.insert(std::make_pair(model.name, outModel));
 }
 
-MaterialTextureType::Type pacaTextureTypeToMaterialTextureType(paca_format::TextureType::Type type)
+void ResourceManager::addMaterial(const paca::fileformats::Material &material)
 {
-    switch (type) {
-        case paca_format::TextureType::diffuse:  return MaterialTextureType::diffuse;
-        case paca_format::TextureType::specular: return MaterialTextureType::specular;
-        case paca_format::TextureType::normal:   return MaterialTextureType::normal;
-        case paca_format::TextureType::depth:    return MaterialTextureType::height;
-        default: break;
-    }
-
-    ASSERT_MSG(false, "Invalid paca texture type!");
-}
-
-std::shared_ptr<Material> ResourceManager::addMaterial(const std::string &path)
-{
-    std::optional<paca_format::Material> pacaMaterial = paca_format::readMaterial(path);
     MaterialSpecification materialSpec;
-    for (uint32_t i = paca_format::TextureType::none; i < paca_format::TextureType::last; i++)
+    for (uint32_t i = paca::fileformats::TextureType::none; i < paca::fileformats::TextureType::last; i++)
     {
-        for (const paca_format::Texture &texture : pacaMaterial->textures[i])
+        for (const std::string &texture : material.textures[i])
         {
-            materialSpec.textureMaps[pacaTextureTypeToMaterialTextureType(paca_format::TextureType::Type(i))]
-                .emplace_back(getTexture(texture.path));
+            materialSpec.textureMaps[pacaTextureTypeToMaterialTextureType(paca::fileformats::TextureType::Type(i))]
+                .emplace_back(getTexture(texture));
         }
     }
 
-    std::shared_ptr<Material> material = std::make_shared<Material>(materialSpec);
-    return s_data.materials.insert(std::make_pair(pacaMaterial->name, material)).first->second;
+    std::shared_ptr<Material> outMaterial = std::make_shared<Material>(materialSpec);
+    s_data.materials.insert(std::make_pair(material.name, outMaterial));
 }
 
-std::shared_ptr<Animation> ResourceManager::addAnimation(const std::string &path)
+void ResourceManager::addAnimation(paca::fileformats::Animation &animation)
 {
-    std::optional<paca_format::Animation> pacaAnimation = paca_format::readAnimation(path);
-    ASSERT(pacaAnimation.has_value());
-    std::shared_ptr<Animation> animation = std::make_shared<Animation>(
-            pacaAnimation->duration,
-            pacaAnimation->ticksPerSecond,
-            pacaAnimation->name,
-            std::move(pacaAnimation->keyframes));
+    std::shared_ptr<Animation> outAnimation = std::make_shared<Animation>(
+            animation.duration,
+            animation.ticksPerSecond,
+            animation.name,
+            std::move(animation.keyframes));
 
-    return s_data.animations.insert(std::make_pair(pacaAnimation->name, animation)).first->second;
+    s_data.animations.insert(std::make_pair(animation.name, outAnimation));
 }
 
-std::shared_ptr<Texture> ResourceManager::getTexture(const std::string &path)
+void ResourceManager::addTexture(const paca::fileformats::Texture &texture)
 {
-    const std::string texturesFolder = "assets/textures/";
-    auto iter = s_data.textures.find(path);
-
-    if (iter == s_data.textures.end())
+    Texture::Format format;
+    switch (texture.channels)
     {
-        std::shared_ptr<Texture> texture = std::make_shared<Texture>(texturesFolder + path);
-        std::weak_ptr<Texture> toInsertPtr = texture;
-        s_data.textures.insert(std::make_pair(path, toInsertPtr));
-        return texture;
+        case 1: format = Texture::Format::G8; break;
+        case 2: format = Texture::Format::GA8; break;
+        case 3: format = Texture::Format::RGB8; break;
+        case 4: format = Texture::Format::RGBA8; break;
     }
 
-    std::shared_ptr<Texture> texture = iter->second.lock();
-    if (texture)
-        return texture;
-
-    s_data.textures.erase(path);
-    texture = std::make_shared<Texture>(texturesFolder + path);
-    std::weak_ptr<Texture> toInsertPtr = texture;
-    s_data.textures.insert(std::make_pair(path, toInsertPtr));
-    return texture;
+    if (!texture.isCubeMap)
+    {
+        std::shared_ptr<Texture> outTexture
+            = std::make_shared<Texture>(
+                reinterpret_cast<const uint8_t*>(texture.pixelData.data()),
+                texture.width,
+                texture.height,
+                format);
+        s_data.textures.insert(std::make_pair(texture.name, outTexture));
+    }
+    else
+    {
+        std::array<const unsigned char*, 6> facesData;
+        for (unsigned int i = 0; i < facesData.size(); i++)
+        {
+            facesData[i] = reinterpret_cast<const uint8_t*>(
+                texture.pixelData.data()
+                + texture.width * texture.height * texture.channels * i);
+        }
+        std::shared_ptr<Texture> outTexture
+            = std::make_shared<Texture>(facesData, texture.width, texture.height, format);
+        s_data.cubeMaps.insert(std::make_pair(texture.name, outTexture));
+    }
 }
 
-std::shared_ptr<Texture> ResourceManager::getCubeMap(const std::string &folder)
+std::shared_ptr<Texture> ResourceManager::getTexture(const std::string &name)
 {
-    const std::string cubeMapsFolder = "assets/textures/cubemaps/";
-    const std::array<std::string, 6> facesNames = {
-        "right.jpg",
-        "left.jpg",
-        "top.jpg",
-        "bottom.jpg",
-        "front.jpg",
-        "back.jpg"
-    };
-    auto iter = s_data.cubeMaps.find(folder);
+    auto iter = s_data.textures.find(name);
+    ASSERT_MSG(iter != s_data.textures.end(), "Texture: {} wasn't added yet.", name);
 
-    if (iter == s_data.cubeMaps.end())
-    {
-        std::array<std::string, 6> filePaths;
-        for (unsigned int i = 0; i < facesNames.size(); i++)
-            filePaths[i] = cubeMapsFolder + folder + facesNames[i];
-        std::shared_ptr<Texture> cubeMap = std::make_shared<Texture>(filePaths);
-        std::weak_ptr<Texture> toInsertPtr = cubeMap;
-        s_data.cubeMaps.insert(std::make_pair(folder, toInsertPtr));
-        return cubeMap;
-    }
+    return iter->second;
+}
 
-    std::shared_ptr<Texture> cubeMap = iter->second.lock();
-    if (cubeMap)
-        return cubeMap;
+std::shared_ptr<Texture> ResourceManager::getCubeMap(const std::string &name)
+{
+    auto iter = s_data.cubeMaps.find(name);
+    ASSERT_MSG(iter != s_data.cubeMaps.end(), "Cubemap: {} wasn't added yet.", name);
 
-    s_data.cubeMaps.erase(folder);
-    std::array<std::string, 6> filePaths;
-    for (unsigned int i = 0; i < facesNames.size(); i++)
-        filePaths[i] = cubeMapsFolder + folder + facesNames[i];
-    cubeMap = std::make_shared<Texture>(filePaths);
-    std::weak_ptr<Texture> toInsertPtr = cubeMap;
-    s_data.cubeMaps.insert(std::make_pair(folder, toInsertPtr));
-    return cubeMap;
+    return iter->second;
 }
 
 std::shared_ptr<Model> ResourceManager::getModel(const std::string &name)

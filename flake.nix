@@ -3,19 +3,28 @@
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-24.05";
+    nixpkgs-unstable.url = "github:nixos/nixpkgs/nixos-unstable";
   };
 
-  outputs = inputs@{ flake-parts, ... }:
+  outputs = inputs@{ flake-parts, nixpkgs, nixpkgs-unstable, ... }:
     flake-parts.lib.mkFlake { inherit inputs; } {
       imports = [ ];
       systems = [ "x86_64-linux" ];
       perSystem = { config, self', inputs', pkgs, system, ... }: {
+        _module.args.pkgs = import nixpkgs {
+          inherit system;
+          overlays = [
+            (final: _prev: {
+              unstable = import nixpkgs-unstable {
+                inherit system;
+              };
+            }) 
+          ];
+        };
         devShells.default = pkgs.mkShell {
           hardeningDisable = [ "fortify" ];
           buildInputs = with pkgs; [
             llvmPackages_18.clang-tools    # libclang from LLVM 1
-            llvmPackages_18.libclang    # libclang from LLVM 1
-            llvmPackages_18.libllvm    # libclang from LLVM 1
             #gcc14Stdenv
             gdb
             gf
@@ -25,6 +34,7 @@
             lazygit
             SDL2
             glew
+            yaml-cpp
             cmake
             assimp
             glm
@@ -43,6 +53,8 @@
             CPLUS_INCLUDE_PATH+=":${pkgs.gcc14.cc}/lib/gcc/x86_64-unknown-linux-gnu/14.1.0/include"
             CPLUS_INCLUDE_PATH+=":${pkgs.glm}/include"
             CPLUS_INCLUDE_PATH+=":${pkgs.qt6.full}/include"
+            CPLUS_INCLUDE_PATH+=":${pkgs.boost185.dev}/include"
+            CPLUS_INCLUDE_PATH+=":${pkgs.yaml-cpp}/include"
             export CPLUS_INCLUDE_PATH
 
             export QT_QPA_PLATFORM=xcb
@@ -52,7 +64,6 @@
             #export LDFLAGS="-L${pkgs.gcc14Stdenv.cc.libc}/lib"
         };
       };
-      flake = {
-      };
+      flake = { };
     };
 }

@@ -1,7 +1,5 @@
 add_library(resource-file-formats STATIC
-    include/ResourceFileFormats.hpp
     ResourceFileFormats.cpp
-    Serializer.cpp
 )
 #add_serializer_generation(resource-file-formats
 #    HEADER Serializer.hpp
@@ -12,8 +10,15 @@ target_include_directories(resource-file-formats PRIVATE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/>
     $<INSTALL_INTERFACE:/>
     ${CMAKE_CURRENT_SOURCE_DIR}
+    include
 )
 target_include_directories(resource-file-formats PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
+)
+
+target_link_libraries(resource-file-formats
+    logger
+    asserts
+    yaml-cpp
 )

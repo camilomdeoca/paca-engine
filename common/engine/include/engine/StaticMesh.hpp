@@ -4,7 +4,7 @@
 
 class StaticMesh : public Mesh {
 public:
-    StaticMesh(const std::vector<char> &vertices, 
+    StaticMesh(const std::vector<uint8_t> &vertices, 
          const std::vector<uint32_t> &indices, 
          std::shared_ptr<Material> material);
     virtual ~StaticMesh();

@@ -18,7 +18,6 @@ message(STATUS "CMAKE_CXX_STANDARD = ${CMAKE_CXX_STANDARD}")
 message(STATUS "CMAKE_BUILD_TYPE = ${CMAKE_BUILD_TYPE}")
 
 add_subdirectory(lib/fontatlas)
-add_subdirectory(lib/paca-tools EXCLUDE_FROM_ALL)
 
 add_subdirectory(lib/stb_image)
 

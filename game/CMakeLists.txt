@@ -16,7 +16,6 @@ target_link_libraries(game
     opengl-wrapper
     assimp
     fontatlas
-    pacaread
     resource-file-formats
     stb_image
 )

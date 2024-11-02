@@ -1,20 +1,20 @@
 #pragma once
 
-#include <pacaread/pacaread.hpp>
+#include <ResourceFileFormats.hpp>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <string>
 #include <vector>
 
-using BoneKeyFrames = paca_format::BoneKeyFrames;
+using BoneKeyFrames = paca::fileformats::BoneKeyFrames;
 
-using PositionKeyFrame = paca_format::PositionKeyFrame;
-using RotationKeyFrame = paca_format::RotationKeyFrame;
-using ScaleKeyFrame = paca_format::ScaleKeyFrame;
+using PositionKeyFrame = paca::fileformats::PositionKeyFrame;
+using RotationKeyFrame = paca::fileformats::RotationKeyFrame;
+using ScaleKeyFrame = paca::fileformats::ScaleKeyFrame;
 
-using Skeleton = paca_format::Skeleton;
-using Bone = paca_format::Bone;
+using Skeleton = paca::fileformats::Skeleton;
+using Bone = paca::fileformats::Bone;
 
 using BoneID = uint32_t; // Maybe move this to the Mesh class
 

@@ -197,7 +197,7 @@ void Renderer::init(RendererParameters parameters)
     };
     uint32_t fullscreenQuadIndices[] = { 0, 1, 2, 2, 3, 0 };
 
-    std::shared_ptr<VertexBuffer> fullscreenQuadVertexBuffer = std::make_shared<VertexBuffer>(reinterpret_cast<char*>(fullscreenQuadVertices), sizeof(fullscreenQuadVertices));
+    std::shared_ptr<VertexBuffer> fullscreenQuadVertexBuffer = std::make_shared<VertexBuffer>(reinterpret_cast<uint8_t*>(fullscreenQuadVertices), sizeof(fullscreenQuadVertices));
     fullscreenQuadVertexBuffer->setLayout({
         {ShaderDataType::float2, "a_position"},
         {ShaderDataType::float2, "a_uv"}
@@ -243,7 +243,7 @@ void Renderer::init(RendererParameters parameters)
         1, 4, 0,
         5, 4, 1
     };
-    std::shared_ptr<VertexBuffer> cubeVertexBuffer = std::make_shared<VertexBuffer>(reinterpret_cast<char*>(cubeVertices), sizeof(cubeVertices));
+    std::shared_ptr<VertexBuffer> cubeVertexBuffer = std::make_shared<VertexBuffer>(reinterpret_cast<uint8_t*>(cubeVertices), sizeof(cubeVertices));
     cubeVertexBuffer->setLayout({ {ShaderDataType::float3, "a_position"} });
     s_data.cube->addVertexBuffer(cubeVertexBuffer);
 
@@ -378,18 +378,21 @@ void lightPass()
     s_data.lightPassShader->setMat4("u_inverseProjectionMatrix", glm::inverse(s_data.projectionMatrix));
 
     // Point lights
-    for (const std::shared_ptr<PointLight> &light : *s_data.lights)
+    if (s_data.lights)
     {
-        glm::vec3 lightPosInViewSpace
-            = s_data.viewMatrix
-            * glm::vec4(light->getPosition().x, light->getPosition().y, light->getPosition().z, 1.0f);
+        for (const std::shared_ptr<PointLight> &light : *s_data.lights)
+        {
+            glm::vec3 lightPosInViewSpace
+                = s_data.viewMatrix
+                * glm::vec4(light->getPosition().x, light->getPosition().y, light->getPosition().z, 1.0f);
 
-        s_data.lightPassShader->setFloat3("u_lights[0].posInViewSpace", lightPosInViewSpace);
-        s_data.lightPassShader->setFloat3("u_lights[0].color", light->getColor());
-        s_data.lightPassShader->setFloat("u_lights[0].intensity", light->getIntensity());
-        s_data.lightPassShader->setFloat("u_lights[0].attenuation", light->getAttenuation());
-        s_data.lightPassShader->setInt("u_numOfLights", 1);
-        GL::drawIndexed(s_data.fullscreenQuad);
+            s_data.lightPassShader->setFloat3("u_lights[0].posInViewSpace", lightPosInViewSpace);
+            s_data.lightPassShader->setFloat3("u_lights[0].color", light->getColor());
+            s_data.lightPassShader->setFloat("u_lights[0].intensity", light->getIntensity());
+            s_data.lightPassShader->setFloat("u_lights[0].attenuation", light->getAttenuation());
+            s_data.lightPassShader->setInt("u_numOfLights", 1);
+            GL::drawIndexed(s_data.fullscreenQuad);
+        }
     }
 
     // Directional Light
@@ -434,25 +437,28 @@ void lightModelsPass()
     s_data.lightModelsShader->bind();
     GL::setDepthTest(true);
     s_data.lightModelsShader->setMat4("u_projectionMatrix", s_data.projectionMatrix);
-    for (const std::shared_ptr<PointLight> &light : *s_data.lights)
+    if (s_data.lights)
     {
-        if (light->getModel())
+        for (const std::shared_ptr<PointLight> &light : *s_data.lights)
         {
-            light->getModel()->setPosition(light->getPosition());
-
-            // Put this into a function in Model class
-            glm::mat4 transform = glm::mat4(1.0f);
-            transform = glm::translate(transform, light->getModel()->getPosition());
-            transform = glm::scale(transform, light->getModel()->getScale());
-            glm::quat rot(glm::radians(light->getModel()->getRotation()));
-            transform = transform * glm::mat4_cast(rot);
-
-            s_data.lightModelsShader->setMat4("u_viewModelMatrix", s_data.viewMatrix * transform);
-            s_data.lightModelsShader->setFloat3("u_lightColor", light->getColor());
-            for (const std::shared_ptr<Mesh> &mesh : light->getModel()->getMeshes())
+            if (light->getModel())
             {
-                mesh->getVertexArray()->bind();
-                GL::drawIndexed(mesh->getVertexArray());
+                light->getModel()->setPosition(light->getPosition());
+
+                // Put this into a function in Model class
+                glm::mat4 transform = glm::mat4(1.0f);
+                transform = glm::translate(transform, light->getModel()->getPosition());
+                transform = glm::scale(transform, light->getModel()->getScale());
+                glm::quat rot(glm::radians(light->getModel()->getRotation()));
+                transform = transform * glm::mat4_cast(rot);
+
+                s_data.lightModelsShader->setMat4("u_viewModelMatrix", s_data.viewMatrix * transform);
+                s_data.lightModelsShader->setFloat3("u_lightColor", light->getColor());
+                for (const std::shared_ptr<Mesh> &mesh : light->getModel()->getMeshes())
+                {
+                    mesh->getVertexArray()->bind();
+                    GL::drawIndexed(mesh->getVertexArray());
+                }
             }
         }
     }

@@ -11,7 +11,7 @@
 // TODO: make this a class and then pass a shared ptr to the beginScene() function so its ensured
 // that it exists until we store it (until endScene())
 struct RenderEnvironment {
-    std::vector<std::shared_ptr<PointLight>> *pointLights;
+    std::vector<std::shared_ptr<PointLight>> *pointLights = nullptr;
     std::shared_ptr<DirectionalLight> directionalLight; // Only 1 for now
     std::shared_ptr<Texture> skybox;
 };

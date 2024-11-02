@@ -77,30 +77,25 @@ void App::run()
 
     Font font("assets/fonts/DejaVuSansFontAtlas.png", "assets/fonts/DejaVuSansFontAtlas.fntat");
 
-    ResourceManager::addMaterial("assets/materials/thing.pmat");
-    ResourceManager::addMaterial("assets/materials/plane.pmat");
-    ResourceManager::addMaterial("assets/materials/lightBulb.pmat");
-    ResourceManager::addMaterial("assets/materials/dancing_vampire.pmat");
+    ResourceManager::loadAssetPack("build/out.pack");
 
-    ResourceManager::addAnimation("assets/animations/dancing_vampire.pani");
+    std::shared_ptr<Texture> skybox = ResourceManager::getCubeMap("skybox");
 
-    std::shared_ptr<Texture> skybox = ResourceManager::getCubeMap("skybox/");
-
-    std::shared_ptr<Model> vampire = ResourceManager::addModel("assets/models/dancing_vampire.pmdl");
+    std::shared_ptr<Model> vampire = ResourceManager::getModel("dancing_vampire");
     vampire->setScale(glm::vec3(0.01f));
     vampire->setPosition({0.0f, -0.2f, 0.0f});
-    std::shared_ptr<Model> mainModel = ResourceManager::addModel("assets/models/thing.pmdl");
+    std::shared_ptr<Model> mainModel = ResourceManager::getModel("statue");
     mainModel->setScale(glm::vec3(10.0f));
-    std::shared_ptr<Model> plane = ResourceManager::addModel("assets/models/plane.pmdl");
+    std::shared_ptr<Model> plane = ResourceManager::getModel("plane");
     plane->setPosition({0.0f, -1.0f, 0.0f});
-    std::shared_ptr<Model> lightBulb = ResourceManager::addModel("assets/models/lightBulb.pmdl");
-    lightBulb->setPosition({3.0f, 4.0f, -3.0f});
-    lightBulb->setRotation({-90.0f, 0.0f, 0.0f});
-    lightBulb->setScale(glm::vec3(3.0f));
+    //std::shared_ptr<Model> lightBulb = ResourceManager::addModel("assets/models/lightBulb.pmdl");
+    //lightBulb->setPosition({3.0f, 4.0f, -3.0f});
+    //lightBulb->setRotation({-90.0f, 0.0f, 0.0f});
+    //lightBulb->setScale(glm::vec3(3.0f));
 
-    std::vector<std::shared_ptr<PointLight>> lights;
-    lights.push_back(std::make_shared<PointLight>(glm::vec3(3.0f, 4.0f, -3.0f), glm::vec3(1.0f, 0.0f, 0.0f), 0.4f, 0.025f, lightBulb));
-    lights.push_back(std::make_shared<PointLight>(glm::vec3(3.0f, 4.0f, 3.0f), glm::vec3(0.0f, 0.0f, 1.0f), 0.4f, 0.025f, lightBulb));
+    //std::vector<std::shared_ptr<PointLight>> lights;
+    //lights.push_back(std::make_shared<PointLight>(glm::vec3(3.0f, 4.0f, -3.0f), glm::vec3(1.0f, 0.0f, 0.0f), 0.4f, 0.025f, lightBulb));
+    //lights.push_back(std::make_shared<PointLight>(glm::vec3(3.0f, 4.0f, 3.0f), glm::vec3(0.0f, 0.0f, 1.0f), 0.4f, 0.025f, lightBulb));
     std::shared_ptr<DirectionalLight> directionalLight = std::make_shared<DirectionalLight>(glm::vec3(2.0f, -4.0f, 1.0f), glm::vec3(1.0f, 1.0f, 0.9f), 0.6f);
 
     //Input::addKeyPressCallback([light](KeyPressEvent &event) {
@@ -119,17 +114,17 @@ void App::run()
     //    light->setAttenuation(light->getAttenuation() * 0.95);
     //    printf("attenuation = %f\n", light->getAttenuation());
     //}, Key::right);
-    Action setLightPosAction[2];
-    setLightPosAction[0].init("setLight1", [&lights, &cameraController]() {
-        glm::vec3 newPos = cameraController.getCamera().getPosition();
-        INFO("LIGHT1");
-        lights[0]->setPosition(newPos);
-    });
-    setLightPosAction[1].init("setLight2", [&lights, &cameraController]() {
-        glm::vec3 newPos = cameraController.getCamera().getPosition();
-        INFO("LIGHT2");
-        lights[1]->setPosition(newPos);
-    });
+    //Action setLightPosAction[2];
+    //setLightPosAction[0].init("setLight1", [&lights, &cameraController]() {
+    //    glm::vec3 newPos = cameraController.getCamera().getPosition();
+    //    INFO("LIGHT1");
+    //    lights[0]->setPosition(newPos);
+    //});
+    //setLightPosAction[1].init("setLight2", [&lights, &cameraController]() {
+    //    glm::vec3 newPos = cameraController.getCamera().getPosition();
+    //    INFO("LIGHT2");
+    //    lights[1]->setPosition(newPos);
+    //});
     BindingsManager::bind(Button::left, "setLight1");
     BindingsManager::bind(Button::right, "setLight2");
 
@@ -190,7 +185,7 @@ void App::run()
         GL::clear();
 
         RenderEnvironment environment;
-        environment.pointLights = &lights;
+        //environment.pointLights = &lights;
         environment.directionalLight = directionalLight;
         environment.skybox = skybox;
 

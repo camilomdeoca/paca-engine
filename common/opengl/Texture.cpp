@@ -1,7 +1,6 @@
 #include "opengl/Texture.hpp"
 
 #include "utils/Assert.hpp"
-#include "utils/Log.hpp"
 
 #include <array>
 #include <glm/gtc/type_ptr.hpp>
@@ -70,38 +69,15 @@ Texture::Texture(const std::string &path)
     stbi_image_free(data);
 }
 
-Texture::Texture(const std::array<std::string, 6> paths)
-{
-    int width, height, channels;
-    stbi_set_flip_vertically_on_load(0);
-    std::array<unsigned char*, 6> facesData;
-    for (unsigned int i = 0; i < paths.size(); i++)
-    {
-        facesData[i] = stbi_load(paths[i].c_str(), &width, &height, &channels, 0);
-        if (!facesData[i])
-            ASSERT_MSG(false, "Failed to load {}th cubemap image: {}!", i, paths[i]);
-    }
-
-    switch (channels)
-    {
-        case 1: m_format = Format::G8; break;
-        case 2: m_format = Format::GA8; break;
-        case 3: m_format = Format::RGB8; break;
-        case 4: m_format = Format::RGBA8; break;
-    }
-
-    createCubeMap(facesData, width, height, m_format);
-
-    for (unsigned char *data : facesData)
-    {
-        stbi_image_free(data);
-    }
-}
-
-Texture::Texture(unsigned char *data, uint32_t width, uint32_t height, Format format)
+Texture::Texture(const uint8_t *data, uint32_t width, uint32_t height, Format format)
     : m_format(format)
 {
     create(data, width, height, format);
+}
+
+Texture::Texture(std::array<const uint8_t*, 6> facesData, uint32_t width, uint32_t height, Format format)
+{
+    createCubeMap(facesData, width, height, format);
 }
 
 Texture::Texture(uint32_t width, uint32_t height, Format format)
@@ -115,7 +91,7 @@ Texture::~Texture()
     glDeleteTextures(1, &m_id);
 }
 
-void Texture::create(unsigned char *data, uint32_t width, uint32_t height, Format format)
+void Texture::create(const uint8_t *data, uint32_t width, uint32_t height, Format format)
 {
     m_width = width;
     m_height = height;
@@ -132,7 +108,7 @@ void Texture::create(unsigned char *data, uint32_t width, uint32_t height, Forma
     ASSERT(glGetError() == 0);
 }
 
-void Texture::createCubeMap(std::array<unsigned char*, 6> facesData, uint32_t width, uint32_t height, Format format)
+void Texture::createCubeMap(std::array<const uint8_t*, 6> facesData, uint32_t width, uint32_t height, Format format)
 {
     m_width = width;
     m_height = height;

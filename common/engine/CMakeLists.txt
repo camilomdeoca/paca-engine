@@ -30,7 +30,6 @@ target_link_libraries(engine
     asserts
     assimp
     fontatlas
-    pacaread
     resource-file-formats
     stb_image
 )
