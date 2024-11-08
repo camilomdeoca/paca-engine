@@ -8,7 +8,6 @@
 #include "opengl/gl.hpp"
 #include "engine/Renderer2D.hpp"
 #include "game/PerspectiveCameraController.hpp"
-#include "engine/Renderer.hpp"
 
 #include <SDL2/SDL.h>
 #include <format>
@@ -37,19 +36,19 @@ void App::init(std::string title)
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 
-    RendererParameters rendererParams;
+    ForwardRenderer::Parameters rendererParams;
     rendererParams.width = m_window.getWidth();
     rendererParams.height = m_window.getHeight();
     rendererParams.shadowMapSize = 1024;
     rendererParams.viewFrustumSplits = {5.0f, 10.0f, 25.0f, 50.0f, 100.0f};
     rendererParams.flags =
-        //RendererParameters::enableParallaxMapping |
-        RendererParameters::enableShadowMapping;
+        //ForwardRenderer::Parameters::enableParallaxMapping |
+        ForwardRenderer::Parameters::enableShadowMapping;
 
     GL::init();
     Input::init();
     BindingsManager::init();
-    Renderer::init(rendererParams);
+    m_renderer.init(rendererParams);
     Renderer2D::init();
 
     m_eventReceiver.setEventHandler([this] (const Event &event) {
@@ -93,10 +92,16 @@ void App::run()
     //lightBulb->setRotation({-90.0f, 0.0f, 0.0f});
     //lightBulb->setScale(glm::vec3(3.0f));
 
-    //std::vector<std::shared_ptr<PointLight>> lights;
-    //lights.push_back(std::make_shared<PointLight>(glm::vec3(3.0f, 4.0f, -3.0f), glm::vec3(1.0f, 0.0f, 0.0f), 0.4f, 0.025f, lightBulb));
-    //lights.push_back(std::make_shared<PointLight>(glm::vec3(3.0f, 4.0f, 3.0f), glm::vec3(0.0f, 0.0f, 1.0f), 0.4f, 0.025f, lightBulb));
-    std::shared_ptr<DirectionalLight> directionalLight = std::make_shared<DirectionalLight>(glm::vec3(2.0f, -4.0f, 1.0f), glm::vec3(1.0f, 1.0f, 0.9f), 0.6f);
+    std::vector<std::shared_ptr<PointLight>> lights;
+    lights.push_back(std::make_shared<PointLight>(glm::vec3(3.0f, 4.0f, -3.0f), glm::vec3(1.0f, 0.0f, 0.0f), 0.4f, 0.025f, nullptr));
+    lights.push_back(std::make_shared<PointLight>(glm::vec3(3.0f, 4.0f, 3.0f), glm::vec3(0.0f, 0.0f, 1.0f), 0.4f, 0.025f, nullptr));
+    std::shared_ptr<DirectionalLight> directionalLight = std::make_shared<DirectionalLight>(glm::vec3(2.0f, -4.0f, 1.0f), glm::vec3(1.0f, 1.0f, 0.9f), 0.7f);
+
+    World world;
+    world.addModels({ vampire, mainModel, plane });
+    world.addDirectionalLight(directionalLight);
+    world.addPointLights(lights);
+    world.setSkybox(skybox);
 
     //Input::addKeyPressCallback([light](KeyPressEvent &event) {
     //    light->setIntensity(light->getIntensity() - 0.1);
@@ -114,17 +119,17 @@ void App::run()
     //    light->setAttenuation(light->getAttenuation() * 0.95);
     //    printf("attenuation = %f\n", light->getAttenuation());
     //}, Key::right);
-    //Action setLightPosAction[2];
-    //setLightPosAction[0].init("setLight1", [&lights, &cameraController]() {
-    //    glm::vec3 newPos = cameraController.getCamera().getPosition();
-    //    INFO("LIGHT1");
-    //    lights[0]->setPosition(newPos);
-    //});
-    //setLightPosAction[1].init("setLight2", [&lights, &cameraController]() {
-    //    glm::vec3 newPos = cameraController.getCamera().getPosition();
-    //    INFO("LIGHT2");
-    //    lights[1]->setPosition(newPos);
-    //});
+    Action setLightPosAction[2];
+    setLightPosAction[0].init("setLight1", [&lights, &cameraController]() {
+        glm::vec3 newPos = cameraController.getCamera().getPosition();
+        INFO("LIGHT1");
+        lights[0]->setPosition(newPos);
+    });
+    setLightPosAction[1].init("setLight2", [&lights, &cameraController]() {
+        glm::vec3 newPos = cameraController.getCamera().getPosition();
+        INFO("LIGHT2");
+        lights[1]->setPosition(newPos);
+    });
     BindingsManager::bind(Button::left, "setLight1");
     BindingsManager::bind(Button::right, "setLight2");
 
@@ -145,15 +150,14 @@ void App::run()
     });
     BindingsManager::bind(Key::q, "wireframe_toggle");
 
-    //Input::addKeyPressCallback([&cameraController](KeyPressEvent &event) {
-    //    static bool val = true;
-    //    val = !val;
-    //    Input::restrainMouseToWindow(val);
-    //    if (!val)
-    //        cameraController.pauseControl();
-    //    else
-    //        cameraController.resumeControl();
-    //}, Key::esc);
+    Action pause;
+    pause.init("toggle_pause", [&cameraController]() {
+        static bool val = true;
+        val = !val;
+        Input::restrainMouseToWindow(val);
+        cameraController.setControl(val);
+    });
+    BindingsManager::bind(Key::esc, "toggle_pause");
 
     float lastFrameTime = SDL_GetTicks();
     while (m_running) {
@@ -184,22 +188,14 @@ void App::run()
         GL::setClearColor({0.1f, 0.1f, 0.15f, 1.0f});
         GL::clear();
 
-        RenderEnvironment environment;
-        //environment.pointLights = &lights;
-        environment.directionalLight = directionalLight;
-        environment.skybox = skybox;
+        //RenderEnvironment environment;
+        ////environment.pointLights = &lights;
+        //environment.directionalLight = directionalLight;
+        //environment.skybox = skybox;
 
-        Renderer::beginScene(cameraController.getCamera(), environment);
-        Renderer::drawModel(*plane);
-        Renderer::drawModel(*vampire);
-        const int size = 20;
-        for (int x = -size; x < size; x+=8)
-            for (int z = -size; z < size; z+=8)
-            {
-                mainModel->setPosition(glm::vec3(x, 0.0f, z));
-                Renderer::drawModel(*mainModel);
-            }
-        Renderer::endScene();
+        //Renderer::beginScene(cameraController.getCamera(), environment);
+        const PerspectiveCamera &camera = cameraController.getCamera();
+        m_renderer.renderWorld(camera, world);
 
         // Render UI
         Renderer2D::beginScene(uiCamera);
@@ -212,13 +208,13 @@ void App::run()
             font,
             {1.0f, 1.0f, 1.0f, 1.0f}
         );
-//#define ENABLE_SHOW_DEPTH_TEXTURES
+#define ENABLE_SHOW_DEPTH_TEXTURES
 #ifdef ENABLE_SHOW_DEPTH_TEXTURES
-        std::vector<std::shared_ptr<Texture>> shadowMaps = getShadowMaps();
-        float height = 240.0f;
-        for (unsigned int i = 0; i < shadowMaps.size(); i++)
+        float height = 120.0f;
+        for (unsigned int i = 0; i < m_renderer.m_shadowMapLevels.size(); i++)
         {
-            Renderer2D::drawQuad({0.0f, height*i, 0.0f}, {height, height}, shadowMaps[i]);
+            const std::shared_ptr<Texture> &shadowMap = m_renderer.m_shadowMapLevels[i].framebuffer->getDepthAttachment();
+            Renderer2D::drawQuad({0.0f, height*i, 0.0f}, {height, height}, shadowMap);
         }
 #endif // DEBUG
         Renderer2D::endScene();

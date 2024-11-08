@@ -17,12 +17,15 @@ message(STATUS "CMAKE_EXE_LINKER_FLAGS = ${CMAKE_EXE_LINKER_FLAGS}")
 message(STATUS "CMAKE_CXX_STANDARD = ${CMAKE_CXX_STANDARD}")
 message(STATUS "CMAKE_BUILD_TYPE = ${CMAKE_BUILD_TYPE}")
 
+enable_testing()
+
 add_subdirectory(lib/fontatlas)
 
 add_subdirectory(lib/stb_image)
 
 add_subdirectory(common/utils)
 add_subdirectory(common/resource-file-formats)
+add_subdirectory(common/serializers)
 add_subdirectory(common/opengl)
 add_subdirectory(common/engine)
 

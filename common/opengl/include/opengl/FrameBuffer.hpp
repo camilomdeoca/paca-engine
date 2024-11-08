@@ -26,7 +26,7 @@ public:
     static const FrameBuffer &getDefault() { return defaultFramebuffer; };
 
     void bind();
-    void unbind();
+    static void unbind();
 
 private:
     // This framebuffer is used only to create the defaultFramebuffer object do not call

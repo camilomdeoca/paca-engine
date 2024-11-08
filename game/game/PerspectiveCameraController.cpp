@@ -47,40 +47,42 @@ PerspectiveCameraController::~PerspectiveCameraController()
 
 void PerspectiveCameraController::onUpdate(float ms)
 {
-    if (m_haveControl) {
-        constexpr float cameraSpeed = 0.005f; // units per ms
+    if (!m_haveControl) return;
 
-        glm::vec3 position = getCamera().getPosition();
-        glm::vec3 front = getCamera().getDirection();
-        front.y = 0;
-        front = glm::normalize(front);
-        glm::vec3 right = glm::normalize(glm::cross(front, getCamera().getUp()));
+    constexpr float cameraSpeed = 0.005f; // units per ms
 
-        if (m_moving & DirectionMask::left) {
-            position -= right * cameraSpeed * ms;
-        }
-        if (m_moving & DirectionMask::right) {
-            position += right * cameraSpeed * ms;
-        }
-        if (m_moving & DirectionMask::forward) {
-            position += front * cameraSpeed * ms;
-        }
-        if (m_moving & DirectionMask::backward) {
-            position -= front * cameraSpeed * ms;
-        }
-        if (m_moving & DirectionMask::up) {
-            position.y += cameraSpeed * ms;
-        }
-        if (m_moving & DirectionMask::down) {
-            position.y -= cameraSpeed * ms;
-        }
+    glm::vec3 position = getCamera().getPosition();
+    glm::vec3 front = getCamera().getDirection();
+    front.y = 0;
+    front = glm::normalize(front);
+    glm::vec3 right = glm::normalize(glm::cross(front, getCamera().getUp()));
 
-        m_camera.setPosition(position);
+    if (m_moving & DirectionMask::left) {
+        position -= right * cameraSpeed * ms;
     }
+    if (m_moving & DirectionMask::right) {
+        position += right * cameraSpeed * ms;
+    }
+    if (m_moving & DirectionMask::forward) {
+        position += front * cameraSpeed * ms;
+    }
+    if (m_moving & DirectionMask::backward) {
+        position -= front * cameraSpeed * ms;
+    }
+    if (m_moving & DirectionMask::up) {
+        position.y += cameraSpeed * ms;
+    }
+    if (m_moving & DirectionMask::down) {
+        position.y -= cameraSpeed * ms;
+    }
+
+    m_camera.setPosition(position);
 }
 
 void PerspectiveCameraController::onMouseMotion(const MouseMotionEvent &event)
 {
+    if (!m_haveControl) return;
+
     const float sensitivity = 0.1f;
     glm::vec3 rotation = m_camera.getRotation();
     float fov = m_camera.getFov();

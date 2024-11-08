@@ -9,7 +9,8 @@
 #include "opengl/Texture.hpp"
 
 #include <ResourceFileFormats.hpp>
-#include <Serializer.hpp>
+#include <serializers/Serializer.hpp>
+#include <serializers/Unserializer.hpp>
 
 #include <functional>
 #include <memory>

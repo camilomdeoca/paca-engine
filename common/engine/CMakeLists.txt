@@ -9,8 +9,10 @@ add_library(engine STATIC
     PerspectiveCamera.cpp
     Renderer2D.cpp
     Renderer.cpp
+    ForwardRenderer.cpp
     ResourceManager.cpp
     StaticMesh.cpp
+    World.cpp
 )
 
 target_include_directories(engine PRIVATE
@@ -31,5 +33,6 @@ target_link_libraries(engine
     assimp
     fontatlas
     resource-file-formats
+    serializers
     stb_image
 )

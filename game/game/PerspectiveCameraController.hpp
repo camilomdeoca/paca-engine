@@ -16,6 +16,8 @@ public:
 
     void onMouseMotion(const MouseMotionEvent &event);
 
+    void setControl(bool hasControl) { m_haveControl = hasControl; }
+
 private:
     struct DirectionMask {
         enum Mask {
