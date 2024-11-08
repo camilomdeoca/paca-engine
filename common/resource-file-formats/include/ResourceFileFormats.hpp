@@ -100,11 +100,28 @@ struct Material {
     std::array<std::vector<std::string>, TextureType::last> textures;
 };
 
+struct GlyphData
+{
+    uint32_t characterCode;
+    glm::vec<2, int32_t> textureCoords;
+    glm::vec<2, uint16_t> size;
+    glm::vec<2, int16_t> advance;
+    glm::vec<2, int16_t> offset;
+};
+
+struct Font {
+    std::string name;
+    uint16_t fontHeight;
+    std::vector<GlyphData> glyphs;
+    std::string atlasTextureName;
+};
+
 struct AssetPack {
     std::vector<Model> models;
     std::vector<Material> materials;
     std::vector<Texture> textures;
     std::vector<Animation> animations;
+    std::vector<Font> fonts;
 };
 
 struct Object {

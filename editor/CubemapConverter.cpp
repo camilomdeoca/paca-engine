@@ -45,7 +45,7 @@ paca::fileformats::AssetPack cubemapToPacaFormat(const std::string &folder, cons
 
     for (unsigned int i = 0; i < facesNames.size(); i++)
     {
-        //stbi_set_flip_vertically_on_load(1);
+        stbi_set_flip_vertically_on_load(0);
 
         stbi_uc *data = stbi_load(filePaths[i].c_str(), &width, &height, &channels, 0);
 

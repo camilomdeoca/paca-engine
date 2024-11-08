@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Serializer.hpp"
+#include "FilepathEdit.hpp"
 #include "StructEditor.hpp"
 
 #include <ResourceFileFormats.hpp>
@@ -10,20 +10,24 @@
 class AssetPackEditor : public QWidget
 {
 public:
-    AssetPackEditor(paca::fileformats::AssetPack *assetPack, QWidget *parent = nullptr);
+    AssetPackEditor(const std::shared_ptr<paca::fileformats::AssetPack> &assetPack, QWidget *parent = nullptr);
     ~AssetPackEditor();
 
-    void onAddModel();
-    void onAddCubemap();
+    void onImportModels();
+    void onImportCubemap();
+    void onImportFonts();
+    void onOpen();
+    void onSave();
+    void onSaveAs();
 
 private:
-    paca::fileformats::AssetPack *m_assetPack;
+    void createMenuBar(QLayout *layout);
 
-    StructEditor<
-        paca::fileformats::AssetPack,
-        paca::fileformats::Serializer,
-        paca::fileformats::Unserializer
-    > *m_structEditor;
+    std::shared_ptr<paca::fileformats::AssetPack> m_assetPack;
 
-    FilepathEdit *m_modelFilepathEdit, *m_cubemapFilepathEdit;
+    StructEditor<paca::fileformats::AssetPack> *m_structEditor;
+
+    std::string m_assetPackFilepath;
+    FilepathEdit *m_modelFilepathEdit, *m_cubemapFilepathEdit, *m_fontFilepathEdit;
+    QAction *m_openAction, *m_saveAction, *m_saveAsAction, *m_importAssetAction;
 };

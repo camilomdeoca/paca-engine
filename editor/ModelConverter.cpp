@@ -1,7 +1,10 @@
 #include "ModelConverter.hpp"
 
+#include <serializers/Concepts.hpp>
 #include <utils/Log.hpp>
 #include <utils/Assert.hpp>
+
+#include <boost/pfr/core.hpp>
 
 #include <assimp/Importer.hpp>
 #include <assimp/anim.h>
@@ -11,6 +14,7 @@
 
 #include <stb_image.h>
 
+#include <type_traits>
 #include <cstddef>
 #include <cstring>
 #include <limits>
@@ -24,9 +28,11 @@
 class FileConverter
 {
 public:
-    FileConverter(const std::string &path, const std::string &outName);
+    FileConverter(const std::string &path);
 
-    operator paca::fileformats::AssetPack&&() { return std::move(m_pack); }
+    paca::fileformats::AssetPack &&getAssetPack() { return std::move(m_pack); }
+
+    size_t getSize() const { return m_size;}
 
 private:
     struct BoneData {
@@ -64,6 +70,7 @@ private:
     std::unordered_set<unsigned int> m_usedMaterialIndexes;
     std::string m_path;
     std::string m_outName;
+    size_t m_size;
 
 };
 
@@ -96,6 +103,17 @@ std::vector<std::string> FileConverter::loadMaterialTextures(
     aiMaterial *mat,
     aiTextureType type)
 {
+    auto addInFileSize = [this]<typename T>(T &field) {
+        if constexpr (paca::fileformats::dynamic_array<T>)
+        {
+            m_size += sizeof(field.size());
+        }
+        else if constexpr (std::is_arithmetic_v<T> || paca::fileformats::glm_type<T>)
+        {
+            m_size += sizeof(field);
+        }
+    };
+
     std::filesystem::path basePath = std::filesystem::path(m_path).parent_path();
     std::vector<std::string> textureNames;
     for(unsigned int i = 0; i < mat->GetTextureCount(type); i++)
@@ -104,8 +122,11 @@ std::vector<std::string> FileConverter::loadMaterialTextures(
         mat->GetTexture(type, i, &str);
         std::string path = str.C_Str();
         textureNames.push_back(path);
+        m_size += sizeof(textureNames.back().size());
+        m_size += sizeof(textureNames.back()[0]) * textureNames.back().size();
         {
             paca::fileformats::Texture texture;
+            boost::pfr::for_each_field(texture, addInFileSize);
             std::filesystem::path fullPath = basePath / std::filesystem::path(path);
             int width, height, channels;
             stbi_set_flip_vertically_on_load(1);
@@ -123,6 +144,9 @@ std::vector<std::string> FileConverter::loadMaterialTextures(
             std::memcpy(texture.pixelData.data(), data, width * height * channels);
 
             stbi_image_free(data);
+
+            m_size += sizeof(texture.name[0]) * texture.name.size();
+            m_size += sizeof(texture.pixelData[0]) * texture.pixelData.size();
             m_pack.textures.emplace_back(std::move(texture));
         }
     }
@@ -133,13 +157,27 @@ void FileConverter::processMaterial(
     aiMaterial *material,
     unsigned int indexOfMaterial)
 {
+    auto addInFileSize = [this]<typename T>(T &field) {
+        if constexpr (paca::fileformats::dynamic_array<T>)
+        {
+            m_size += sizeof(field.size());
+        }
+        else if constexpr (std::is_arithmetic_v<T> || paca::fileformats::glm_type<T>)
+        {
+            m_size += sizeof(field);
+        }
+    };
+
     paca::fileformats::Material result;
+    boost::pfr::for_each_field(result, addInFileSize);
     result.textures[paca::fileformats::TextureType::diffuse] = loadMaterialTextures(material, aiTextureType_DIFFUSE);
     result.textures[paca::fileformats::TextureType::specular] = loadMaterialTextures(material, aiTextureType_SPECULAR);
     result.textures[paca::fileformats::TextureType::normal] = loadMaterialTextures(material, aiTextureType_NORMALS);
     result.textures[paca::fileformats::TextureType::depth] = loadMaterialTextures(material, aiTextureType_HEIGHT);
+    m_size += sizeof(result.textures[0].size()) * result.textures.size();
 
     result.name = m_outName + "Material" + std::to_string(indexOfMaterial);
+    m_size += sizeof(result.name[0]) * result.name.size();
 
     m_pack.materials.push_back(result);
 }
@@ -148,6 +186,17 @@ paca::fileformats::Animation FileConverter::processAnimation(
         aiAnimation *assimpAnim,
         unsigned int indexOfAnimation)
 {
+    auto addInFileSize = [this]<typename T>(T &field) {
+        if constexpr (paca::fileformats::dynamic_array<T>)
+        {
+            m_size += sizeof(field.size());
+        }
+        else if constexpr (std::is_arithmetic_v<T> || paca::fileformats::glm_type<T>)
+        {
+            m_size += sizeof(field);
+        }
+    };
+
     std::unordered_map<std::string, uint32_t> boneNameToId;
     for (unsigned int boneId = 0; boneId < m_pack.models[0].meshes[0].skeleton.boneNames.size(); boneId++)
     {
@@ -155,7 +204,9 @@ paca::fileformats::Animation FileConverter::processAnimation(
     }
 
     paca::fileformats::Animation outAnimation;
+    boost::pfr::for_each_field(outAnimation, addInFileSize);
     outAnimation.name = std::string(assimpAnim->mName.C_Str()) + "Animation" + std::to_string(indexOfAnimation);
+    m_size += sizeof(outAnimation.name[0]) * outAnimation.name.size();
     outAnimation.duration = assimpAnim->mDuration;
     outAnimation.ticksPerSecond = assimpAnim->mTicksPerSecond;
     outAnimation.keyframes.resize(boneNameToId.size());
@@ -190,6 +241,16 @@ paca::fileformats::Animation FileConverter::processAnimation(
                     assimpAnim->mChannels[i]->mScalingKeys[keyFrameIndex].mTime,
                     toGlmVec(assimpAnim->mChannels[i]->mScalingKeys[keyFrameIndex].mValue));
         }
+
+        m_size += sizeof(outAnimation.keyframes[boneId].positions.size());
+        m_size += sizeof(outAnimation.keyframes[boneId].positions[0])
+            * outAnimation.keyframes[boneId].positions.size();
+        m_size += sizeof(outAnimation.keyframes[boneId].rotations.size());
+        m_size += sizeof(outAnimation.keyframes[boneId].rotations[0])
+            * outAnimation.keyframes[boneId].rotations.size();
+        m_size += sizeof(outAnimation.keyframes[boneId].scalings.size());
+        m_size += sizeof(outAnimation.keyframes[boneId].scalings[0])
+            * outAnimation.keyframes[boneId].scalings.size();
     }
     return outAnimation;
 }
@@ -210,6 +271,9 @@ void FileConverter::processBoneChilds(
     {
         outSkeleton.bones.emplace_back(parentID, it->second.offset);
         outSkeleton.boneNames.emplace_back(node->mName.C_Str());
+        m_size += sizeof(outSkeleton.bones.back());
+        m_size += sizeof(outSkeleton.boneNames.back().size());
+        m_size += sizeof(outSkeleton.boneNames.back()[0]) * outSkeleton.boneNames.back().size();
         for (unsigned int i = 0; i < node->mNumChildren; i++)
         {
 			processBoneChilds(node->mChildren[i], outSkeleton, bonesData, it->second.id);
@@ -244,7 +308,19 @@ paca::fileformats::Mesh FileConverter::processMesh(
 {
     constexpr size_t MAX_BONES_INFLUENCE = 4;
 
+    auto addInFileSize = [this]<typename T>(T &field) {
+        if constexpr (paca::fileformats::dynamic_array<T>)
+        {
+            m_size += sizeof(field.size());
+        }
+        else if constexpr (std::is_arithmetic_v<T> || paca::fileformats::glm_type<T>)
+        {
+            m_size += sizeof(field);
+        }
+    };
+
     paca::fileformats::Mesh result;
+    boost::pfr::for_each_field(result, addInFileSize);
 
     if (mesh->HasBones())
         result.vertexType = paca::fileformats::VertexType::float3pos_float3norm_float3tang_float2texture_int4boneIds_float4boneWeights;
@@ -317,6 +393,8 @@ paca::fileformats::Mesh FileConverter::processMesh(
                 //assert(bonesInfluences[vertexIndex].size() <= MAX_BONES_INFLUENCE && "Too much bones influence a vertex");
             }
         }
+
+        m_size += paca::fileformats::vertexTypeToSize(result.vertexType);
     }
 
     // Get indices
@@ -324,7 +402,10 @@ paca::fileformats::Mesh FileConverter::processMesh(
     {
         aiFace face = mesh->mFaces[i];
         for (unsigned int j = 0; j < face.mNumIndices; j++)
+        {
             result.indices.push_back(face.mIndices[j]);
+            m_size += sizeof(result.indices.back());
+        }
     }
 
     if (mesh->mNumBones > 0)
@@ -341,18 +422,22 @@ paca::fileformats::Mesh FileConverter::processMesh(
         }
         processBoneChilds(scene->mRootNode, result.skeleton, bonesData, std::numeric_limits<uint32_t>::max());
     }
+    boost::pfr::for_each_field(result.skeleton, addInFileSize);
 
     if (scene->HasAnimations())
     {
         for (unsigned int animIndex = 0; animIndex < scene->mNumAnimations; animIndex++)
         {
             result.animations.emplace_back(std::string(scene->mAnimations[animIndex]->mName.C_Str()) + "Animation" + std::to_string(animIndex));
+            m_size += sizeof(result.animations.back().size());
+            m_size += sizeof(result.animations.back()[0]) * result.animations.back().size();
         }
     }
 
     m_usedMaterialIndexes.insert(mesh->mMaterialIndex);
 
     result.materialName = m_outName + "Material" + std::to_string(mesh->mMaterialIndex);
+    m_size += sizeof(result.materialName[0]) * result.materialName.size();
     result.indexType = paca::fileformats::IndexType::uint32bit;
 
     return result;
@@ -374,10 +459,25 @@ void FileConverter::processNode(
     }
 }
 
-FileConverter::FileConverter(const std::string &path, const std::string &outName)
-    : m_path(path), m_outName(outName)
+FileConverter::FileConverter(const std::string &path)
+    : m_path(path), m_outName(path), m_size(0)
 {
+    auto addInFileSize = [this]<typename T>(T &field) {
+        if constexpr (paca::fileformats::dynamic_array<T>)
+        {
+            m_size += sizeof(field.size());
+        }
+        else if constexpr (std::is_arithmetic_v<T> || paca::fileformats::glm_type<T>)
+        {
+            m_size += sizeof(field);
+        }
+    };
+
+    boost::pfr::for_each_field(m_pack, addInFileSize);
+    
     m_pack.models.emplace_back();
+    boost::pfr::for_each_field(m_pack.models.back(), addInFileSize);
+
     Assimp::Importer importer;
     const aiScene *scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_OptimizeMeshes | aiProcess_CalcTangentSpace);
 
@@ -400,11 +500,21 @@ FileConverter::FileConverter(const std::string &path, const std::string &outName
     for (const unsigned int &i : m_usedMaterialIndexes)
         processMaterial(scene->mMaterials[i], i);
 
-    m_pack.models[0].name = outName;
+
+    m_pack.models[0].name = m_outName;
+    m_size += sizeof(m_pack.models[0].name[0]) * m_pack.models[0].name.size();
 }
 
-paca::fileformats::AssetPack modelToPacaFormat(const std::string &path, const std::string &outName)
+paca::fileformats::AssetPack modelToPacaFormat(const std::string &path)
 {
-    return FileConverter(path, outName);
+    FileConverter fileConverter(path);
+    return fileConverter.getAssetPack();
+}
+
+paca::fileformats::AssetPack modelToPacaFormat(const std::string &path, size_t &size)
+{
+    FileConverter fileConverter(path);
+    size = fileConverter.getSize();
+    return fileConverter.getAssetPack();
 }
 

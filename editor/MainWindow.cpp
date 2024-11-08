@@ -2,9 +2,6 @@
 #include "AssetPackEditor.hpp"
 #include "CameraView.hpp"
 #include "StructEditor.hpp"
-#include "YamlSerializer.hpp"
-
-#include <Serializer.hpp>
 
 #include <QHBoxLayout>
 #include <QPushButton>
@@ -25,23 +22,14 @@ MainWindow::MainWindow()
         QDockWidget *dockWidget = new QDockWidget("Scene Editor");
 
         auto *resourcePackEditor
-            = new StructEditor<
-                paca::fileformats::Scene,
-                paca::fileformats::YamlSerializer,
-                paca::fileformats::YamlUnserializer
-            >(
-                scene,
-                {
-                    /* fileExtensionFilter */ "Scenes (*.yaml)",
-                    /* structName */ "Scene",
-                }
-            );
+            = new StructEditor<paca::fileformats::Scene>(scene);
 
         dockWidget->setWidget(resourcePackEditor);
         addDockWidget(Qt::RightDockWidgetArea, dockWidget);
     }
     {
-        paca::fileformats::AssetPack *resourcePack = new paca::fileformats::AssetPack();
+        std::shared_ptr<paca::fileformats::AssetPack> resourcePack
+            = std::make_shared<paca::fileformats::AssetPack>();
         QDockWidget *dockWidget = new QDockWidget("ResourcePack Editor");
 
         auto *resourcePackEditor = new AssetPackEditor(resourcePack, this);

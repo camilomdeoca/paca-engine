@@ -28,16 +28,18 @@ size_t indexTypeToSize(IndexType type)
 paca::fileformats::AssetPack combine(std::vector<std::reference_wrapper<paca::fileformats::AssetPack>> resourcePacks)
 {
     paca::fileformats::AssetPack result;
+
+    auto append = [](auto &dest, const auto &orig) {
+        dest.insert(dest.end(), orig.begin(), orig.end());
+    };
+
     for (paca::fileformats::AssetPack &resourcePack : resourcePacks)
     {
-        for (const paca::fileformats::Model &model : resourcePack.models)
-            result.models.emplace_back(model);
-        for (const paca::fileformats::Material &material : resourcePack.materials)
-            result.materials.emplace_back(material);
-        for (const paca::fileformats::Texture &texture : resourcePack.textures)
-            result.textures.emplace_back(texture);
-        for (const paca::fileformats::Animation &animation : resourcePack.animations)
-            result.animations.emplace_back(animation);
+        append(result.models, resourcePack.models);
+        append(result.materials, resourcePack.materials);
+        append(result.textures, resourcePack.textures);
+        append(result.animations, resourcePack.animations);
+        append(result.fonts, resourcePack.fonts);
     }
     return result;
 }
