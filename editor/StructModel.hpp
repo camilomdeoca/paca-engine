@@ -1,7 +1,6 @@
 #pragma once
 
 #include "utils/Log.hpp"
-#include <boost/pfr.hpp>
 #include <cstring>
 #include <limits>
 #include <memory>
@@ -39,24 +38,6 @@ requires std::is_enum_v<T>
 QVariant toQVariant(T value) { return std::to_underlying(value); }
 
 inline QVariant toQVariant(auto value) { return typeid(decltype(value)).name(); }
-
-template <size_t Index, size_t MaxIndex, typename Func>
-auto magic_switch_impl(int runtime_index, Func&& func) -> decltype(func(std::integral_constant<size_t, Index>{}))
-{
-    if (runtime_index == Index) {
-        return func(std::integral_constant<size_t, Index>{});
-    } else if constexpr (Index + 1 < MaxIndex) { // Adjust the limit as per your case count
-        return magic_switch_impl<Index + 1, MaxIndex>(runtime_index, std::forward<Func>(func));
-    } else {
-        return {}; // Return a default value if the index is out of range
-    }
-}
-
-template <size_t MaxIndex, typename Func>
-auto magic_switch(int runtime_index, Func&& func)
-{
-    return magic_switch_impl<0, MaxIndex>(runtime_index, std::forward<Func>(func));
-}
 
 class AbstractNode
 {
@@ -200,6 +181,32 @@ private:
     T *m_data;
 };
 
+namespace detail {
+
+template<typename T>
+struct Visitor
+{
+    Visitor(Node<T> &node)
+        : m_node(node)
+    {}
+
+    Visitor &operator<<(auto &field)
+    {
+        m_node.appendChild(std::make_unique<Node<std::remove_reference_t<decltype(field)>>>(&field, &m_node));
+        return *this;
+    }
+
+    template<typename... FieldTypes>
+    void operator()(FieldTypes& ...fields)
+    {
+        ((*this) << ... << fields);
+    }
+
+    Node<T> &m_node;
+};
+
+}
+
 // Specialization for structs
 template <aggregate T>
 class Node <T> : public AbstractNode
@@ -208,14 +215,14 @@ public:
     Node(T *data, AbstractNode *parent = nullptr)
         : AbstractNode(parent), m_data(data)
     {
-        boost::pfr::for_each_field(*data, [this](auto &field) {
-            appendChild(std::make_unique<Node<std::remove_reference_t<decltype(field)>>>(&field, this));
-        });
+        detail::Visitor visitor(*this);
+        data->forEachField(visitor);
     }
 
     virtual QString fieldName(size_t index) const override
     {
-        return QString::fromStdString(std::string(boost::pfr::names_as_array<T>()[index]));
+        std::string_view name = m_data->getFieldNames()[index];
+        return QString::fromUtf8(name.data(), name.size());
     }
 
     virtual QVariant data(int column) const override

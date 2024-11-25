@@ -30,7 +30,16 @@ std::string readFile(const std::string &path)
     return result;
 }
 
+Shader::Shader()
+    : m_id(0)
+{}
+
 Shader::Shader(const std::string &vertexPath, const std::string &fragmentPath, std::list<ShaderCompileTimeParameter> parameters)
+{
+    init(vertexPath, fragmentPath, parameters);
+}
+
+void Shader::init(const std::string &vertexPath, const std::string &fragmentPath, std::list<ShaderCompileTimeParameter> parameters)
 {
     // Read our shaders into the appropriate buffers
     std::string vertexSource = readFile(vertexPath); // Get source code for vertex shader.

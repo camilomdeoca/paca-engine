@@ -1,22 +1,31 @@
 #pragma once
 
-#include "fontatlas/fontatlas.hpp"
-#include "opengl/Texture.hpp"
+#include "ResourceFileFormats.hpp"
+#include "IdTypes.hpp"
 
 #include <cstdint>
-#include <memory>
-#include <string>
 #include <unordered_map>
+
+struct GlyphData {
+    glm::vec<2, int32_t> textureCoords;
+    glm::vec<2, uint16_t> size;
+    glm::vec<2, int16_t> advance;
+    glm::vec<2, int16_t> offset;
+};
 
 class Font {
 public:
-    Font(const std::string &atlasImagePath, const std::string &glyphsDataFile);
-    const std::shared_ptr<Texture> &getTexture() { return m_texture; }
-    const std::unordered_map<uint32_t, fontatlas::glyph_data> &getGlyphsData() { return m_glyphs_data; }
+    Font(
+        TextureId fontAtlasTextureId,
+        unsigned int fontHeight,
+        const std::vector<paca::fileformats::GlyphData> &glyphsData);
+
+    TextureId getTextureId() { return m_atlas; }
+    const std::unordered_map<uint32_t, GlyphData> &getGlyphsData() { return m_glyphsData; }
     unsigned int getHeight() { return m_fontHeight; }
 
 private:
-    std::shared_ptr<Texture> m_texture;
-    std::unordered_map<uint32_t, fontatlas::glyph_data> m_glyphs_data;
+    TextureId m_atlas;
+    std::unordered_map<uint32_t, GlyphData> m_glyphsData;
     unsigned int m_fontHeight;
 };

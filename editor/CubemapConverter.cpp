@@ -18,8 +18,8 @@ paca::fileformats::AssetPack cubemapToPacaFormat(const std::string &folder, cons
         "back.jpg"
     };
 
-    pack.textures.emplace_back();
-    paca::fileformats::Texture &texture = pack.textures[0];
+    pack.cubeMaps.emplace_back();
+    paca::fileformats::CubeMap &cubeMap = pack.cubeMaps[0];
     std::array<std::string, 6> filePaths;
     filePaths[0] = std::filesystem::path(folder) / facesNames[0];
     int width, height, channels;
@@ -41,7 +41,7 @@ paca::fileformats::AssetPack cubemapToPacaFormat(const std::string &folder, cons
             ERROR("Cubemap image: {}, has different size", filePaths[i]);
     }
 
-    texture.pixelData.resize(width*height*channels*6);
+    cubeMap.pixelData.resize(width*height*channels*6);
 
     for (unsigned int i = 0; i < facesNames.size(); i++)
     {
@@ -55,18 +55,18 @@ paca::fileformats::AssetPack cubemapToPacaFormat(const std::string &folder, cons
         INFO("{} ({}x{}) has {} channels.", filePaths[i].c_str(), width, height, channels);
 
         memcpy(
-            texture.pixelData.data() + width * height * channels * i,
+            cubeMap.pixelData.data() + width * height * channels * i,
             data,
             width * height * channels);
 
         stbi_image_free(data);
     }
 
-    texture.width = width;
-    texture.height = height;
-    texture.channels = channels;
-    texture.isCubeMap = true;
-    texture.name = outName;
+    cubeMap.width = width;
+    cubeMap.height = height;
+    cubeMap.channels = channels;
+    cubeMap.name = outName;
+    cubeMap.id = 0;
 
     return pack;
 }

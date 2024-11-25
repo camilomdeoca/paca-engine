@@ -4,7 +4,7 @@
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
-#include <string>
+
 #include <vector>
 
 using BoneKeyFrames = paca::fileformats::BoneKeyFrames;
@@ -18,16 +18,17 @@ using Bone = paca::fileformats::Bone;
 
 using BoneID = uint32_t; // Maybe move this to the Mesh class
 
-class Animation {
+class Animation
+{
 public:
-    Animation(float duration,
-              uint32_t ticksPerSecond,
-              const std::string &name,
-              std::vector<BoneKeyFrames> &&boneKeyframes)
+    Animation(
+        float duration,
+        uint32_t ticksPerSecond,
+        const std::vector<BoneKeyFrames> &boneKeyframes)
         : m_duration(duration),
           m_ticksPerSecond(ticksPerSecond),
-          m_name(name),
-          m_boneKeyframes(std::move(boneKeyframes)) {}
+          m_boneKeyframes(boneKeyframes)
+    {}
 
     // the time parameter need to be in ticks
     std::vector<glm::mat4> getTransformations(float time, const Skeleton &skeleton) const;
@@ -41,7 +42,6 @@ private:
 
     float m_duration; // in ticks
     uint32_t m_ticksPerSecond;
-    std::string m_name;
 
     std::vector<BoneKeyFrames> m_boneKeyframes;
 };

@@ -1,74 +1,112 @@
 #pragma once
 
+#include <serializers/Reflection.hpp>
+
 #include <glm/fwd.hpp>
 #include <glm/gtc/quaternion.hpp>
 
 #include <string>
+#include <variant>
 #include <vector>
 #include <array>
 
 namespace paca::fileformats {
 
-enum class VertexType : uint32_t {
-    float3pos_float3norm_float2texture = 1,
-    float3pos_float3norm_float3tang_float2texture = 2,
-    float3pos_float3norm_float3tang_float2texture_int4boneIds_float4boneWeights = 3
-};
+using EntityId = uint32_t;
 
-enum class IndexType : uint32_t {
-    no_indices = 0,
-    uint32bit = 1,
-};
+using StaticMeshId = uint32_t;
+using AnimatedMeshId = uint32_t;
+using TextureId = uint32_t;
+using CubeMapId = uint32_t;
+using MaterialId = uint32_t;
+using AnimationId = uint32_t;
+using FontId = uint32_t;
 
 struct Bone {
+    FIELDS(parentID, offsetMatrix);
+    FIELD_NAMES("parentID", "offsetMatrix");
     uint32_t parentID;
     glm::mat4 offsetMatrix;
 };
 
 struct Skeleton {
+    FIELDS(bones, boneNames);
+    FIELD_NAMES("bones", "boneNames");
     std::vector<Bone> bones;
     std::vector<std::string> boneNames;
 };
 
-struct Mesh {
-    VertexType vertexType;
-    IndexType indexType;
+struct StaticMesh {
+    FIELDS(name, id, vertices, indices, materialId);
+    FIELD_NAMES("name", "id", "vertices", "indices", "materialId");
+    std::string name;
+    StaticMeshId id;
     std::vector<uint8_t> vertices;
     std::vector<uint32_t> indices;
-    std::string materialName;
-    std::vector<std::string> animations;
-    Skeleton skeleton;
+    MaterialId materialId;
+
+    // @ glm::vec3 position
+    // @ glm::vec3 normal
+    // @ glm::vec3 tangent
+    // @ glm::vec2 texture
+    static constexpr size_t vertex_size = (3+3+3+2)*sizeof(float);
 };
 
-struct Model {
+struct AnimatedMesh {
+    FIELDS(name, id, vertices, indices, materialId, animations, skeleton);
+    FIELD_NAMES("name", "id", "vertices", "indices", "materialId", "animations", "skeleton");
     std::string name;
-    std::vector<Mesh> meshes;
+    AnimatedMeshId id;
+    std::vector<uint8_t> vertices;
+    std::vector<uint32_t> indices;
+    MaterialId materialId;
+    std::vector<AnimationId> animations;
+    Skeleton skeleton;
+
+    // @ glm::vec3 position
+    // @ glm::vec3 normal
+    // @ glm::vec3 tangent
+    // @ glm::vec2 texture
+    // @ glm::vec<4, uint32_t> boneIDs
+    // @ glm::vec4 boneWeights
+    static constexpr size_t vertex_size = (3+3+3+2)*sizeof(float) + 4*sizeof(int32_t) + 4*sizeof(float);
 };
 
 struct PositionKeyFrame {
+    FIELDS(time, position);
+    FIELD_NAMES("time", "position");
     float time;
     glm::vec3 position;
 };
 
 struct RotationKeyFrame {
+    FIELDS(time, quaternion);
+    FIELD_NAMES("time", "quaternion");
     float time;
     glm::quat quaternion;
 };
 
 struct ScaleKeyFrame {
+    FIELDS(time, scale);
+    FIELD_NAMES("time", "scale");
     float time;
     glm::vec3 scale;
 };
 
 struct BoneKeyFrames {
+    FIELDS(positions, rotations, scalings);
+    FIELD_NAMES("positions", "rotations", "scalings");
     std::vector<PositionKeyFrame> positions;
     std::vector<RotationKeyFrame> rotations;
     std::vector<ScaleKeyFrame> scalings;
 };
 
 struct Animation {
+    FIELDS(name, id, duration, ticksPerSecond, keyframes);
+    FIELD_NAMES("name", "id", "duration", "ticksPerSecond", "keyframes");
     // Duration of the animation in ticks
     std::string name;
+    AnimationId id;
     float duration;
     uint32_t ticksPerSecond;
 
@@ -88,20 +126,37 @@ namespace TextureType {
 }
 
 struct Texture {
+    FIELDS(name, id, width, height, channels, pixelData);
+    FIELD_NAMES("name", "id", "width", "height", "channels", "pixelData");
     std::string name;
+    TextureId id;
     uint32_t width, height;
     uint32_t channels;
-    bool isCubeMap;
+    std::vector<uint8_t> pixelData;
+};
+
+struct CubeMap {
+    FIELDS(name, id, width, height, channels, pixelData);
+    FIELD_NAMES("name", "id", "width", "height", "channels", "pixelData");
+    std::string name;
+    TextureId id;
+    uint32_t width, height;
+    uint32_t channels;
     std::vector<uint8_t> pixelData;
 };
 
 struct Material {
+    FIELDS(name, id, textures);
+    FIELD_NAMES("name", "id", "textures");
     std::string name;
-    std::array<std::vector<std::string>, TextureType::last> textures;
+    MaterialId id;
+    std::array<std::vector<TextureId>, TextureType::last> textures;
 };
 
 struct GlyphData
 {
+    FIELDS(characterCode, textureCoords, size, advance, offset);
+    FIELD_NAMES("characterCode", "textureCoords", "size", "advance", "offset");
     uint32_t characterCode;
     glm::vec<2, int32_t> textureCoords;
     glm::vec<2, uint16_t> size;
@@ -110,53 +165,82 @@ struct GlyphData
 };
 
 struct Font {
+    FIELDS(name, id, fontHeight, glyphs, atlasTextureId);
+    FIELD_NAMES("name", "id", "fontHeight", "glyphs", "atlasTextureId");
     std::string name;
+    FontId id;
     uint16_t fontHeight;
     std::vector<GlyphData> glyphs;
-    std::string atlasTextureName;
+    TextureId atlasTextureId;
 };
 
 struct AssetPack {
-    std::vector<Model> models;
+    FIELDS(staticMeshes, animatedMeshes, materials, textures, animations, fonts);
+    FIELD_NAMES("staticMeshes", "animatedMeshes", "materials", "textures", "animations", "fonts");
+    std::vector<StaticMesh> staticMeshes;
+    std::vector<AnimatedMesh> animatedMeshes;
     std::vector<Material> materials;
     std::vector<Texture> textures;
+    std::vector<CubeMap> cubeMaps;
     std::vector<Animation> animations;
     std::vector<Font> fonts;
 };
 
-struct Object {
-    std::string model;
-    glm::vec3 position;
-    glm::vec3 rotation;
-    glm::vec3 scale;
+namespace components {
+    struct Transform {
+        FIELDS(position, rotation, scale);
+        FIELD_NAMES("position", "rotation", "scale");
+        glm::vec3 position;
+        glm::vec3 rotation;
+        glm::vec3 scale;
+    };
+
+    struct StaticMesh {
+        FIELDS(id);
+        FIELD_NAMES("id");
+        StaticMeshId id;
+    };
+
+    struct AnimatedMesh {
+        FIELDS(id);
+        FIELD_NAMES("id");
+        AnimatedMeshId id;
+    };
+
+    struct DirectionalLight {
+        FIELDS(color, intensity);
+        FIELD_NAMES("color", "intensity");
+        glm::vec3 color;
+        float intensity;
+    };
+
+    struct PointLight {
+        FIELDS(color, intensity, attenuation);
+        FIELD_NAMES("color", "intensity", "attenuation");
+        glm::vec3 color;
+        float intensity;
+        float attenuation;
+    };
+
+} // namespace paca::fileformats::components
+
+using Component = std::variant<
+    components::Transform,
+    components::StaticMesh
+>;
+
+struct Entity {
+    FIELDS(id, components);
+    FIELD_NAMES("id", "components");
+    EntityId id;
+    std::vector<Component> components;
 };
 
-struct Light {
-    glm::vec3 color;
-    float intensity;
-};
-
-struct DirectionalLight {
-    Light light;
-    glm::vec3 direction;
-};
-
-struct PointLight {
-    Light light;
-    glm::vec3 position;
-    float attenuation;
-    std::string model;
-};
 
 struct Scene {
-    std::vector<Object> objects;
-    DirectionalLight directionalLight;
-    std::vector<PointLight> pointLights;
+    FIELDS(entities);
+    FIELD_NAMES("entities");
+    std::vector<Entity> entities;
 };
-
-size_t vertexTypeToSize(VertexType type);
-size_t indexTypeToSize(IndexType type);
-
-paca::fileformats::AssetPack combine(std::vector<std::reference_wrapper<paca::fileformats::AssetPack>> resourcePacks);
 
 } // namespace paca::fileformats

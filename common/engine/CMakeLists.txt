@@ -2,17 +2,15 @@ add_library(engine STATIC
     AnimatedMesh.cpp
     Animation.cpp
     Font.cpp
-    Light.cpp
     Material.cpp
-    Model.cpp
     OrthoCamera.cpp
     PerspectiveCamera.cpp
-    Renderer2D.cpp
-    Renderer.cpp
+    #Renderer2D.cpp
+    #Renderer.cpp
     ForwardRenderer.cpp
-    ResourceManager.cpp
+    NewResourceManager.cpp
     StaticMesh.cpp
-    World.cpp
+    components/DirectionalLightShadowMap.cpp
 )
 
 target_include_directories(engine PRIVATE
@@ -35,4 +33,5 @@ target_link_libraries(engine
     resource-file-formats
     serializers
     stb_image
+    flecs::flecs_static
 )

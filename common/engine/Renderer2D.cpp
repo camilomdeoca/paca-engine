@@ -76,10 +76,10 @@ void Renderer2D::endScene()
 
 void Renderer2D::drawQuad(const glm::vec3 &position, const glm::vec2 &size, const glm::vec4 &color)
 {
-    drawQuad(position, size, s_data.whiteTexture, color);
+    drawQuad(position, size, *s_data.whiteTexture, color);
 }
 
-void Renderer2D::drawQuad(const glm::vec3 &position, const glm::vec2 &size, std::shared_ptr<Texture> texture, const glm::vec4 &color)
+void Renderer2D::drawQuad(const glm::vec3 &position, const glm::vec2 &size, const Texture &texture, const glm::vec4 &color)
 {
     glm::mat4 transform = glm::translate(glm::mat4(1.0f), position)
         * glm::scale(glm::mat4(1.0f), { size.x, size.y, 1.0f });
@@ -96,11 +96,11 @@ void Renderer2D::drawQuad(const glm::vec3 &position, const glm::vec2 &size, std:
     s_data.quadsShader->bind();
     s_data.quadsShader->setFloat4("u_color", color);
 
-    texture->bind(0);
+    texture.bind(0);
     s_data.quadsShader->setInt("u_texture", 0);
 
     s_data.quadsVertexArray->bind();
-    GL::drawIndexed(s_data.quadsVertexArray);
+    GL::drawIndexed(*s_data.quadsVertexArray);
 }
 
 

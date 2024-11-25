@@ -37,14 +37,16 @@ paca::fileformats::AssetPack fontToPacaFormat(const std::string &fontPath, const
         ERROR("Error setting font size.");
 
     fontAtlas.name = outName;
+    fontAtlas.id = 0;
     fontAtlas.width = atlasWidth;
     fontAtlas.height = atlasHeight;
     fontAtlas.channels = 1;
     fontAtlas.pixelData.resize(atlasWidth * atlasHeight, 0);
 
     font.name = outName;
+    font.id = 0;
     font.fontHeight = fontHeight;
-    font.atlasTextureName = fontAtlas.name;
+    font.atlasTextureId = 0;
 
     std::u32string u32charSet = std::wstring_convert<std::codecvt_utf8<char32_t>, char32_t>().from_bytes(charSet);
 

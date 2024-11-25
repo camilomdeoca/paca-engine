@@ -7,7 +7,7 @@
 #include <memory>
 #include <vector>
 
-const FrameBuffer FrameBuffer::defaultFramebuffer(0);
+FrameBuffer FrameBuffer::defaultFramebuffer(0);
 
 GLenum depthBufferFormatToAttachment(Texture::Format format)
 {
@@ -18,9 +18,20 @@ GLenum depthBufferFormatToAttachment(Texture::Format format)
     }
 }
 
+FrameBuffer::FrameBuffer()
+    : m_id(0)
+{}
+
 FrameBuffer::FrameBuffer(FrameBufferParameters parameters)
-    : m_width(parameters.width), m_height(parameters.height)
 {
+    init(parameters);
+}
+
+void FrameBuffer::init(FrameBufferParameters parameters)
+{
+    m_width = parameters.width;
+    m_height = parameters.height;
+
     glGenFramebuffers(1, &m_id);
     glBindFramebuffer(GL_FRAMEBUFFER, m_id);
 

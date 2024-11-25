@@ -1,15 +1,22 @@
 #include "engine/Font.hpp"
+#include <utility>
 
-#include "fontatlas/fontatlas.hpp"
-
-#include <memory>
-
-Font::Font(const std::string &atlasImagePath, const std::string &glyphsDataFile)
+Font::Font(
+    TextureId fontAtlasTextureId,
+    unsigned int fontHeight,
+    const std::vector<paca::fileformats::GlyphData> &glyphsData)
+    : m_atlas(fontAtlasTextureId),
+      m_fontHeight(fontHeight)
 {
-    m_texture = std::make_shared<Texture>(atlasImagePath);
-    std::pair<fontatlas::atlas_header, std::unordered_map<uint32_t, fontatlas::glyph_data>> pair =
-        fontatlas::read_glyph_data_file(glyphsDataFile);
-    m_glyphs_data = pair.second;
-    m_fontHeight = pair.first.font_height;
+    for (const paca::fileformats::GlyphData &glyph : glyphsData)
+    {
+        m_glyphsData.emplace(std::make_pair(
+            glyph.characterCode,
+            GlyphData(
+                glyph.textureCoords,
+                glyph.size,
+                glyph.advance,
+                glyph.offset)));
+    }
 }
 

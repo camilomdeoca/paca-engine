@@ -1,14 +1,14 @@
 #include "engine/Material.hpp"
 
-Material::Material(MaterialSpecification maps)
-    : m_maps(maps.textureMaps)
+Material::Material(MaterialSpecification specification)
+    : m_textures(specification.textures)
 {}
 
 Material::~Material()
 {}
 
-const std::vector<std::shared_ptr<Texture>> &Material::getTextures(MaterialTextureType::Type type)
+const std::vector<TextureId> &Material::getTextureIds(MaterialTextureType::Type type) const
 {
-    return m_maps[static_cast<size_t>(type)];
+    return m_textures[static_cast<size_t>(type)];
 }
 

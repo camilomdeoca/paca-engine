@@ -11,3 +11,5 @@ target_link_libraries(serializers
         asserts
         yaml-cpp
 )
+
+add_subdirectory(tests)

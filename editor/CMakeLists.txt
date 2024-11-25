@@ -9,6 +9,7 @@ qt_add_executable(editor
     CubemapConverter.cpp
     FontConverter.cpp
     AssetPackEditor.cpp
+    CombineAssetPack.cpp
 )
 target_link_libraries(editor
     PRIVATE Qt6::Widgets Qt6::OpenGLWidgets

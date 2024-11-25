@@ -32,49 +32,53 @@ struct PointLight {
     float attenuation;
 };
 
-#define MAX_LIGHTS 10
-
-uniform PointLight u_lights[MAX_LIGHTS];
-uniform int u_numOfLights;
+#ifdef USE_SHADOW_MAPPING
+struct ShadowMapLevel {
+    mat4 cameraSpaceToLightSpace;
+    float cutoffDistance;
+};
+#endif // USE_SHADOW_MAPPING
 
 struct DirectionalLight {
     vec3 directionInViewSpace;
     vec3 color;
     float intensity;
-};
-
 #ifdef USE_SHADOW_MAPPING
-struct ShadowMapLevel {
-    sampler2D texture;
-    mat4 cameraSpaceToLightSpace;
-    float cutoffDistance;
+    sampler2D shadowMapAtlas;
+    ShadowMapLevel shadowMapLevels[MAX_SHADOW_MAP_LEVELS];
+    int numOfShadowMapLevels;
+#endif // USE_SHADOW_MAPPING
 };
 
 #define MAX_SHADOW_MAP_LEVELS 5
 #define SHADOW_CALCULATIONS_BIAS 0.005
 #endif // USE_SHADOW_MAPPING
 
-uniform DirectionalLight u_directionalLight;
+#define MAX_LIGHTS 10
+#define MAX_DIRECTIONAL_LIGHTS 10
 
-#ifdef USE_SHADOW_MAPPING
-uniform ShadowMapLevel u_shadowMaps[MAX_SHADOW_MAP_LEVELS];
-uniform int u_numOfShadowMapLevels;
-#endif // USE_SHADOW_MAPPING
+uniform PointLight u_pointLights[MAX_LIGHTS];
+uniform int u_numOfPointLights;
+
+uniform DirectionalLight u_directionalLights[MAX_DIRECTIONAL_LIGHTS];
+uniform int u_numOfDirectionalLights;
 
 #ifdef USE_SHADOW_MAPPING
 float shadowCalculation(vec4 fragPosLightSpace, uint level, float bias)
 {
     vec3 projectedCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
     projectedCoords = projectedCoords * 0.5 + 0.5;
+    vec2 offset = vec2(0.0, float(level) / float(u_numOfShadowMapLevels));
+    vec2 uv = offset + vec2(projectedCoords.x, projectedCoords.y / u_numOfShadowMapLevels);
     float currentDepth = projectedCoords.z;
 
-    vec2 texelSize = 1.0 / textureSize(u_shadowMaps[level].texture, 0);
+    vec2 texelSize = 1.0 / textureSize(u_shadowMapAtlas, 0);
     float shadow = 0.0;
     for (int x = -1; x <= 1; x++)
     {
         for (int y = -1; y <= 1; y++)
         {
-            float closestDepth = texture(u_shadowMaps[level].texture, projectedCoords.xy + vec2(x, y) * texelSize).r;
+            float closestDepth = texture(u_shadowMapAtlas, uv + vec2(x, y) * texelSize).r;
             shadow += currentDepth - bias > closestDepth ? 1.0 : 0.0;
         }
     }
@@ -218,9 +222,10 @@ void main()
             }
         }
     
-        //float bias = max(0.0005 * (1.0 - dot(normal, lightDir)), SHADOW_CALCULATIONS_BIAS);
-        float bias = SHADOW_CALCULATIONS_BIAS;
-        bias *= 1 / (u_shadowMaps[level].cutoffDistance * 0.5f);
+        //float bias = SHADOW_CALCULATIONS_BIAS;
+        float bias = 0.00001;
+        bias = max( bias * 5 * (1.0 - dot(normal, lightDir)), bias);
+        //bias *= 1 / (u_shadowMaps[level].cutoffDistance * 0.5f);
     
         float shadow = shadowCalculation(u_shadowMaps[level].cameraSpaceToLightSpace * vec4(o_position, 1.0), level, bias);
 #endif // USE_SHADOW_MAPPING
@@ -237,9 +242,9 @@ void main()
             ;
     }
 
-    for (int i = 0; i < u_numOfLights; i++)
+    for (int i = 0; i < u_numOfPointLights; i++)
     {
-        PointLight light = u_lights[i];
+        PointLight light = u_pointLights[i];
         vec3 lightDir = normalize(o_position - light.posInViewSpace);
         float diffuse = max(dot(normal, -lightDir), 0.0);
 

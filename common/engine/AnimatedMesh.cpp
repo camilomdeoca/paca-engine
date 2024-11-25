@@ -1,11 +1,12 @@
 #include "engine/AnimatedMesh.hpp"
 
-AnimatedMesh::AnimatedMesh(const std::vector<uint8_t> &vertices,
-           const std::vector<uint32_t> &indices,
-           std::shared_ptr<Material> material,
-           std::vector<std::shared_ptr<Animation>> animations,
-           Skeleton &&skeleton)
-    : m_material(material), m_animations(animations), m_skeleton(std::move(skeleton))
+AnimatedMesh::AnimatedMesh(
+    const std::vector<uint8_t> &vertices,
+    const std::vector<uint32_t> &indices,
+    std::vector<AnimationId> animationIds,
+    Skeleton &&skeleton)
+    : m_animationIds(animationIds),
+      m_skeleton(std::move(skeleton))
 {
     m_vertex_array = std::make_shared<VertexArray>();
 
@@ -24,7 +25,7 @@ AnimatedMesh::AnimatedMesh(const std::vector<uint8_t> &vertices,
     m_index_buffer = std::make_shared<IndexBuffer>(indices.data(), indices.size());
 
     m_vertex_array->setIndexBuffer(m_index_buffer);
-    m_currentAnimation = m_animations[0];
+    m_currentAnimationId = m_animationIds[0];
 }
 
 AnimatedMesh::~AnimatedMesh()
@@ -32,5 +33,6 @@ AnimatedMesh::~AnimatedMesh()
 
 const std::vector<glm::mat4> AnimatedMesh::getCurrentAnimationTransformations() const
 {
-    return m_currentAnimation->getTransformations(m_animationProgress, m_skeleton);
+    return {};
+    /* return m_currentAnimation->getTransformations(m_animationProgress, m_skeleton); */
 }

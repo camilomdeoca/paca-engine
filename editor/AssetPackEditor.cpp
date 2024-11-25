@@ -1,16 +1,15 @@
 #include "AssetPackEditor.hpp"
 
+#include "CombineAssetPack.hpp"
 #include "CubemapConverter.hpp"
 #include "FontConverter.hpp"
 #include "ModelConverter.hpp"
-#include <serializers/Serializer.hpp>
-#include <serializers/Unserializer.hpp>
+#include <serializers/BinarySerialization.hpp>
 #include "StructEditor.hpp"
 
 #include <QMenuBar>
 #include <QFileDialog>
 
-#include <fstream>
 #include <functional>
 #include <vector>
 
@@ -66,7 +65,7 @@ void AssetPackEditor::onImportModels()
         nullptr,
         "Import Models",
         "",
-        "Models (*.gltf, *.obj, *.dae)");
+        "Models (*.gltf *.obj *.dae)");
 
     std::vector<std::reference_wrapper<paca::fileformats::AssetPack>> assetPacksRefs = { *m_assetPack };
 
@@ -78,7 +77,7 @@ void AssetPackEditor::onImportModels()
         assetPacksRefs.push_back(assetPacks.back());
     }
 
-    *m_assetPack = paca::fileformats::combine(assetPacksRefs);
+    *m_assetPack = combine(assetPacksRefs);
     m_structEditor->rebuildModel();
 }
 
@@ -91,7 +90,7 @@ void AssetPackEditor::onImportCubemap()
 
     paca::fileformats::AssetPack result = cubemapToPacaFormat(fileName, fileName);
 
-    *m_assetPack = paca::fileformats::combine({ *m_assetPack, result });
+    *m_assetPack = combine({ *m_assetPack, result });
     m_structEditor->rebuildModel();
 }
 
@@ -113,7 +112,7 @@ void AssetPackEditor::onImportFonts()
         assetPacksRefs.push_back(assetPacks.back());
     }
 
-    *m_assetPack = paca::fileformats::combine(assetPacksRefs);
+    *m_assetPack = combine(assetPacksRefs);
     m_structEditor->rebuildModel();
 }
 
@@ -125,21 +124,19 @@ void AssetPackEditor::onOpen()
         "",
         "AssetPack (*.pack)").toStdString();
 
-    std::ifstream ifs(m_assetPackFilepath);
-    paca::fileformats::Unserializer unserializer(ifs);
-    unserializer(*m_assetPack);
+    serialization::BinaryUnserializer unserializer(m_assetPackFilepath);
+    unserializer << (*m_assetPack);
     m_structEditor->rebuildModel();
     m_saveAction->setEnabled(true);
 }
 
 void AssetPackEditor::onSave()
 {
-    std::ofstream ofs(m_assetPackFilepath);
-    paca::fileformats::Serializer serializer(ofs);
+    serialization::BinarySerializer serializer(m_assetPackFilepath);
 
     // m_structEditor->setEnabled(false);
     // Send this to other thread to not freeze gui
-    serializer(*m_assetPack);
+    serializer << (*m_assetPack);
 }
 
 void AssetPackEditor::onSaveAs()
@@ -150,9 +147,8 @@ void AssetPackEditor::onSaveAs()
         "",
         "AssetPack (*.pack)").toStdString();
 
-    std::ofstream ofs(m_assetPackFilepath);
-    paca::fileformats::Serializer serializer(ofs);
-    serializer(*m_assetPack);
+    serialization::BinarySerializer serializer(m_assetPackFilepath);
+    serializer << (*m_assetPack);
     m_saveAction->setEnabled(true);
 }
 

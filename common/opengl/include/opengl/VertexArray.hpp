@@ -10,8 +10,8 @@ public:
     VertexArray();
     virtual ~VertexArray();
 
-    void bind();
-    void unbind();
+    void bind() const;
+    void unbind() const;
 
     void addVertexBuffer(const std::shared_ptr<VertexBuffer> &vertexBuffer); // TODO: See if this can be unique ptrs
     void setIndexBuffer(const std::shared_ptr<IndexBuffer> &indexBuffer);

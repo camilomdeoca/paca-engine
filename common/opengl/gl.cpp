@@ -1,5 +1,7 @@
 #include "opengl/gl.hpp"
 
+#include <glm/glm.hpp>
+
 #include <GL/glew.h>
 #include <SDL2/SDL_opengl.h>
 #include <cstddef>
@@ -28,10 +30,10 @@ void GL::clear()
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
-void GL::drawIndexed(const std::shared_ptr<VertexArray> &vertexArray, uint32_t indexCount)
+void GL::drawIndexed(const VertexArray &vertexArray, uint32_t indexCount)
 {
-    vertexArray->bind();
-    uint32_t count = indexCount ? indexCount : vertexArray->getIndexBuffer()->getCount();
+    vertexArray.bind();
+    uint32_t count = indexCount ? indexCount : vertexArray.getIndexBuffer()->getCount();
     glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, nullptr);
 }
 
@@ -75,6 +77,11 @@ void GL::setBlendFunction(BlendFunction src, BlendFunction dst)
 void GL::viewport(unsigned int width, unsigned int height)
 {
     glViewport(0, 0, width, height);
+}
+
+void GL::viewport(int x, int y, unsigned int width, unsigned int height)
+{
+    glViewport(x, y, width, height);
 }
 
 void GL::setPolygonMode(PolygonMode mode)

@@ -10,7 +10,7 @@
     flake-parts.lib.mkFlake { inherit inputs; } {
       imports = [ ];
       systems = [ "x86_64-linux" ];
-      perSystem = { config, self', inputs', pkgs, system, ... }: {
+      perSystem = { pkgs, system, ... }: {
         _module.args.pkgs = import nixpkgs {
           inherit system;
           overlays = [
@@ -53,12 +53,12 @@
             CPLUS_INCLUDE_PATH+=":${pkgs.gcc14.cc}/lib/gcc/x86_64-unknown-linux-gnu/14.1.0/include"
             CPLUS_INCLUDE_PATH+=":${pkgs.glm}/include"
             CPLUS_INCLUDE_PATH+=":${pkgs.qt6.full}/include"
-            CPLUS_INCLUDE_PATH+=":${pkgs.boost185.dev}/include"
             CPLUS_INCLUDE_PATH+=":${pkgs.yaml-cpp}/include"
             export CPLUS_INCLUDE_PATH
 
             export QT_QPA_PLATFORM=xcb
           '';
+            #CPLUS_INCLUDE_PATH+=":${pkgs.boost185.dev}/include"
             #export CPATH="${pkgs.gcc14Stdenv.cc.libc_dev}/include:${pkgs.gcc14Stdenv.cc.cc}/include/c++/14.0.1"
             #export CXXFLAGS="-I${pkgs.gcc14Stdenv.cc.libc_dev}/include"
             #export LDFLAGS="-L${pkgs.gcc14Stdenv.cc.libc}/lib"

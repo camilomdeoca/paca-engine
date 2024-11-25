@@ -20,8 +20,17 @@ struct ShaderCompileTimeParameter {
 
 class Shader {
 public:
-    Shader(const std::string &vertexPath, const std::string &fragmentPath, std::list<ShaderCompileTimeParameter> parameters = {});
+    Shader();
+    Shader(
+        const std::string &vertexPath,
+        const std::string &fragmentPath,
+        std::list<ShaderCompileTimeParameter> parameters = {});
     ~Shader();
+
+    void init(
+        const std::string &vertexPath,
+        const std::string &fragmentPath,
+        std::list<ShaderCompileTimeParameter> parameters = {});
 
     void bind();
     void unbind();

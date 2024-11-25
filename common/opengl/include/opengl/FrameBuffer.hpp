@@ -15,23 +15,26 @@ struct FrameBufferParameters {
 
 class FrameBuffer {
 public:
+    FrameBuffer();
     FrameBuffer(FrameBufferParameters parameters);
     ~FrameBuffer();
+
+    void init(FrameBufferParameters parameters);
 
     const std::vector<std::shared_ptr<Texture>> &getColorAttachments() const { return m_colorAttachments; }
     std::shared_ptr<Texture> getDepthAttachment() { return m_depthAttachment; }
 
     static void copy(const FrameBuffer &from, const FrameBuffer &to); // TODO: Specify what attachment is copied
     
-    static const FrameBuffer &getDefault() { return defaultFramebuffer; };
+    static FrameBuffer &getDefault() { return defaultFramebuffer; };
 
     void bind();
-    static void unbind();
+    void unbind();
 
 private:
     // This framebuffer is used only to create the defaultFramebuffer object do not call
     FrameBuffer(uint32_t id) {}
-    static const FrameBuffer defaultFramebuffer;
+    static FrameBuffer defaultFramebuffer;
 
     uint32_t m_id;
     uint32_t m_width, m_height;

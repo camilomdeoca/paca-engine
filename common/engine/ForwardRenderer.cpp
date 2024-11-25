@@ -1,10 +1,19 @@
 #include "engine/ForwardRenderer.hpp"
 
 #include "engine/Material.hpp"
+#include "engine/components/DirectionalLightShadowMap.hpp"
+#include "engine/components/StaticMesh.hpp"
+#include "engine/components/AnimatedMesh.hpp"
+#include "engine/components/Material.hpp"
+#include "engine/components/DirectionalLight.hpp"
+#include "engine/components/PointLight.hpp"
+#include "engine/components/Transform.hpp"
 #include "opengl/gl.hpp"
 
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
+
+namespace engine {
 
 ForwardRenderer::ForwardRenderer()
 {}
@@ -34,29 +43,26 @@ void ForwardRenderer::init(const Parameters &parameters)
 
     if (m_parameters.flags & Parameters::enableShadowMapping)
     {
-        m_shadowMapSize = m_parameters.shadowMapSize;
+        //m_shadowMapSize = m_parameters.shadowMapSize;
 
-        float prevSplit = 0.0f;
-        m_shadowMapLevels.resize(m_parameters.viewFrustumSplits.size());
-        INFO("Shadow map levels limits:");
-        for (unsigned int i = 0; i < m_parameters.viewFrustumSplits.size(); i++)
-        {
-            m_shadowMapLevels[i].near = prevSplit;
-            m_shadowMapLevels[i].far = m_parameters.viewFrustumSplits[i];
-            prevSplit = m_parameters.viewFrustumSplits[i];
-            m_shadowMapLevels[i].cutoffDistance = m_parameters.viewFrustumSplits[i];
-            INFO("\t Level {}: {} {}", i, m_shadowMapLevels[i].near, m_shadowMapLevels[i].far);
-        }
+        //float prevSplit = 0.0f;
+        //m_shadowMapLevels.resize(m_parameters.viewFrustumSplits.size());
+        //INFO("Shadow map levels limits:");
+        //for (unsigned int i = 0; i < m_parameters.viewFrustumSplits.size(); i++)
+        //{
+        //    m_shadowMapLevels[i].near = prevSplit;
+        //    m_shadowMapLevels[i].far = m_parameters.viewFrustumSplits[i];
+        //    prevSplit = m_parameters.viewFrustumSplits[i];
+        //    m_shadowMapLevels[i].cutoffDistance = m_parameters.viewFrustumSplits[i];
+        //    INFO("\t Level {}: {} {}", i, m_shadowMapLevels[i].near, m_shadowMapLevels[i].far);
+        //}
 
-        FrameBufferParameters shadowDepthMapBufferParams;
-        shadowDepthMapBufferParams.width = m_shadowMapSize;
-        shadowDepthMapBufferParams.height = m_shadowMapSize;
-        shadowDepthMapBufferParams.textureAttachmentFormats = { Texture::Format::depth24 };
-        for (ShadowMapLevel &shadowMapLevel : m_shadowMapLevels)
-        {
-            shadowMapLevel.framebuffer = std::make_shared<FrameBuffer>(shadowDepthMapBufferParams);
-            shadowMapLevel.framebuffer->getDepthAttachment()->setBorderColor({1.0f, 1.0f, 1.0f, 1.0f});
-        }
+        //FrameBufferParameters shadowDepthMapBufferParams;
+        //shadowDepthMapBufferParams.width = m_shadowMapSize;
+        //shadowDepthMapBufferParams.height = m_shadowMapSize * m_shadowMapLevels.size();
+        //shadowDepthMapBufferParams.textureAttachmentFormats = { Texture::Format::depth24 };
+        //m_shadowMapAtlasFramebuffer = std::make_shared<FrameBuffer>(shadowDepthMapBufferParams);
+        //m_shadowMapAtlasFramebuffer->getDepthAttachment()->setBorderColor({1.0f, 1.0f, 1.0f, 1.0f});
         m_shadowMapShader = std::make_shared<Shader>("assets/shaders/shadowMapVertex.glsl", "assets/shaders/shadowMapFragment.glsl");
     }
 
@@ -141,23 +147,32 @@ std::array<glm::vec3, 8> getFrustumCorners(const glm::mat4 &projectionViewMatrix
     return frustumCorners;
 }
 
-void ForwardRenderer::updateShadowMapLevels(const PerspectiveCamera &camera, const World &world)
+void ForwardRenderer::updateShadowMapLevels(const PerspectiveCamera &camera, const flecs::world &world)
 {
     // Calculate view and projection (if the camera's projection changed) for redering each shadowMap
     if (m_parameters.flags & Parameters::enableShadowMapping)
+    {
+    world.each([&camera](
+        const components::DirectionalLight &light,
+        const components::Transform &transform,
+        components::DirectionalLightShadowMap &shadowMapComponent)
     {
         float near = camera.getNear(), far = camera.getFar();
         static glm::mat4 previousProjectionMatrix = glm::mat4(0.0f);
         bool projectionChanged = previousProjectionMatrix != camera.getProjectionMatrix();
         previousProjectionMatrix = camera.getProjectionMatrix();
-        for (ShadowMapLevel &shadowMap : m_shadowMapLevels)
-        {
-            // Clear the shadowMap
-            shadowMap.framebuffer->bind();
-            GL::clear();
 
-            // If the camera's projection changed the frustum that the shadowMap has to contain changed
-            // so we need to recalculate it
+        // Clear the shadowMap atlas
+        shadowMapComponent.shadowMapAtlasFramebuffer.bind();
+        GL::clear();
+
+        for (unsigned int i = 0; i < shadowMapComponent.levelCount; i++)
+        {
+            components::DirectionalLightShadowMap::ShadowMapLevel &shadowMap
+                = shadowMapComponent.levels[i];
+
+            // If the camera's projection changed the frustum that the shadowMap has to contain
+            // changed so we need to recalculate it
             if (projectionChanged)
             {
                 shadowMap.frustumProjectionMatrix = glm::perspective(
@@ -185,9 +200,9 @@ void ForwardRenderer::updateShadowMapLevels(const PerspectiveCamera &camera, con
                 center += p1;
             center /= corners.size();
 
-            const glm::vec3 &lightDirection = world.getDirectionalLights()[0]->getDirection();
+            glm::vec3 lightDirection = transform.getRotationMat3() * glm::vec3(0.0f, 0.0f, -1.0f);
             glm::mat3 lightRotMatrix = glm::mat3(glm::lookAt(-lightDirection, {0.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}));
-            const float pixelSize = shadowMap.maxDiagonal / m_parameters.shadowMapSize;
+            const float pixelSize = shadowMap.maxDiagonal / shadowMapComponent.shadowMapSize;
 
             // Align coordinate axis to lightView so when the position of the shadowMap is rounded
             // It is rounded aligned with the pixels
@@ -202,28 +217,46 @@ void ForwardRenderer::updateShadowMapLevels(const PerspectiveCamera &camera, con
             shadowMap.projectionView = glm::ortho(-side/2, side/2, -side/2, side/2, -side*depthOfShadowMap, side*depthOfShadowMap)
                     * glm::lookAt(center - lightDirection, center, glm::vec3(0.0f, 1.0f, 0.0f));
         }
+    });
     }
 }
 
-void ForwardRenderer::renderWorld(const PerspectiveCamera &camera, const World &world)
+void ForwardRenderer::renderWorld(const PerspectiveCamera &camera, const flecs::world &world, const NewResourceManager &resourceManager)
 {
     updateShadowMapLevels(camera, world);
     // Draw for shadow map
     if (m_parameters.flags & Parameters::enableShadowMapping)
     {
-        for (const std::shared_ptr<Model> &model : world.getModels())
-        {
-            drawModelInShadowMaps(camera, *model, world);
-        }
+        world.each([&resourceManager, this, &world](const components::StaticMesh &meshComponent, const components::Transform &transform) {
+            const StaticMesh &mesh = resourceManager.getStaticMesh(meshComponent.id);
+            drawMeshInShadowMaps(mesh, transform, world);
+        });
+        //world.each([&resourceManager, this, &world](const components::AnimatedMesh &meshComponent, const components::Transform &transform) {
+        //    const AnimatedMesh &mesh = resourceManager.getAnimatedMesh(meshComponent.id);
+        //    drawMeshInShadowMaps(mesh, transform, world);
+        //});
     }
 
-
-    for (const std::shared_ptr<Model> &model : world.getModels())
+    world.each([&resourceManager, this, &world, &camera](
+        const components::StaticMesh &meshComponent,
+        const components::Transform &transform,
+        const components::Material &materialComponent)
     {
-        drawModel(camera, *model, world);
-    }
-    if (world.getSkyboxTexture())
-        drawSkybox(camera, *world.getSkyboxTexture());
+        const StaticMesh &mesh = resourceManager.getStaticMesh(meshComponent.id);
+        const Material &material = resourceManager.getMaterial(materialComponent.id);
+        drawMesh(camera, mesh, material, transform, world, resourceManager);
+    });
+    //world.each([&resourceManager, this, &world, &camera](
+    //    const components::AnimatedMesh &meshComponent,
+    //    const components::Transform &transform,
+    //    const components::Material &materialComponent)
+    //{
+    //    const AnimatedMesh &mesh = resourceManager.getAnimatedMesh(meshComponent.id);
+    //    const Material &material = resourceManager.getMaterial(materialComponent.id);
+    //    drawMesh(camera, mesh, material, transform, world, resourceManager);
+    //});
+    //if (world.getSkyboxTexture())
+    //    drawSkybox(camera, *world.getSkyboxTexture());
 }
 
 std::string textureTypeToUniformName(MaterialTextureType::Type type)
@@ -253,30 +286,74 @@ std::string textureTypeToHasTextureUniformName(MaterialTextureType::Type type)
 }
 
 void ForwardRenderer::drawMeshInShadowMaps(
-    const Mesh &mesh,
+    const StaticMesh &mesh,
     const glm::mat4 &modelMatrix,
-    const World &world) const
+    const flecs::world &world) const
 {
     GL::setDepthTest(true);
 
     m_shadowMapShader->bind();
-    GL::viewport(m_parameters.shadowMapSize, m_parameters.shadowMapSize);
-    for (const ShadowMapLevel &shadowMap : m_shadowMapLevels)
+    world.each([this, &modelMatrix, &mesh](
+        const components::DirectionalLight &light,
+        const components::Transform &transform,
+        components::DirectionalLightShadowMap &shadowMapComponent)
     {
-        m_shadowMapShader->setMat4("u_lightSpaceModelMatrix", shadowMap.projectionView * modelMatrix);
-        shadowMap.framebuffer->bind();
-        GL::drawIndexed(mesh.getVertexArray());
-    }
+        shadowMapComponent.shadowMapAtlasFramebuffer.bind();
+        for (unsigned int i = 0; i < shadowMapComponent.levelCount; i++)
+        {
+            GL::viewport(
+                0,
+                i*shadowMapComponent.shadowMapSize,
+                shadowMapComponent.shadowMapSize,
+                shadowMapComponent.shadowMapSize);
+            m_shadowMapShader->setMat4(
+                "u_lightSpaceModelMatrix",
+                shadowMapComponent.levels[i].projectionView * modelMatrix);
+            GL::drawIndexed(mesh.getVertexArray());
+        }
+    });
+    GL::viewport(m_parameters.width, m_parameters.height);
+}
+
+void ForwardRenderer::drawMeshInShadowMaps(
+    const AnimatedMesh &mesh,
+    const glm::mat4 &modelMatrix,
+    const flecs::world &world) const
+{
+    GL::setDepthTest(true);
+
+    m_shadowMapShader->bind();
+    world.each([this, &modelMatrix, &mesh](
+        const components::DirectionalLight &light,
+        const components::Transform &transform,
+        components::DirectionalLightShadowMap &shadowMapComponent)
+    {
+        shadowMapComponent.shadowMapAtlasFramebuffer.bind();
+        for (unsigned int i = 0; i < shadowMapComponent.levelCount; i++)
+        {
+            GL::viewport(
+                0,
+                i*shadowMapComponent.shadowMapSize,
+                shadowMapComponent.shadowMapSize,
+                shadowMapComponent.shadowMapSize);
+            m_shadowMapShader->setMat4(
+                "u_lightSpaceModelMatrix",
+                shadowMapComponent.levels[i].projectionView * modelMatrix);
+            GL::drawIndexed(mesh.getVertexArray());
+        }
+    });
     GL::viewport(m_parameters.width, m_parameters.height);
 }
 
 void ForwardRenderer::drawMesh(
     const PerspectiveCamera &camera,
-    const Mesh &mesh,
+    const StaticMesh &mesh,
+    const Material &material,
     const glm::mat4 &modelMatrix,
-    const World &world) const
+    const flecs::world &world,
+    const NewResourceManager &resourceManager) const
 {
-    FrameBuffer::unbind();
+    FrameBuffer::getDefault().bind();
     m_staticMeshShader->bind();
     m_staticMeshShader->setMat4("u_projectionMatrix", camera.getProjectionMatrix());
     m_staticMeshShader->setMat4("u_viewModelMatrix", camera.getViewMatrix() * modelMatrix);
@@ -292,99 +369,80 @@ void ForwardRenderer::drawMesh(
         // Set uniform telling the shader if a texture of the type was provided
         m_staticMeshShader->setInt(
                 textureTypeToHasTextureUniformName(i),
-                mesh.getMaterial()->getTextures(i).empty() ? 0 : 1);
+                material.getTextureIds(i).empty() ? 0 : 1);
         unsigned int indexOfTextureOfType = 0;
-        for (const std::shared_ptr<Texture> &texture : mesh.getMaterial()->getTextures(i))
+        for (const TextureId &textureId : material.getTextureIds(i))
         {
-            texture->bind(slot);
+            const Texture &texture = resourceManager.getTexture(textureId);
+            texture.bind(slot);
             m_staticMeshShader->setInt(textureTypeToUniformName(i) + std::to_string(indexOfTextureOfType), slot);
             slot++, indexOfTextureOfType++;
         }
     }
 
     // Directional Light
-    if (world.getDirectionalLights().size() > 0) {
+    world.each([this, &slot, &camera, &world](
+        const components::DirectionalLight &light,
+        const components::Transform &transform)
+    {
         if (m_parameters.flags & Parameters::enableShadowMapping)
         {
-            for (unsigned int i = 0; i < m_shadowMapLevels.size(); i++)
+        world.each([&slot, this, &camera](
+            const components::DirectionalLight &light,
+            const components::Transform &transform,
+            components::DirectionalLightShadowMap &shadowMapComponent)
+        {
+            shadowMapComponent.shadowMapAtlasFramebuffer.getDepthAttachment()->bind(slot);
+            m_staticMeshShader->setInt("u_shadowMapAtlas", slot);
+            slot++;
+
+            for (unsigned int i = 0; i < shadowMapComponent.levelCount; i++)
             {
-                const ShadowMapLevel &shadowMap = m_shadowMapLevels[i];
-                shadowMap.framebuffer->getDepthAttachment()->bind(3 + i);
-                m_staticMeshShader->setInt("u_shadowMaps[" + std::to_string(i) + "].texture", 3 + i);
+                const components::DirectionalLightShadowMap::ShadowMapLevel &shadowMap
+                    = shadowMapComponent.levels[i];
                 glm::mat4 cameraSpaceToLightSpace = shadowMap.projectionView * glm::inverse(camera.getViewMatrix());
                 m_staticMeshShader->setMat4("u_shadowMaps[" + std::to_string(i) + "].cameraSpaceToLightSpace", cameraSpaceToLightSpace);
                 m_staticMeshShader->setFloat("u_shadowMaps[" + std::to_string(i) + "].cutoffDistance", shadowMap.cutoffDistance);
             }
-            m_staticMeshShader->setInt("u_numOfShadowMapLevels", m_shadowMapLevels.size());
+            m_staticMeshShader->setInt("u_numOfShadowMapLevels", shadowMapComponent.levelCount);
+        });
         }
 
-        const std::shared_ptr<DirectionalLight> &directionalLight = world.getDirectionalLights()[0];
-        m_staticMeshShader->setFloat3("u_directionalLight.directionInViewSpace", glm::mat3(camera.getViewMatrix()) * directionalLight->getDirection());
-        m_staticMeshShader->setFloat3("u_directionalLight.color", directionalLight->getColor());
-        m_staticMeshShader->setFloat("u_directionalLight.intensity", directionalLight->getIntensity());
-    }
+        glm::vec3 lightDirection = transform.getRotationMat3() * glm::vec3(0.0f, 0.0f, -1.0f);
+        m_staticMeshShader->setFloat3("u_directionalLight.directionInViewSpace", glm::mat3(camera.getViewMatrix()) * lightDirection);
+        m_staticMeshShader->setFloat3("u_directionalLight.color", light.color);
+        m_staticMeshShader->setFloat("u_directionalLight.intensity", light.intensity);
+    });
 
-    for (unsigned int i = 0; i < world.getPointLights().size() && i < 10; i++)
+    size_t i = 0;
+    world.each([&camera, this, &i](
+        const components::PointLight &light,
+        const components::Transform & transform)
     {
-        const std::shared_ptr<PointLight> &light = world.getPointLights()[i];
-
-        glm::vec3 lightPosInViewSpace
-            = camera.getViewMatrix()
-            * glm::vec4(light->getPosition().x, light->getPosition().y, light->getPosition().z, 1.0f);
+        glm::vec3 lightPosInViewSpace = camera.getViewMatrix() * glm::vec4(transform.position, 1.0f);
 
         m_staticMeshShader->setFloat3(std::format("u_lights[{}].posInViewSpace", i), lightPosInViewSpace);
-        m_staticMeshShader->setFloat3(std::format("u_lights[{}].color", i), light->getColor());
-        m_staticMeshShader->setFloat(std::format("u_lights[{}].intensity", i), light->getIntensity());
-        m_staticMeshShader->setFloat(std::format("u_lights[{}].attenuation", i), light->getAttenuation());
-    }
-    m_staticMeshShader->setInt("u_numOfLights", world.getPointLights().size());
+        m_staticMeshShader->setFloat3(std::format("u_lights[{}].color", i), light.color);
+        m_staticMeshShader->setFloat(std::format("u_lights[{}].intensity", i), light.intensity);
+        m_staticMeshShader->setFloat(std::format("u_lights[{}].attenuation", i), light.attenuation);
+        i++;
+    });
+    m_staticMeshShader->setInt("u_numOfLights", i);
 
-    mesh.getVertexArray()->bind();
+    mesh.getVertexArray().bind();
     GL::drawIndexed(mesh.getVertexArray());
-}
-
-void ForwardRenderer::drawModelInShadowMaps(
-    const PerspectiveCamera &camera,
-    const Model &model,
-    const World &world) const
-{
-    glm::mat4 transform = glm::mat4(1.0f);
-    transform = glm::translate(transform, model.getPosition());
-    transform = glm::scale(transform, model.getScale());
-    glm::quat rot(glm::radians(model.getRotation()));
-    transform = transform * glm::mat4_cast(rot);
-
-    for (const std::shared_ptr<Mesh> &mesh : model.getMeshes())
-    {
-        drawMeshInShadowMaps(*mesh, transform, world);
-    }
-}
-
-void ForwardRenderer::drawModel(
-    const PerspectiveCamera &camera,
-    const Model &model,
-    const World &world) const
-{
-    glm::mat4 transform = glm::mat4(1.0f);
-    transform = glm::translate(transform, model.getPosition());
-    transform = glm::scale(transform, model.getScale());
-    glm::quat rot(glm::radians(model.getRotation()));
-    transform = transform * glm::mat4_cast(rot);
-
-    for (const std::shared_ptr<Mesh> &mesh : model.getMeshes())
-    {
-        drawMesh(camera, *mesh, transform, world);
-    }
 }
 
 void ForwardRenderer::drawSkybox(const PerspectiveCamera &camera, const Texture &cubemap) const
 {
-    GL::setDepthTest(true);
-    GL::setDepthTestFunction(GL::DepthTestFunction::lessEqual);
-    m_skyboxShader->bind();
-    m_skyboxShader->setMat4("u_projectionView", camera.getProjectionMatrix() * glm::mat4(glm::mat3(camera.getViewMatrix())));
-    cubemap.bind(0);
-    m_skyboxShader->setInt("u_skybox", 0);
-    GL::drawIndexed(m_cubeVertexArray);
-    GL::setDepthTestFunction(GL::DepthTestFunction::less);
+    //GL::setDepthTest(true);
+    //GL::setDepthTestFunction(GL::DepthTestFunction::lessEqual);
+    //m_skyboxShader->bind();
+    //m_skyboxShader->setMat4("u_projectionView", camera.getProjectionMatrix() * glm::mat4(glm::mat3(camera.getViewMatrix())));
+    //cubemap.bind(0);
+    //m_skyboxShader->setInt("u_skybox", 0);
+    //GL::drawIndexed(m_cubeVertexArray);
+    //GL::setDepthTestFunction(GL::DepthTestFunction::less);
 }
+
+} // namespace engine
