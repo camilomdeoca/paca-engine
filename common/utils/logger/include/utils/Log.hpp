@@ -1,6 +1,7 @@
 #pragma once
 
-#include <print>
+#include <format>
+#include <iostream>
 #include <string_view>
 #include <utility>
 
@@ -25,8 +26,8 @@ static_assert(static_cast<size_t>(LogLevel::last) == sizeof(logLevelNames)/sizeo
 template<typename... Args>
 void log(LogLevel level, std::format_string<Args...> fmt, Args &&...args)
 {
-    std::print("{}", logLevelNames[static_cast<size_t>(level)]);
-    std::println(fmt, std::forward<Args>(args)...);
+    std::cout << std::format("{}", logLevelNames[static_cast<size_t>(level)]);
+    std::cout << std::format(fmt, std::forward<Args>(args)...) << std::endl;
 }
 
 #define FATAL(...) log(LogLevel::fatal, __VA_ARGS__)
