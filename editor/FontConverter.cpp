@@ -2,6 +2,7 @@
 
 #include "ResourceFileFormats.hpp"
 
+#include <locale>
 #include <utils/Log.hpp>
 
 #include <codecvt>

@@ -408,7 +408,7 @@ public:
 
     virtual bool isInsertable() const override { return true; }
 
-    virtual bool insertChildren(int position, int count)
+    virtual bool insertChildren(int position, int count) override
     {
         if (position < 0 || position > qsizetype(m_children.size()))
             return false;
@@ -438,7 +438,7 @@ public:
         return true;
     }
 
-    virtual bool removeChildren(int position, int count)
+    virtual bool removeChildren(int position, int count) override
     {
         if (position < 0 || position + count > qsizetype(m_children.size()))
             return false;

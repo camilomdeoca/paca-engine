@@ -9,6 +9,7 @@
 
 #include <QMenuBar>
 #include <QFileDialog>
+#include <QString>
 
 #include <functional>
 #include <vector>
@@ -141,7 +142,7 @@ void AssetPackEditor::onSave()
 
 void AssetPackEditor::onSaveAs()
 {
-    m_assetPackFilepath = QFileDialog::getOpenFileName(
+    m_assetPackFilepath = QFileDialog::getSaveFileName(
         nullptr,
         "Save as AssetPack file",
         "",

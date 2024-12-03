@@ -3,6 +3,7 @@
 #include "engine/components/DirectionalLightShadowMap.hpp"
 #include "engine/components/Material.hpp"
 #include "engine/components/PointLight.hpp"
+#include "engine/components/Skybox.hpp"
 #include "engine/components/StaticMesh.hpp"
 #include "engine/components/Transform.hpp"
 #include "game/Input.hpp"
@@ -122,6 +123,8 @@ void App::run()
     //}, Key::right);
     
     flecs::world world;
+
+    world.set<engine::components::Skybox>({0});
 
     auto plane = world.entity()
         .set<engine::components::Transform>({{0.0f, -1.0f, 0.0f}, {0.0f, 0.0f, 0.0f}, {1.0f, 1.0f, 1.0f}})

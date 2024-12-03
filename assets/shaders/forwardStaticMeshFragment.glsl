@@ -33,10 +33,15 @@ struct PointLight {
 };
 
 #ifdef USE_SHADOW_MAPPING
+
+#define MAX_SHADOW_MAP_LEVELS 5
+#define SHADOW_CALCULATIONS_BIAS 0.005
+
 struct ShadowMapLevel {
     mat4 cameraSpaceToLightSpace;
     float cutoffDistance;
 };
+
 #endif // USE_SHADOW_MAPPING
 
 struct DirectionalLight {
@@ -44,15 +49,11 @@ struct DirectionalLight {
     vec3 color;
     float intensity;
 #ifdef USE_SHADOW_MAPPING
-    sampler2D shadowMapAtlas;
     ShadowMapLevel shadowMapLevels[MAX_SHADOW_MAP_LEVELS];
     int numOfShadowMapLevels;
 #endif // USE_SHADOW_MAPPING
 };
 
-#define MAX_SHADOW_MAP_LEVELS 5
-#define SHADOW_CALCULATIONS_BIAS 0.005
-#endif // USE_SHADOW_MAPPING
 
 #define MAX_LIGHTS 10
 #define MAX_DIRECTIONAL_LIGHTS 10
@@ -61,24 +62,29 @@ uniform PointLight u_pointLights[MAX_LIGHTS];
 uniform int u_numOfPointLights;
 
 uniform DirectionalLight u_directionalLights[MAX_DIRECTIONAL_LIGHTS];
+#ifdef USE_SHADOW_MAPPING
+uniform sampler2D u_directionalLightsShadowMapAtlas[MAX_DIRECTIONAL_LIGHTS];
+#endif // USE_SHADOW_MAPPING
 uniform int u_numOfDirectionalLights;
 
 #ifdef USE_SHADOW_MAPPING
-float shadowCalculation(vec4 fragPosLightSpace, uint level, float bias)
+float shadowCalculation(uint lightIndex, vec4 fragPosLightSpace, uint level, float bias)
 {
+    DirectionalLight light = u_directionalLights[lightIndex];
+
     vec3 projectedCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
     projectedCoords = projectedCoords * 0.5 + 0.5;
-    vec2 offset = vec2(0.0, float(level) / float(u_numOfShadowMapLevels));
-    vec2 uv = offset + vec2(projectedCoords.x, projectedCoords.y / u_numOfShadowMapLevels);
+    vec2 offset = vec2(0.0, float(level) / float(light.numOfShadowMapLevels));
+    vec2 uv = offset + vec2(projectedCoords.x, projectedCoords.y / light.numOfShadowMapLevels);
     float currentDepth = projectedCoords.z;
 
-    vec2 texelSize = 1.0 / textureSize(u_shadowMapAtlas, 0);
+    vec2 texelSize = 1.0 / textureSize(u_directionalLightsShadowMapAtlas[lightIndex], 0);
     float shadow = 0.0;
     for (int x = -1; x <= 1; x++)
     {
         for (int y = -1; y <= 1; y++)
         {
-            float closestDepth = texture(u_shadowMapAtlas, uv + vec2(x, y) * texelSize).r;
+            float closestDepth = texture(u_directionalLightsShadowMapAtlas[lightIndex], uv + vec2(x, y) * texelSize).r;
             shadow += currentDepth - bias > closestDepth ? 1.0 : 0.0;
         }
     }
@@ -155,6 +161,60 @@ vec2 parallaxOcclusionMapping(vec2 texCoords, vec3 viewDir, out vec3 viewDirExte
 }
 #endif
 
+vec3 directionalLightCalculations(uint lightIndex, vec3 color, vec3 normal, vec3 spec)
+{
+    DirectionalLight light = u_directionalLights[lightIndex];
+    const vec3 lightDir = normalize(light.directionInViewSpace);
+    const float diffuse = max(dot(normal, -lightDir), 0.0);
+
+    const vec3 viewDir = normalize(o_position);
+    const vec3 reflectDirection = reflect(lightDir, normal);
+    const vec3 specular = pow(max(dot(-viewDir, reflectDirection), 0.0), 16) * spec;
+
+    vec3 thisLightContribution = diffuse * color * light.intensity * light.color;
+    thisLightContribution += specular * light.color * light.intensity;
+
+#ifdef USE_SHADOW_MAPPING
+    uint level;
+    for (uint i = 0; i < light.numOfShadowMapLevels; i++)
+    {
+        if (abs(o_position.z) < light.shadowMapLevels[i].cutoffDistance)
+        {
+            level = i;
+            break;
+        }
+    }
+    
+    //float bias = SHADOW_CALCULATIONS_BIAS;
+    float bias = 0.00001;
+    bias = max( bias * 5 * (1.0 - dot(normal, lightDir)), bias);
+    //bias *= 1 / (u_shadowMaps[level].cutoffDistance * 0.5f);
+    
+    float shadow = shadowCalculation(lightIndex, light.shadowMapLevels[level].cameraSpaceToLightSpace * vec4(o_position, 1.0), level, bias);
+
+    thisLightContribution *= (1.0 - shadow);
+#endif // USE_SHADOW_MAPPING
+
+    return thisLightContribution;
+}
+
+vec3 pointLightCalculations(uint lightIndex, vec3 color, vec3 normal, vec3 spec)
+{
+    PointLight light = u_pointLights[lightIndex];
+    vec3 lightDir = normalize(o_position - light.posInViewSpace);
+    float diffuse = max(dot(normal, -lightDir), 0.0);
+
+    vec3 viewDir = normalize(o_position);
+    vec3 reflectDirection = reflect(lightDir, normal);
+    vec3 specular = pow(max(dot(-viewDir, reflectDirection), 0.0), 16) * spec;
+
+    float distance = length(light.posInViewSpace - o_position);
+    float attenuation = 1.0 / (1.0 + light.attenuation*distance*distance);
+
+    return diffuse * color * light.intensity * light.color * attenuation
+        + specular * light.color * light.intensity * attenuation;
+}
+
 void main()
 {
     vec2 textureCoords;
@@ -179,7 +239,7 @@ void main()
 
     vec3 color;
     vec3 normal;
-    float spec;
+    vec3 spec;
 
     if (u_hasNormal)
     {
@@ -196,67 +256,21 @@ void main()
         color = vec3(1.0, 0.0, 1.0); // purple as default
 
     if (u_hasSpecular)
-        spec = texture(u_specularMap0, textureCoords).r;
+        spec = texture(u_specularMap0, textureCoords).rgb;
     else
-        spec = 1.0;
+        spec = vec3(1.0);
 
     vec3 ambient = color * 0.15;
     vec3 final = vec3(0);
 
+    for (uint i = 0; i < u_numOfDirectionalLights; i++)
     {
-        const vec3 lightDir = normalize(u_directionalLight.directionInViewSpace);
-        const float diffuse = max(dot(normal, -lightDir), 0.0);
-
-        const vec3 viewDir = normalize(o_position);
-        const vec3 reflectDirection = reflect(lightDir, normal);
-        const float specular = pow(max(dot(-viewDir, reflectDirection), 0.0), 16) * spec;
-
-#ifdef USE_SHADOW_MAPPING
-        uint level;
-        for (uint i = 0; i < u_numOfShadowMapLevels; i++)
-        {
-            if (abs(o_position.z) < u_shadowMaps[i].cutoffDistance)
-            {
-                level = i;
-                break;
-            }
-        }
-    
-        //float bias = SHADOW_CALCULATIONS_BIAS;
-        float bias = 0.00001;
-        bias = max( bias * 5 * (1.0 - dot(normal, lightDir)), bias);
-        //bias *= 1 / (u_shadowMaps[level].cutoffDistance * 0.5f);
-    
-        float shadow = shadowCalculation(u_shadowMaps[level].cameraSpaceToLightSpace * vec4(o_position, 1.0), level, bias);
-#endif // USE_SHADOW_MAPPING
-
-        final += diffuse * color * u_directionalLight.intensity * u_directionalLight.color
-#ifdef USE_SHADOW_MAPPING
-            * (1.0 - shadow)
-#endif // USE_SHADOW_MAPPING
-            ;
-        final += specular * u_directionalLight.color * u_directionalLight.intensity
-#ifdef USE_SHADOW_MAPPING
-            * (1.0 - shadow)
-#endif // USE_SHADOW_MAPPING
-            ;
+        final += directionalLightCalculations(i, color, normal, spec);
     }
 
     for (int i = 0; i < u_numOfPointLights; i++)
     {
-        PointLight light = u_pointLights[i];
-        vec3 lightDir = normalize(o_position - light.posInViewSpace);
-        float diffuse = max(dot(normal, -lightDir), 0.0);
-
-        vec3 viewDir = normalize(o_position);
-        vec3 reflectDirection = reflect(lightDir, normal);
-        float specular = pow(max(dot(-viewDir, reflectDirection), 0.0), 16) * spec;
-
-        float distance = length(light.posInViewSpace - o_position);
-        float attenuation = 1.0 / (1.0 + light.attenuation*distance*distance);
-
-        final += diffuse * color * light.intensity * light.color * attenuation;
-        final += specular * light.color * light.intensity * attenuation;
+        final += pointLightCalculations(i, color, normal, spec);
     }
 
     outColor = vec4(final + ambient, 1.0);

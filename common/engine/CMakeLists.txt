@@ -29,7 +29,6 @@ target_link_libraries(engine
     logger
     asserts
     assimp
-    fontatlas
     resource-file-formats
     serializers
     stb_image

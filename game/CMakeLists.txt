@@ -15,7 +15,6 @@ target_link_libraries(game
     engine
     opengl-wrapper
     assimp
-    fontatlas
     resource-file-formats
     stb_image
 )
