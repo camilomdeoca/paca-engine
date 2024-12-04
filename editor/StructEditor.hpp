@@ -18,8 +18,8 @@ public:
     StructEditor(QWidget *parent = nullptr)
         : StructEditor(nullptr, {}, parent) {}
 
-    StructEditor(T *ptrToStruct, QWidget *parent = nullptr)
-        : QTreeView(parent), m_ptrToStruct(ptrToStruct), m_model(ptrToStruct)
+    StructEditor(T &refToStruct, QWidget *parent = nullptr)
+        : QTreeView(parent), m_refToStruct(refToStruct), m_model(refToStruct)
     {
 
         setModel(&m_model);
@@ -63,8 +63,8 @@ public:
         m_model.rebuild();
     }
 
-    T &getStruct() { return *m_ptrToStruct; }
-    const T &getStruct() const { return *m_ptrToStruct; }
+    T &getStruct() { return m_refToStruct; }
+    const T &getStruct() const { return m_refToStruct; }
 
 private:
 
@@ -110,7 +110,7 @@ private:
         });
     }
 
-    T *m_ptrToStruct;
+    T &m_refToStruct;
     StructModel<T> m_model;
 
     QMenu *m_contextMenu;

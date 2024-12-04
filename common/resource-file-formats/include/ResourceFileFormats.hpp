@@ -23,6 +23,7 @@ using AnimationId = uint32_t;
 using FontId = uint32_t;
 
 struct Bone {
+    NAME("Bone")
     FIELDS(parentID, offsetMatrix)
     FIELD_NAMES("parentID", "offsetMatrix")
     uint32_t parentID;
@@ -30,6 +31,7 @@ struct Bone {
 };
 
 struct Skeleton {
+    NAME("Skeleton")
     FIELDS(bones, boneNames)
     FIELD_NAMES("bones", "boneNames")
     std::vector<Bone> bones;
@@ -37,6 +39,7 @@ struct Skeleton {
 };
 
 struct StaticMesh {
+    NAME("StaticMesh")
     FIELDS(name, id, vertices, indices, materialId)
     FIELD_NAMES("name", "id", "vertices", "indices", "materialId")
     std::string name;
@@ -53,6 +56,7 @@ struct StaticMesh {
 };
 
 struct AnimatedMesh {
+    NAME("AnimatedMesh")
     FIELDS(name, id, vertices, indices, materialId, animations, skeleton)
     FIELD_NAMES("name", "id", "vertices", "indices", "materialId", "animations", "skeleton")
     std::string name;
@@ -73,6 +77,7 @@ struct AnimatedMesh {
 };
 
 struct PositionKeyFrame {
+    NAME("PositionKeyFrame")
     FIELDS(time, position)
     FIELD_NAMES("time", "position")
     float time;
@@ -80,6 +85,7 @@ struct PositionKeyFrame {
 };
 
 struct RotationKeyFrame {
+    NAME("RotationKeyFrame")
     FIELDS(time, quaternion)
     FIELD_NAMES("time", "quaternion")
     float time;
@@ -87,6 +93,7 @@ struct RotationKeyFrame {
 };
 
 struct ScaleKeyFrame {
+    NAME("ScaleKeyFrame")
     FIELDS(time, scale)
     FIELD_NAMES("time", "scale")
     float time;
@@ -94,6 +101,7 @@ struct ScaleKeyFrame {
 };
 
 struct BoneKeyFrames {
+    NAME("BoneKeyFrames")
     FIELDS(positions, rotations, scalings)
     FIELD_NAMES("positions", "rotations", "scalings")
     std::vector<PositionKeyFrame> positions;
@@ -102,6 +110,7 @@ struct BoneKeyFrames {
 };
 
 struct Animation {
+    NAME("Animation")
     FIELDS(name, id, duration, ticksPerSecond, keyframes)
     FIELD_NAMES("name", "id", "duration", "ticksPerSecond", "keyframes")
     // Duration of the animation in ticks
@@ -126,6 +135,7 @@ namespace TextureType {
 }
 
 struct Texture {
+    NAME("Texture")
     FIELDS(name, id, width, height, channels, pixelData)
     FIELD_NAMES("name", "id", "width", "height", "channels", "pixelData")
     std::string name;
@@ -136,6 +146,7 @@ struct Texture {
 };
 
 struct CubeMap {
+    NAME("CubeMap")
     FIELDS(name, id, width, height, channels, pixelData)
     FIELD_NAMES("name", "id", "width", "height", "channels", "pixelData")
     std::string name;
@@ -146,6 +157,7 @@ struct CubeMap {
 };
 
 struct Material {
+    NAME("Material")
     FIELDS(name, id, textures)
     FIELD_NAMES("name", "id", "textures")
     std::string name;
@@ -165,6 +177,7 @@ struct GlyphData
 };
 
 struct Font {
+    NAME("Font")
     FIELDS(name, id, fontHeight, glyphs, atlasTextureId)
     FIELD_NAMES("name", "id", "fontHeight", "glyphs", "atlasTextureId")
     std::string name;
@@ -175,6 +188,7 @@ struct Font {
 };
 
 struct AssetPack {
+    NAME("AssetPack")
     FIELDS(staticMeshes, animatedMeshes, materials, textures, cubeMaps, animations, fonts)
     FIELD_NAMES("staticMeshes", "animatedMeshes", "materials", "textures", "cubeMaps", "animations", "fonts")
     std::vector<StaticMesh> staticMeshes;
@@ -188,26 +202,30 @@ struct AssetPack {
 
 namespace components {
     struct Transform {
+        NAME("Transform")
         FIELDS(position, rotation, scale)
         FIELD_NAMES("position", "rotation", "scale")
-        glm::vec3 position;
-        glm::vec3 rotation;
-        glm::vec3 scale;
+        glm::vec3 position = {0.0f, 0.0f, 0.0f};
+        glm::vec3 rotation = {0.0f, 0.0f, 0.0f};
+        glm::vec3 scale    = {1.0f, 1.0f, 1.0f};
     };
 
     struct StaticMesh {
+        NAME("StaticMesh")
         FIELDS(id)
         FIELD_NAMES("id")
         StaticMeshId id;
     };
 
     struct AnimatedMesh {
+        NAME("AnimatedMesh")
         FIELDS(id)
         FIELD_NAMES("id")
         AnimatedMeshId id;
     };
 
     struct DirectionalLight {
+        NAME("DirectionalLight")
         FIELDS(color, intensity)
         FIELD_NAMES("color", "intensity")
         glm::vec3 color;
@@ -215,6 +233,7 @@ namespace components {
     };
 
     struct PointLight {
+        NAME("PointLight")
         FIELDS(color, intensity, attenuation)
         FIELD_NAMES("color", "intensity", "attenuation")
         glm::vec3 color;
@@ -226,10 +245,14 @@ namespace components {
 
 using Component = std::variant<
     components::Transform,
-    components::StaticMesh
+    components::StaticMesh,
+    components::AnimatedMesh,
+    components::DirectionalLight,
+    components::PointLight
 >;
 
 struct Entity {
+    NAME("Entity")
     FIELDS(id, components)
     FIELD_NAMES("id", "components")
     EntityId id;
@@ -238,6 +261,7 @@ struct Entity {
 
 
 struct Scene {
+    NAME("Scene")
     FIELDS(entities)
     FIELD_NAMES("entities")
     std::vector<Entity> entities;

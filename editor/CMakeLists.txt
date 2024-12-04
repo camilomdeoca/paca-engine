@@ -10,6 +10,7 @@ qt_add_executable(editor
     CubemapConverter.cpp
     FontConverter.cpp
     AssetPackEditor.cpp
+    SceneEditor.cpp
     CombineAssetPack.cpp
 )
 message(STATUS "CMAKE_MODULE_PATH = ${CMAKE_MODULE_PATH}")

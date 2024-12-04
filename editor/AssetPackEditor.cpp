@@ -17,7 +17,7 @@
 AssetPackEditor::AssetPackEditor(const std::shared_ptr<paca::fileformats::AssetPack> &assetPack, QWidget *parent)
     : QWidget(parent),
       m_assetPack(assetPack),
-      m_structEditor(new StructEditor<paca::fileformats::AssetPack>(assetPack.get(), this))
+      m_structEditor(new StructEditor<paca::fileformats::AssetPack>(*assetPack, this))
 {
     QVBoxLayout *verticalLayout = new QVBoxLayout(this);
 

@@ -1,6 +1,7 @@
 #include "MainWindow.hpp"
 #include "AssetPackEditor.hpp"
 #include "CameraView.hpp"
+#include "SceneEditor.hpp"
 
 #include <QHBoxLayout>
 #include <QPushButton>
@@ -27,12 +28,21 @@ MainWindow::MainWindow()
     //    addDockWidget(Qt::RightDockWidgetArea, dockWidget);
     //}
     {
-        std::shared_ptr<paca::fileformats::AssetPack> resourcePack
+        std::shared_ptr<paca::fileformats::AssetPack> assetPack
             = std::make_shared<paca::fileformats::AssetPack>();
-        QDockWidget *dockWidget = new QDockWidget("ResourcePack Editor");
+        QDockWidget *dockWidget = new QDockWidget("AssetPack Editor");
 
-        auto *resourcePackEditor = new AssetPackEditor(resourcePack, this);
-        dockWidget->setWidget(resourcePackEditor);
+        auto *assetPackEditor = new AssetPackEditor(assetPack, this);
+        dockWidget->setWidget(assetPackEditor);
+        addDockWidget(Qt::RightDockWidgetArea, dockWidget);
+    }
+    {
+        std::shared_ptr<paca::fileformats::Scene> scene
+            = std::make_shared<paca::fileformats::Scene>();
+        QDockWidget *dockWidget = new QDockWidget("Scene Editor");
+
+        auto *sceneEditor = new SceneEditor(scene, this);
+        dockWidget->setWidget(sceneEditor);
         addDockWidget(Qt::RightDockWidgetArea, dockWidget);
     }
     {

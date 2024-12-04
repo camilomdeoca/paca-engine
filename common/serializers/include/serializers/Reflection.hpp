@@ -1,5 +1,8 @@
 #pragma once
 
+#define NAME(name) \
+constexpr std::string_view getClassName() { return name; }
+
 #define FIELDS(...) \
 template<typename T> \
 void forEachField(T &val) { val(__VA_ARGS__); } \

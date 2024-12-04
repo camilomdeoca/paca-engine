@@ -37,7 +37,11 @@ template <typename T>
 requires std::is_enum_v<T>
 QVariant toQVariant(T value) { return std::to_underlying(value); }
 
-inline QVariant toQVariant(auto value) { return typeid(decltype(value)).name(); }
+template <typename T>
+requires requires(T t) { { t.getClassName() } -> std::same_as<std::string_view>; }
+inline QVariant toQVariant(T value) { return toQVariant(value.getClassName()); }
+
+inline QVariant toQVariant(auto value) { return typeid(value).name(); }
 
 class AbstractNode
 {
@@ -106,6 +110,28 @@ protected:
 
 template <typename>
 class Node;
+
+namespace detail {
+
+//! @internal
+//  @brief If variant add node of base type else add node of type
+template<typename... Types>
+void addNodeOfTo(std::variant<Types...> &variant, AbstractNode &node)
+{
+    std::visit([&node](auto &arg) {
+        node.appendChild(std::make_unique<Node<std::remove_reference_t<decltype(arg)>>>(&arg, &node));
+    }, variant);
+}
+
+//! @internal
+//  @brief If variant add node of base type else add node of type
+template<typename T>
+void addNodeOfTo(T &field, AbstractNode &node)
+{
+    node.appendChild(std::make_unique<Node<std::remove_reference_t<decltype(field)>>>(&field, &node));
+}
+
+}
 
 // Specialization for builtin types (int, float, bool, etc)
 template <typename T>
@@ -192,7 +218,7 @@ struct Visitor
 
     Visitor &operator<<(auto &field)
     {
-        m_node.appendChild(std::make_unique<Node<std::remove_reference_t<decltype(field)>>>(&field, &m_node));
+        detail::addNodeOfTo(field, m_node);
         return *this;
     }
 
@@ -250,12 +276,7 @@ public:
     {
         for (int i = 0; i < m_data->length(); i++)
         {
-            appendChild(
-                std::make_unique<Node<std::remove_reference_t<decltype((*m_data)[i])>>>(
-                    &(*m_data)[i],
-                    this
-                )
-            );
+            detail::addNodeOfTo((*m_data)[i], static_cast<AbstractNode&>(*this));
         }
     }
 
@@ -337,12 +358,7 @@ public:
     {
         for (size_t i = 0; i < m_data->size(); i++)
         {
-            appendChild(
-                std::make_unique<Node<std::remove_reference_t<decltype((*m_data)[i])>>>(
-                    &(*m_data)[i],
-                    this
-                )
-            );
+            detail::addNodeOfTo((*m_data)[i], static_cast<AbstractNode&>(*this));
         }
     }
 
@@ -380,12 +396,7 @@ public:
         {
             for (size_t i = 0; i < m_data->size(); i++)
             {
-                appendChild(
-                    std::make_unique<Node<std::remove_reference_t<decltype((*m_data)[i])>>>(
-                        &(*m_data)[i],
-                        this
-                    )
-                );
+                detail::addNodeOfTo((*m_data)[i], static_cast<AbstractNode&>(*this));
             }
         }
     }
@@ -427,12 +438,7 @@ public:
         m_children.clear();
         for (size_t i = 0; i < m_data->size(); i++)
         {
-            appendChild(
-                std::make_unique<Node<std::remove_reference_t<decltype((*m_data)[i])>>>(
-                    &(*m_data)[i],
-                    this
-                )
-            );
+            detail::addNodeOfTo((*m_data)[i], static_cast<AbstractNode&>(*this));
         }
 
         return true;
@@ -451,12 +457,7 @@ public:
         m_children.clear();
         for (size_t i = 0; i < m_data->size(); i++)
         {
-            appendChild(
-                std::make_unique<Node<std::remove_reference_t<decltype((*m_data)[i])>>>(
-                    &(*m_data)[i],
-                    this
-                )
-            );
+            detail::addNodeOfTo((*m_data)[i], static_cast<AbstractNode&>(*this));
         }
 
         return true;
@@ -470,10 +471,10 @@ template <typename T>
 class StructModel : public QAbstractItemModel
 {
 public:
-    explicit StructModel(T *ptrToStruct)
-        : m_ptrToStruct(ptrToStruct)
+    explicit StructModel(T &refToStruct)
+        : m_refToStruct(refToStruct)
     {
-        m_rootItem = std::make_unique<Node<T>>(ptrToStruct);
+        m_rootItem = std::make_unique<Node<T>>(&refToStruct);
     }
 
     ~StructModel()
@@ -482,7 +483,7 @@ public:
     void rebuild()
     {
         beginResetModel();
-        m_rootItem = std::make_unique<Node<T>>(m_ptrToStruct);
+        m_rootItem = std::make_unique<Node<T>>(&m_refToStruct);
         endResetModel();
     }
 
@@ -590,7 +591,7 @@ public:
 
 private:
     std::unique_ptr<AbstractNode> m_rootItem;
-    T* m_ptrToStruct;
+    T &m_refToStruct;
 };
 
 class StructEditorItemDelegate : public QStyledItemDelegate {

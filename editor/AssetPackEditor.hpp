@@ -1,6 +1,5 @@
 #pragma once
 
-#include "FilepathEdit.hpp"
 #include "StructEditor.hpp"
 
 #include <ResourceFileFormats.hpp>
@@ -28,6 +27,5 @@ private:
     StructEditor<paca::fileformats::AssetPack> *m_structEditor;
 
     std::string m_assetPackFilepath;
-    FilepathEdit *m_modelFilepathEdit, *m_cubemapFilepathEdit, *m_fontFilepathEdit;
     QAction *m_openAction, *m_saveAction, *m_saveAsAction, *m_importAssetAction;
 };
