@@ -41,13 +41,23 @@ void FrameBuffer::init(FrameBufferParameters parameters)
         if (format != Texture::Format::depth24stencil8 && format != Texture::Format::depth24)
         {
             std::shared_ptr<Texture> &texture =
-                m_colorAttachments.emplace_back(std::make_shared<Texture>(parameters.width, parameters.height, format));
+                m_colorAttachments.emplace_back(std::make_shared<Texture>(Texture::Specification{
+                    .width = parameters.width,
+                    .height = parameters.height,
+                    .format = format,
+                    .linearMinification = false,
+                    .linearMagnification = false,
+                    .interpolateBetweenMipmapLevels = false,
+                }));
             texture->setRepeat(false);
-            texture->setInterpolate(false);
         }
         else
         {
-            m_depthAttachment = std::make_shared<Texture>(parameters.width, parameters.height, format);
+            m_depthAttachment = std::make_shared<Texture>(Texture::Specification{
+                .width = parameters.width,
+                .height = parameters.height,
+                .format = format,
+            });
         }
     }
 

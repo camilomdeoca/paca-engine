@@ -7,9 +7,6 @@
 #include <QFileDialog>
 #include <QString>
 
-#include <functional>
-#include <vector>
-
 SceneEditor::SceneEditor(const std::shared_ptr<paca::fileformats::Scene> &scene, QWidget *parent)
     : QWidget(parent),
       m_scene(scene),

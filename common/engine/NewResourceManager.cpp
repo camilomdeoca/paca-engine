@@ -159,11 +159,19 @@ void NewResourceManager::addTexture(paca::fileformats::Texture &texture)
         case 4: format = Texture::Format::RGBA8; break;
     }
 
-    m_textures.emplace_back(
-            reinterpret_cast<const uint8_t*>(texture.pixelData.data()),
-            texture.width,
-            texture.height,
-            format);
+
+
+    m_textures.emplace_back(Texture::Specification{
+        .data = reinterpret_cast<const uint8_t*>(texture.pixelData.data()),
+        .width = texture.width,
+        .height = texture.height,
+        .format = format,
+        .mipmapLevels = 8,
+        .autoGenerateMipmapLevels = true,
+        .linearMinification = true,
+        .linearMagnification = true,
+        .interpolateBetweenMipmapLevels = true,
+    });
 }
 
 void NewResourceManager::addCubeMap(paca::fileformats::CubeMap &cubeMap)
@@ -184,7 +192,14 @@ void NewResourceManager::addCubeMap(paca::fileformats::CubeMap &cubeMap)
             cubeMap.pixelData.data()
             + cubeMap.width * cubeMap.height * cubeMap.channels * i);
     }
-    m_cubeMaps.emplace_back(facesData, cubeMap.width, cubeMap.height, format);
+    m_cubeMaps.emplace_back(Texture::CubeMapSpecification{
+        .facesData = facesData,
+        .width = cubeMap.width,
+        .height = cubeMap.height,
+        .format = format,
+        .linearMinification = true,
+        .linearMagnification = true,
+    });
 }
 
 MaterialTextureType::Type pacaTextureTypeToMaterialTextureType(paca::fileformats::TextureType::Type type)

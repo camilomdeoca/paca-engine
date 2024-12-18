@@ -148,6 +148,8 @@ void App::run()
         .set<engine::components::Transform>({{0.0f, 0.0f, 0.0f}, {-70.0f, 35.0f, 0.0f}, {1.0f ,1.0f, 1.0f}})
         .emplace<engine::components::DirectionalLightShadowMap>(512u, std::vector<float>{5.0f, 10.0f, 25.0f, 50.0f, 100.0f});
 
+    INFO("Id {}", plane.id());
+
     Action setLightPosAction[2];
     setLightPosAction[0].init("setLight1", [&cameraController, &light0]() {
         glm::vec3 newPos = cameraController.getCamera().getPosition();

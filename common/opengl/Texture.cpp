@@ -46,44 +46,37 @@ GLenum formatToOpenGLInternalFormat(Texture::Format format)
     ASSERT_MSG(false, "Invalid Texture Format!");
 }
 
-Texture::Texture(const std::string &path)
+//Texture::Texture(const std::string &path)
+//{
+//    int width, height, channels;
+//    stbi_set_flip_vertically_on_load(1);
+//    stbi_uc *data = stbi_load(path.c_str(), &width, &height, &channels, 0);
+//
+//    if (!data)
+//        ASSERT_MSG(false, "Failed to load image: {}!", path);
+//
+//    INFO("{} ({}x{}) has {} channels.", path, width, height, channels);
+//    switch (channels)
+//    {
+//        case 1: m_format = Format::G8; break;
+//        case 2: m_format = Format::GA8; break;
+//        case 3: m_format = Format::RGB8; break;
+//        case 4: m_format = Format::RGBA8; break;
+//    }
+//
+//    create(data, width, height, m_format);
+//
+//    stbi_image_free(data);
+//}
+
+Texture::Texture(const Specification &specification)
 {
-    int width, height, channels;
-    stbi_set_flip_vertically_on_load(1);
-    stbi_uc *data = stbi_load(path.c_str(), &width, &height, &channels, 0);
-
-    if (!data)
-        ASSERT_MSG(false, "Failed to load image: {}!", path);
-
-    INFO("{} ({}x{}) has {} channels.", path, width, height, channels);
-    switch (channels)
-    {
-        case 1: m_format = Format::G8; break;
-        case 2: m_format = Format::GA8; break;
-        case 3: m_format = Format::RGB8; break;
-        case 4: m_format = Format::RGBA8; break;
-    }
-
-    create(data, width, height, m_format);
-
-    stbi_image_free(data);
+    create(specification);
 }
 
-Texture::Texture(const uint8_t *data, uint32_t width, uint32_t height, Format format)
-    : m_format(format)
+Texture::Texture(const CubeMapSpecification &specification)
 {
-    create(data, width, height, format);
-}
-
-Texture::Texture(std::array<const uint8_t*, 6> facesData, uint32_t width, uint32_t height, Format format)
-{
-    createCubeMap(facesData, width, height, format);
-}
-
-Texture::Texture(uint32_t width, uint32_t height, Format format)
-    : m_format(format)
-{
-    create(nullptr, width, height, format);
+    createCubeMap(specification);
 }
 
 Texture::~Texture()
@@ -91,38 +84,105 @@ Texture::~Texture()
     glDeleteTextures(1, &m_id);
 }
 
-void Texture::create(const uint8_t *data, uint32_t width, uint32_t height, Format format)
+void Texture::create(const Specification &specification)
 {
-    m_width = width;
-    m_height = height;
+    m_format = specification.format;
+    m_width = specification.width;
+    m_height = specification.height;
 
     glCreateTextures(GL_TEXTURE_2D, 1, &m_id);
-    glTextureStorage2D(m_id, 1, formatToOpenGLInternalFormat(format), m_width, m_height);
+    glTextureStorage2D(m_id, specification.mipmapLevels, formatToOpenGLInternalFormat(m_format), m_width, m_height);
     ASSERT(glGetError() == 0);
 
-    setInterpolate(true);
+    if (specification.mipmapLevels > 1)
+    {
+        glTextureParameteri(
+            m_id,
+            GL_TEXTURE_MIN_FILTER,
+            specification.linearMinification
+                ? specification.interpolateBetweenMipmapLevels ? GL_LINEAR_MIPMAP_LINEAR : GL_LINEAR_MIPMAP_NEAREST
+                : specification.interpolateBetweenMipmapLevels ? GL_NEAREST_MIPMAP_LINEAR : GL_NEAREST_MIPMAP_NEAREST);
+    }
+    else
+    {
+        glTextureParameteri(
+            m_id,
+            GL_TEXTURE_MIN_FILTER,
+            specification.linearMinification ? GL_LINEAR : GL_NEAREST);
+    }
+
+    glTextureParameteri(
+        m_id,
+        GL_TEXTURE_MAG_FILTER,
+        specification.linearMagnification ? GL_LINEAR : GL_NEAREST);
+
     setRepeat(true);
 
-    if (data)
-        glTextureSubImage2D(m_id, 0, 0, 0, m_width, m_height, formatToOpenGLFormat(format), GL_UNSIGNED_BYTE, data);
+    if (specification.data)
+    {
+        glTextureSubImage2D(m_id, 0, 0, 0, m_width, m_height, formatToOpenGLFormat(m_format), GL_UNSIGNED_BYTE, specification.data);
+        if (specification.autoGenerateMipmapLevels && specification.mipmapLevels > 1)
+            glGenerateTextureMipmap(m_id);
+        ASSERT(glGetError() == 0);
+    }
+
     ASSERT(glGetError() == 0);
 }
 
-void Texture::createCubeMap(std::array<const uint8_t*, 6> facesData, uint32_t width, uint32_t height, Format format)
+void Texture::createCubeMap(const CubeMapSpecification &specification)
 {
-    m_width = width;
-    m_height = height;
+    m_format = specification.format;
+    m_width = specification.width;
+    m_height = specification.height;
 
     glCreateTextures(GL_TEXTURE_CUBE_MAP, 1, &m_id);
-    glTextureStorage2D(m_id, 1, formatToOpenGLInternalFormat(format), m_width, m_height);
+    glTextureStorage2D(m_id, specification.mipmapLevels, formatToOpenGLInternalFormat(m_format), m_width, m_height);
 
-    setInterpolate(true);
+    if (specification.mipmapLevels > 1)
+    {
+        glTextureParameteri(
+            m_id,
+            GL_TEXTURE_MIN_FILTER,
+            specification.linearMinification
+                ? specification.interpolateBetweenMipmapLevels ? GL_LINEAR_MIPMAP_LINEAR : GL_LINEAR_MIPMAP_NEAREST
+                : specification.interpolateBetweenMipmapLevels ? GL_NEAREST_MIPMAP_LINEAR : GL_NEAREST_MIPMAP_NEAREST);
+    }
+    else
+    {
+        glTextureParameteri(
+            m_id,
+            GL_TEXTURE_MIN_FILTER,
+            specification.linearMinification ? GL_LINEAR : GL_NEAREST);
+    }
+
+    glTextureParameteri(
+        m_id,
+        GL_TEXTURE_MAG_FILTER,
+        specification.linearMagnification ? GL_LINEAR : GL_NEAREST);
+
     setRepeat(false);
 
-    for (unsigned int i = 0; i < facesData.size(); i++)
+    for (unsigned int i = 0; i < specification.facesData.size(); i++)
     {
-        glTextureSubImage3D(m_id, 0, 0, 0, i, m_width, m_height, 1, formatToOpenGLFormat(format), GL_UNSIGNED_BYTE, facesData[i]);
+        if (specification.facesData[i])
+        {
+            glTextureSubImage3D(
+                m_id,
+                0,
+                0,
+                0,
+                i,
+                m_width,
+                m_height,
+                1,
+                formatToOpenGLFormat(m_format),
+                GL_UNSIGNED_BYTE,
+                specification.facesData[i]);
+        }
     }
+    if (specification.autoGenerateMipmapLevels && specification.mipmapLevels > 1)
+        glGenerateTextureMipmap(m_id);
+    ASSERT(glGetError() == 0);
 }
 
 //void Texture::setData(void *data, uint32_t size)

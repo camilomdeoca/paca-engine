@@ -1,5 +1,6 @@
 #pragma once
 
+#include "QtUtils.hpp"
 #include "utils/Log.hpp"
 #include <cstring>
 #include <limits>
@@ -16,6 +17,7 @@
 #include <QDoubleSpinBox>
 
 #include <ResourceFileFormats.hpp>
+#include <variant>
 
 template <typename T>
 concept glm_type = requires(T t) {
@@ -26,22 +28,49 @@ concept glm_type = requires(T t) {
 template <typename T>
 concept aggregate = std::is_aggregate_v<T>;
 
-inline QVariant toQVariant(const std::string &str) { return QString::fromStdString(str); }
-inline QVariant toQVariant(std::string_view str) { return QString::fromStdString(std::string(str)); }
+namespace detail {
 
-template <typename T>
-requires std::is_arithmetic_v<T>
-QVariant toQVariant(T value) { return value; }
+//! @internal
+//  @brief Iterate over variant types
+template<
+    typename VariantType,
+    size_t Index,
+    std::enable_if_t<Index >= std::variant_size_v<VariantType>, bool> = true>
+constexpr void getVariantTypesNamesImpl(std::vector<std::string_view> &names)
+{}
 
-template <typename T>
-requires std::is_enum_v<T>
-QVariant toQVariant(T value) { return std::to_underlying(value); }
+//! @internal
+//  @brief Iterate over variant types
+template<
+    typename VariantType,
+    size_t Index,
+    std::enable_if_t<Index < std::variant_size_v<VariantType>, bool> = true>
+constexpr void getVariantTypesNamesImpl(std::vector<std::string_view> &names)
+{
+    names.emplace_back(std::variant_alternative_t<Index, VariantType>::getClassName());
+    getVariantTypesNamesImpl<VariantType, Index+1>(names);
+}
 
-template <typename T>
-requires requires(T t) { { t.getClassName() } -> std::same_as<std::string_view>; }
-inline QVariant toQVariant(T value) { return toQVariant(value.getClassName()); }
+template<typename VariantType>
+constexpr std::vector<std::string_view> getVariantTypesNames()
+{
+    std::vector<std::string_view> names;
+    getVariantTypesNamesImpl<VariantType, 0>(names);
+    return names;
+}
 
-inline QVariant toQVariant(auto value) { return typeid(value).name(); }
+template<typename T>
+struct is_variant : std::false_type
+{};
+
+template<typename ...Args>
+struct is_variant<std::variant<Args...>> : std::true_type
+{};
+
+template<typename T>
+inline constexpr bool is_variant_v=is_variant<T>::value;
+
+}
 
 class AbstractNode
 {
@@ -96,11 +125,17 @@ public:
 
     virtual bool isEditable() const { return false; }
     virtual bool isInsertable() const { return false; }
+    virtual const std::vector<std::string_view> &getInsertOptions() const
+    {
+        ASSERT(false);
+        static std::vector<std::string_view> a;
+        return a;
+    }
 
     virtual Type type() const { return Type::None; }
 
     virtual bool setData(int column, const QVariant &value) { ASSERT(false); return false; }
-    virtual bool insertChildren(int position, int count) { ASSERT(false); return false; }
+    virtual bool insertChildren(int position, int count, size_t insertOptionIndex = 0) { ASSERT(false); return false; }
     virtual bool removeChildren(int position, int count) { ASSERT(false); return false; }
 
 protected:
@@ -131,6 +166,37 @@ void addNodeOfTo(T &field, AbstractNode &node)
     node.appendChild(std::make_unique<Node<std::remove_reference_t<decltype(field)>>>(&field, &node));
 }
 
+//! @internal
+template<
+    size_t N,
+    typename... Types,
+    std::enable_if_t<N >= std::variant_size_v<std::variant<Types...>>, bool> = true>
+void setTypeOnVariant(
+    std::variant<Types...> &variant,
+    size_t targetTypeIndex)
+{
+    FATAL("Invalid type index for variant");
+}
+
+//! @internal
+template<
+    size_t N,
+    typename... Types,
+    std::enable_if_t<N < std::variant_size_v<std::variant<Types...>>, bool> = true> 
+void setTypeOnVariant(
+    std::variant<Types...> &variant,
+    size_t targetTypeIndex)
+{
+    if (N == targetTypeIndex)
+    {
+        variant.template emplace<N>();
+    }
+    else
+    {
+        setTypeOnVariant<N+1>(variant, targetTypeIndex);
+    }
+}
+
 }
 
 // Specialization for builtin types (int, float, bool, etc)
@@ -155,7 +221,7 @@ public:
             return parentItem() ? parentItem()->fieldName(row()) : "ROOT";
         }
         if (m_data)
-            return toQVariant(*m_data);
+            return qt_utils::toQVariant(*m_data);
         return {};
     }
 
@@ -258,7 +324,7 @@ public:
             return parentItem() ? parentItem()->fieldName(row()) : "ROOT";
         }
         if (m_data)
-            return toQVariant(*m_data);
+            return qt_utils::toQVariant(*m_data);
         return {};
     }
 
@@ -292,7 +358,7 @@ public:
             return parentItem() ? parentItem()->fieldName(row()) : "ROOT";
         }
         if (m_data)
-            return toQVariant(*m_data);
+            return qt_utils::toQVariant(*m_data);
         return {};
     }
 
@@ -321,7 +387,7 @@ public:
             return parentItem() ? parentItem()->fieldName(row()) : "ROOT";
         }
         if (m_data)
-            return toQVariant(*m_data);
+            return qt_utils::toQVariant(*m_data);
         return {};
     }
 
@@ -374,7 +440,7 @@ public:
             return parentItem() ? parentItem()->fieldName(row()) : "ROOT";
         }
         if (m_data)
-            return toQVariant(std::format("{} elements.", m_data->size()));
+            return qt_utils::toQVariant(std::format("{} elements.", m_data->size()));
         return {};
     }
 
@@ -413,20 +479,48 @@ public:
             return parentItem() ? parentItem()->fieldName(row()) : "ROOT";
         }
         if (m_data)
-            return toQVariant(std::format("{} elements.", m_data->size()));
+            return qt_utils::toQVariant(std::format("{} elements.", m_data->size()));
         return {};
     }
 
     virtual bool isInsertable() const override { return true; }
 
-    virtual bool insertChildren(int position, int count) override
+    virtual const std::vector<std::string_view> &getInsertOptions() const override
+    {
+        if constexpr (detail::is_variant_v<ElementType>)
+        {
+            static const std::vector<std::string_view> names = detail::getVariantTypesNames<ElementType>();
+            return names;
+        }
+        else if constexpr (requires { { ElementType::getClassName() } -> std::same_as<std::string_view>; })
+        {
+            static const std::vector<std::string_view> names = { ElementType::getClassName() };
+            return names;
+        }
+        else
+        {
+            static const std::vector<std::string_view> names = { typeid(ElementType).name() };
+            return names;
+        }
+    }
+
+    virtual bool insertChildren(int position, int count, size_t insertOptionIndex) override
     {
         if (position < 0 || position > qsizetype(m_children.size()))
             return false;
 
         for (int row = 0; row < count; ++row)
         {
-            m_data->insert(m_data->cbegin() + position, ElementType{});
+            if constexpr (detail::is_variant_v<ElementType>)
+            {
+                ElementType variant;
+                detail::setTypeOnVariant<0>(variant, insertOptionIndex);
+                m_data->insert(m_data->cbegin() + position, variant);
+            }
+            else
+            {
+                m_data->insert(m_data->cbegin() + position, ElementType{});
+            }
             // m_children.insert(m_children.cbegin() + position,
             //   std::make_unique<Node<std::remove_reference_t<decltype((*m_data)[row])>>>(
             //       &(*m_data)[position],
@@ -466,6 +560,8 @@ public:
 private:
     std::vector<ElementType> *m_data;
 };
+
+/* StructModel {{{ */
 
 template <typename T>
 class StructModel : public QAbstractItemModel
@@ -569,11 +665,16 @@ public:
 
     bool insertRows(int position, int rows, const QModelIndex &parent = {}) override
     {
+        return insertRows(position, rows, parent, 0);
+    }
+
+    bool insertRows(int position, int rows, const QModelIndex &parent, size_t insertOption)
+    {
         AbstractNode *parentItem = static_cast<AbstractNode*>(parent.internalPointer());
         beginRemoveRows(parent, 0, parentItem->childCount());
         endRemoveRows();
         beginInsertRows(parent, 0, parentItem->childCount() + rows);
-        bool result = parentItem->insertChildren(position, rows);
+        bool result = parentItem->insertChildren(position, rows, insertOption);
         endInsertRows();
         
         return result;
@@ -593,6 +694,10 @@ private:
     std::unique_ptr<AbstractNode> m_rootItem;
     T &m_refToStruct;
 };
+
+/* StructModel }}} */
+
+/* StructEditorItemDelegate {{{ */
 
 class StructEditorItemDelegate : public QStyledItemDelegate {
 public:
@@ -677,3 +782,5 @@ public:
     }
 
 };
+
+/* StructEditorItemDelegate }}} */

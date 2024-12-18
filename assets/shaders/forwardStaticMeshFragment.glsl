@@ -35,7 +35,7 @@ struct PointLight {
 #ifdef USE_SHADOW_MAPPING
 
 #define MAX_SHADOW_MAP_LEVELS 5
-#define SHADOW_CALCULATIONS_BIAS 0.005
+#define SHADOW_CALCULATIONS_BIAS 0.00005
 
 struct ShadowMapLevel {
     mat4 cameraSpaceToLightSpace;
@@ -185,9 +185,8 @@ vec3 directionalLightCalculations(uint lightIndex, vec3 color, vec3 normal, vec3
         }
     }
     
-    //float bias = SHADOW_CALCULATIONS_BIAS;
-    float bias = 0.00001;
-    bias = max( bias * 5 * (1.0 - dot(normal, lightDir)), bias);
+    float bias = SHADOW_CALCULATIONS_BIAS;
+    bias = max(bias * (1.0 - dot(normal, lightDir)), bias);
     //bias *= 1 / (u_shadowMaps[level].cutoffDistance * 0.5f);
     
     float shadow = shadowCalculation(lightIndex, light.shadowMapLevels[level].cameraSpaceToLightSpace * vec4(o_position, 1.0), level, bias);
