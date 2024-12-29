@@ -1,13 +1,27 @@
 #pragma once
 
-#include <ResourceFileFormats.hpp>
+#include <engine/SceneManager.hpp>
+
 #include <QWidget>
+
+class OpenGLWidget;
+
+namespace paca::fileformats {
+    struct Scene;
+    struct AssetPack;
+}
 
 class CameraView : public QWidget {
 public:
-    CameraView(paca::fileformats::Scene *scene, QWidget *parent = nullptr);
+    CameraView(
+        const std::shared_ptr<paca::fileformats::Scene> &scene,
+        const std::shared_ptr<paca::fileformats::AssetPack> &assetPack,
+        QWidget *parent = nullptr);
+
     virtual ~CameraView();
 
 private:
-    paca::fileformats::Scene *m_scene;
+    OpenGLWidget *m_openGLWidget;
+    std::shared_ptr<paca::fileformats::Scene> m_scene;
+    engine::SceneManager m_sceneManager;
 };

@@ -29,6 +29,11 @@ void NewResourceManager::loadAssetPack(const std::string &path)
         unserializer << assetPack;
     }
 
+    loadAssetPack(assetPack);
+}
+
+void NewResourceManager::loadAssetPack(paca::fileformats::AssetPack &assetPack)
+{
     for (StaticMeshId id = 0; id < assetPack.staticMeshes.size(); id++)
     {
         paca::fileformats::StaticMesh &staticMesh = assetPack.staticMeshes[id];

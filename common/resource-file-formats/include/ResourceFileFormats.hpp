@@ -210,6 +210,13 @@ namespace components {
         glm::vec3 scale    = {1.0f, 1.0f, 1.0f};
     };
 
+    struct Material {
+        NAME("Material")
+        FIELDS(id)
+        FIELD_NAMES("id")
+        MaterialId id;
+    };
+
     struct StaticMesh {
         NAME("StaticMesh")
         FIELDS(id)
@@ -241,14 +248,23 @@ namespace components {
         float attenuation;
     };
 
+    struct Skybox {
+        NAME("Skybox")
+        FIELDS(id)
+        FIELD_NAMES("id")
+        CubeMapId id;
+    };
+
 } // namespace paca::fileformats::components
 
 using Component = std::variant<
     components::Transform,
+    components::Material,
     components::StaticMesh,
     components::AnimatedMesh,
     components::DirectionalLight,
-    components::PointLight
+    components::PointLight,
+    components::Skybox
 >;
 
 struct Entity {
@@ -262,9 +278,10 @@ struct Entity {
 
 struct Scene {
     NAME("Scene")
-    FIELDS(entities)
-    FIELD_NAMES("entities")
+    FIELDS(entities, sceneComponents)
+    FIELD_NAMES("entities", "sceneComponents")
     std::vector<Entity> entities;
+    std::vector<Component> sceneComponents;
 };
 
 } // namespace paca::fileformats

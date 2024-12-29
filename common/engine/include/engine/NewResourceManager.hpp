@@ -17,6 +17,7 @@ public:
     NewResourceManager();
 
     void loadAssetPack(const std::string &path);
+    void loadAssetPack(paca::fileformats::AssetPack &assetPack);
 
     const StaticMesh &getStaticMesh(StaticMeshId id) const;
     const AnimatedMesh &getAnimatedMesh(AnimatedMeshId id) const;

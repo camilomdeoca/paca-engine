@@ -1,13 +1,8 @@
 #include "game/App.hpp"
-#include "engine/components/DirectionalLight.hpp"
-#include "engine/components/DirectionalLightShadowMap.hpp"
-#include "engine/components/Material.hpp"
-#include "engine/components/PointLight.hpp"
-#include "engine/components/Skybox.hpp"
-#include "engine/components/StaticMesh.hpp"
-#include "engine/components/Transform.hpp"
+#include "engine/SceneManager.hpp"
 #include "game/Input.hpp"
 #include "game/Action.hpp"
+#include "serializers/BinarySerialization.hpp"
 #include "utils/Assert.hpp"
 #include "engine/OrthoCamera.hpp"
 #include "engine/NewResourceManager.hpp"
@@ -70,99 +65,28 @@ void App::run()
     PerspectiveCameraController cameraController((float)m_window.getWidth() / m_window.getHeight(), 90.0f);
     OrthoCamera uiCamera(0.0f, m_window.getWidth(), 0.0f, m_window.getHeight());
 
-    //Input::addResizeCallback([&cameraController](ResizeEvent &event) {
-    //    GL::viewport(event.w, event.h);
-    //    Renderer::resize(event.w, event.h);
-    //    cameraController.setAspect((float)event.w/(float)event.h);
-    //});
-
-    //Font font("assets/fonts/DejaVuSansFontAtlas.png", "assets/fonts/DejaVuSansFontAtlas.fntat");
-
     m_resourceManager.loadAssetPack("build/out.pack");
-
-    //std::shared_ptr<Texture> skybox = ResourceManager::getCubeMap("skybox");
-
-    //std::shared_ptr<Model> vampire = ResourceManager::getModel("dancing_vampire");
-    //vampire->setScale(glm::vec3(0.01f));
-    //vampire->setPosition({0.0f, -0.2f, 0.0f});
-    //std::shared_ptr<Model> mainModel = ResourceManager::getModel("statue");
-    //mainModel->setScale(glm::vec3(10.0f));
-    //std::shared_ptr<Model> plane = ResourceManager::getModel("plane");
-    //plane->setPosition({0.0f, -1.0f, 0.0f});
-    ////std::shared_ptr<Model> lightBulb = ResourceManager::addModel("assets/models/lightBulb.pmdl");
-    ////lightBulb->setPosition({3.0f, 4.0f, -3.0f});
-    ////lightBulb->setRotation({-90.0f, 0.0f, 0.0f});
-    ////lightBulb->setScale(glm::vec3(3.0f));
-
-    //std::vector<std::shared_ptr<PointLight>> lights;
-    //lights.push_back(std::make_shared<PointLight>(glm::vec3(3.0f, 4.0f, -3.0f), glm::vec3(1.0f, 0.0f, 0.0f), 0.4f, 0.025f, nullptr));
-    //lights.push_back(std::make_shared<PointLight>(glm::vec3(3.0f, 4.0f, 3.0f), glm::vec3(0.0f, 0.0f, 1.0f), 0.4f, 0.025f, nullptr));
-    //std::shared_ptr<DirectionalLight> directionalLight = std::make_shared<DirectionalLight>(glm::vec3(2.0f, -4.0f, 1.0f), glm::vec3(1.0f, 1.0f, 0.9f), 0.7f);
-
-    //World world;
-    //world.addModels({ vampire, mainModel, plane });
-    //world.addDirectionalLight(directionalLight);
-    //world.addPointLights(lights);
-    //world.setSkybox(skybox);
-
-    //Input::addKeyPressCallback([light](KeyPressEvent &event) {
-    //    light->setIntensity(light->getIntensity() - 0.1);
-    //    printf("intensity = %f\n", light->getIntensity());
-    //}, Key::down);
-    //Input::addKeyPressCallback([light](KeyPressEvent &event) {
-    //    light->setIntensity(light->getIntensity() + 0.1);
-    //    printf("intensity = %f\n", light->getIntensity());
-    //}, Key::up);
-    //Input::addKeyPressCallback([light](KeyPressEvent &event) {
-    //    light->setAttenuation(light->getAttenuation() * 1.05);
-    //    printf("attenuation = %f\n", light->getAttenuation());
-    //}, Key::left);
-    //Input::addKeyPressCallback([light](KeyPressEvent &event) {
-    //    light->setAttenuation(light->getAttenuation() * 0.95);
-    //    printf("attenuation = %f\n", light->getAttenuation());
-    //}, Key::right);
     
-    flecs::world world;
+    engine::SceneManager sceneManager;
+    serialization::BinaryUnserializer unserializer("build/scene.scene");
+    paca::fileformats::Scene scene;
+    unserializer << scene;
+    sceneManager.loadScene(scene);
+    flecs::world &world = sceneManager.getFlecsWorld();
 
-    world.set<engine::components::Skybox>({0});
-
-    auto plane = world.entity()
-        .set<engine::components::Transform>({{0.0f, -1.0f, 0.0f}, {0.0f, 0.0f, 0.0f}, {1.0f, 1.0f, 1.0f}})
-        .set<engine::components::StaticMesh>({0})
-        .set<engine::components::Material>({0});
-
-    auto statue = world.entity()
-        .set<engine::components::Transform>({{0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}, {10.0f, 10.0f, 10.0f}})
-        .set<engine::components::StaticMesh>({1})
-        .set<engine::components::Material>({1});
-
-    auto light0 = world.entity()
-        .set<engine::components::PointLight>({glm::vec3(1.0f, 0.0f, 0.0f), 0.4, 0.025f})
-        .set<engine::components::Transform>({{-3.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}, {1.0f, 1.0f, 1.0f}});
-    auto light1 = world.entity()
-        .set<engine::components::PointLight>({glm::vec3(0.0f, 0.0f, 1.0f), 0.4, 0.025f})
-        .set<engine::components::Transform>({{3.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}, {1.0f, 1.0f, 1.0f}});
-
-    auto directionalLight = world.entity()
-        .set<engine::components::DirectionalLight>({{1.0f, 1.0f, 0.9f}, 0.7f})
-        .set<engine::components::Transform>({{0.0f, 0.0f, 0.0f}, {-70.0f, 35.0f, 0.0f}, {1.0f ,1.0f, 1.0f}})
-        .emplace<engine::components::DirectionalLightShadowMap>(512u, std::vector<float>{5.0f, 10.0f, 25.0f, 50.0f, 100.0f});
-
-    INFO("Id {}", plane.id());
-
-    Action setLightPosAction[2];
-    setLightPosAction[0].init("setLight1", [&cameraController, &light0]() {
-        glm::vec3 newPos = cameraController.getCamera().getPosition();
-        INFO("LIGHT1");
-        light0.ensure<engine::components::Transform>().position = newPos;
-    });
-    setLightPosAction[1].init("setLight2", [&cameraController, &light1]() {
-        glm::vec3 newPos = cameraController.getCamera().getPosition();
-        INFO("LIGHT2");
-        light1.ensure<engine::components::Transform>().position = newPos;
-    });
-    BindingsManager::bind(Button::left, "setLight1");
-    BindingsManager::bind(Button::right, "setLight2");
+    //Action setLightPosAction[2];
+    //setLightPosAction[0].init("setLight1", [&cameraController, &light0]() {
+    //    glm::vec3 newPos = cameraController.getCamera().getPosition();
+    //    INFO("LIGHT1");
+    //    light0.ensure<engine::components::Transform>().position = newPos;
+    //});
+    //setLightPosAction[1].init("setLight2", [&cameraController, &light1]() {
+    //    glm::vec3 newPos = cameraController.getCamera().getPosition();
+    //    INFO("LIGHT2");
+    //    light1.ensure<engine::components::Transform>().position = newPos;
+    //});
+    //BindingsManager::bind(Button::left, "setLight1");
+    //BindingsManager::bind(Button::right, "setLight2");
 
     BindingsManager::bind(Key::w, "forward");
     BindingsManager::bind(Key::s, "backward");

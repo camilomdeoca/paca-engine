@@ -133,7 +133,7 @@ void BindingsManager::init()
             {
                 const MouseWheelEvent &wheelEvent = static_cast<const MouseWheelEvent&>(event);
                 if (s_data.mouseWheelDownBinding)
-                    for (unsigned int i = 0; i < -wheelEvent.getAmmount(); i++)
+                    for (int i = 0; i < -wheelEvent.getAmmount(); i++)
                         s_data.mouseWheelDownBinding->exec();
                 break;
             }
@@ -141,7 +141,7 @@ void BindingsManager::init()
             {
                 const MouseWheelEvent &wheelEvent = static_cast<const MouseWheelEvent&>(event);
                 if (s_data.mouseWheelUpBinding)
-                    for (unsigned int i = 0; i < wheelEvent.getAmmount(); i++)
+                    for (int i = 0; i < wheelEvent.getAmmount(); i++)
                         s_data.mouseWheelUpBinding->exec();
                 break;
             }

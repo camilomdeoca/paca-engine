@@ -6,6 +6,7 @@ qt_add_executable(editor
     MainWindow.cpp
     FilepathEdit.cpp
     CameraView.cpp
+    OpenGLWidget.cpp
     ModelConverter.cpp
     CubemapConverter.cpp
     FontConverter.cpp
@@ -19,6 +20,7 @@ target_link_libraries(editor
     PRIVATE
         Qt6::Widgets
         Qt6::OpenGLWidgets
+        engine
         resource-file-formats
         serializers
         opengl-wrapper

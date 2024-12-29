@@ -47,7 +47,7 @@ void SceneEditor::onOpen()
         nullptr,
         "Open Scene file",
         "",
-        "Scene (*.pack)").toStdString();
+        "Scene (*.scene)").toStdString();
 
     serialization::BinaryUnserializer unserializer(m_sceneFilepath);
     unserializer << (*m_scene);
@@ -70,7 +70,7 @@ void SceneEditor::onSaveAs()
         nullptr,
         "Save as Scene file",
         "",
-        "Scene (*.pack)").toStdString();
+        "Scene (*.scene)").toStdString();
 
     serialization::BinarySerializer serializer(m_sceneFilepath);
     serializer << (*m_scene);

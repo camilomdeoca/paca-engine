@@ -10,6 +10,7 @@ add_library(engine STATIC
     ForwardRenderer.cpp
     NewResourceManager.cpp
     StaticMesh.cpp
+    SceneManager.cpp
     components/DirectionalLightShadowMap.cpp
 )
 

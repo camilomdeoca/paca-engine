@@ -6,7 +6,9 @@
 #include "engine/AnimatedMesh.hpp"
 #include "opengl/Shader.hpp"
 
-#include <flecs.h>
+namespace flecs {
+    struct world;
+}
 
 namespace engine {
 

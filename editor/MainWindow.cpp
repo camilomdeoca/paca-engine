@@ -1,7 +1,8 @@
+#include "CameraView.hpp"
 #include "MainWindow.hpp"
 #include "AssetPackEditor.hpp"
-#include "CameraView.hpp"
 #include "SceneEditor.hpp"
+#include "serializers/BinarySerialization.hpp"
 
 #include <QHBoxLayout>
 #include <QPushButton>
@@ -17,7 +18,20 @@ MainWindow::MainWindow()
     setWindowTitle("Editor");
 
     resize(1280, 720);
-    paca::fileformats::Scene *scene = new paca::fileformats::Scene();
+    std::shared_ptr<paca::fileformats::Scene> scene
+        = std::make_shared<paca::fileformats::Scene>();
+    std::shared_ptr<paca::fileformats::AssetPack> assetPack
+        = std::make_shared<paca::fileformats::AssetPack>();
+
+    {
+        serialization::BinaryUnserializer unserializer("build/out.pack");
+        unserializer << *assetPack;
+    }
+    {
+        serialization::BinaryUnserializer unserializer("build/scene.scene");
+        unserializer << *scene;
+    }
+
     //{
     //    QDockWidget *dockWidget = new QDockWidget("Scene Editor");
 
@@ -28,8 +42,6 @@ MainWindow::MainWindow()
     //    addDockWidget(Qt::RightDockWidgetArea, dockWidget);
     //}
     {
-        std::shared_ptr<paca::fileformats::AssetPack> assetPack
-            = std::make_shared<paca::fileformats::AssetPack>();
         QDockWidget *dockWidget = new QDockWidget("AssetPack Editor");
 
         auto *assetPackEditor = new AssetPackEditor(assetPack, this);
@@ -37,17 +49,15 @@ MainWindow::MainWindow()
         addDockWidget(Qt::RightDockWidgetArea, dockWidget);
     }
     {
-        std::shared_ptr<paca::fileformats::Scene> scene
-            = std::make_shared<paca::fileformats::Scene>();
         QDockWidget *dockWidget = new QDockWidget("Scene Editor");
 
-        auto *sceneEditor = new SceneEditor(scene, this);
+        SceneEditor *sceneEditor = new SceneEditor(scene, this);
         dockWidget->setWidget(sceneEditor);
         addDockWidget(Qt::RightDockWidgetArea, dockWidget);
     }
     {
         QDockWidget *dockWidget = new QDockWidget("CameraView");
-        CameraView *cameraView = new CameraView(scene);
+        CameraView *cameraView = new CameraView(scene, assetPack);
         dockWidget->setWidget(cameraView);
         addDockWidget(Qt::LeftDockWidgetArea, dockWidget);
     }
