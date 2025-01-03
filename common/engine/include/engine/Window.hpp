@@ -15,6 +15,10 @@ public:
     unsigned int getHeight() { return m_height; }
 
     void swapBuffers();
+
+    SDL_Window *getSDLWindow() const { return m_window.get(); }
+    SDL_GLContext getSDLGLContext() const { return m_glContext; }
+
 private:
     struct deleter {
         void operator()(SDL_Window *window){

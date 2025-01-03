@@ -1,15 +1,15 @@
-#include "engine/ForwardRenderer.hpp"
+#include <engine/ForwardRenderer.hpp>
 
-#include "engine/Material.hpp"
-#include "engine/components/DirectionalLightShadowMap.hpp"
-#include "engine/components/Skybox.hpp"
-#include "engine/components/StaticMesh.hpp"
-#include "engine/components/AnimatedMesh.hpp"
-#include "engine/components/Material.hpp"
-#include "engine/components/DirectionalLight.hpp"
-#include "engine/components/PointLight.hpp"
-#include "engine/components/Transform.hpp"
-#include "opengl/gl.hpp"
+#include <engine/Material.hpp>
+#include <engine/components/DirectionalLightShadowMap.hpp>
+#include <engine/components/Skybox.hpp>
+#include <engine/components/StaticMesh.hpp>
+#include <engine/components/AnimatedMesh.hpp>
+#include <engine/components/Material.hpp>
+#include <engine/components/DirectionalLight.hpp>
+#include <engine/components/PointLight.hpp>
+#include <engine/components/Transform.hpp>
+#include <opengl/gl.hpp>
 
 #include <flecs.h>
 
@@ -19,9 +19,11 @@
 namespace engine {
 
 ForwardRenderer::ForwardRenderer()
+    : m_renderTarget(FrameBuffer::getDefault())
 {}
 
 ForwardRenderer::ForwardRenderer(const Parameters &parameters)
+    : m_renderTarget(FrameBuffer::getDefault())
 {
     init(parameters);
 }
@@ -125,7 +127,10 @@ void ForwardRenderer::init(const Parameters &parameters)
 }
 
 void ForwardRenderer::resize(uint32_t width, uint32_t height)
-{}
+{
+    m_parameters.width = width;
+    m_parameters.height = height;
+}
 
 std::array<glm::vec3, 8> getFrustumCorners(const glm::mat4 &projectionViewMatrix)
 {
@@ -356,7 +361,7 @@ void ForwardRenderer::drawMesh(
     const flecs::world &world,
     const NewResourceManager &resourceManager) const
 {
-    FrameBuffer::getDefault().bind();
+    m_renderTarget.bind();
     m_staticMeshShader->bind();
     m_staticMeshShader->setMat4("u_projectionMatrix", camera.getProjectionMatrix());
     m_staticMeshShader->setMat4("u_viewModelMatrix", camera.getViewMatrix() * modelMatrix);

@@ -1,10 +1,11 @@
 #pragma once
 
-#include "engine/NewResourceManager.hpp"
-#include "engine/PerspectiveCamera.hpp"
-#include "engine/StaticMesh.hpp"
-#include "engine/AnimatedMesh.hpp"
-#include "opengl/Shader.hpp"
+#include <engine/NewResourceManager.hpp>
+#include <engine/PerspectiveCamera.hpp>
+#include <engine/StaticMesh.hpp>
+#include <engine/AnimatedMesh.hpp>
+#include <opengl/FrameBuffer.hpp>
+#include <opengl/Shader.hpp>
 
 namespace flecs {
     struct world;
@@ -31,6 +32,7 @@ public:
     void init(const Parameters &parameters);
 
     void resize(uint32_t width, uint32_t height);
+    void setRenderTarget(FrameBuffer &renderTarget) { m_renderTarget = renderTarget; }
 
     void renderWorld(const PerspectiveCamera &camera, const flecs::world &world, const NewResourceManager &resourceManager);
 
@@ -82,6 +84,7 @@ private:
     std::shared_ptr<Shader> m_shadowMapShader;
     std::shared_ptr<Shader> m_skyboxShader;
     std::shared_ptr<VertexArray> m_cubeVertexArray;
+    FrameBuffer &m_renderTarget;
 };
 
 } // namespace engine

@@ -5,6 +5,9 @@ namespace engine::components {
 
 struct Skybox
 {
+    NAME("Skybox")
+    FIELDS(id)
+    FIELD_NAMES("id")
     CubeMapId id;
 };
 

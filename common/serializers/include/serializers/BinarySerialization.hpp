@@ -42,7 +42,7 @@ void unserializeVariant(
     if(N == targetIndex)
     {
         variant.template emplace<N>();
-        unserializer << std::get<N>(variant);
+        unserializer(std::get<N>(variant));
     }
     else
     {
@@ -56,7 +56,7 @@ template<typename Writer>
 class Serializer {
 public:
     template<typename T>
-    Serializer &operator<<(const T &value)
+    void operator()(const T &value)
     {
         if constexpr (std::is_enum_v<T>)
         {
@@ -70,84 +70,70 @@ public:
         {
             m_writer.write(value);
         }
-        return *this;
     }
 
-    Serializer &operator<<(const std::string &value)
+    void operator()(const std::string &value)
     {
         m_writer.write(value.size());
         for(const char &elem : value)
         {
-            (*this) << elem;
+            (*this)(elem);
         }
-        return *this;
     }
 
     template<typename T>
-    Serializer &operator<<(const std::vector<T> &value)
+    void operator()(const std::vector<T> &value)
     {
         m_writer.write(value.size());
         for(const T &elem : value)
         {
-            (*this) << elem;
+            (*this)(elem);
         }
-        return *this;
     }
 
     template<typename T, size_t Size>
-    Serializer &operator<<(const std::array<T, Size> &value)
+    void operator()(const std::array<T, Size> &value)
     {
         for(const T &elem : value)
         {
-            (*this) << elem;
+            (*this)(elem);
         }
-        return *this;
     }
 
     template<typename... Types>
-    Serializer &operator<<(const std::variant<Types...> &value)
+    void operator()(const std::variant<Types...> &value)
     {
         m_writer.write(value.index());
-        std::visit([this](auto value) { (*this) << value; }, value);
-        return *this;
+        std::visit(*this, value);
     }
 
     template<glm::length_t Length, typename T>
-    Serializer &operator<<(const glm::vec<Length, T> &value)
+    void operator()(const glm::vec<Length, T> &value)
     {
         for(glm::length_t i = 0; i < value.length(); i++)
         {
-            (*this) << value[i];
+            (*this)(value[i]);
         }
-        return *this;
     }
 
     template<glm::length_t Columns, glm::length_t Rows, typename T>
-    Serializer &operator<<(const glm::mat<Columns, Rows, T> &value)
+    void operator()(const glm::mat<Columns, Rows, T> &value)
     {
         for(glm::length_t i = 0; i < value.length(); i++)
         {
-            (*this) << value[i];
+            (*this)(value[i]);
         }
-        return *this;
     }
 
     template<typename T>
-    Serializer &operator<<(const glm::qua<T> &value)
+    void operator()(const glm::qua<T> &value)
     {
         for(glm::length_t i = 0; i < value.length(); i++)
         {
-            (*this) << value[i];
+            (*this)(value[i]);
         }
-        return *this;
     }
 
-    template<typename ...Args>
-    Serializer &operator()(const Args &...values)
-    {
-        ((*this) << ... << values);
-        return *this;
-    }
 protected:
     Writer m_writer;
 };
@@ -156,7 +142,7 @@ template<typename Reader>
 class Unserializer {
 public:
     template<typename T>
-    Unserializer &operator<<(T &value)
+    void operator()(T &value)
     {
         if constexpr (std::is_enum_v<T>)
         {
@@ -170,88 +156,73 @@ public:
         {
             m_reader.read(value);
         }
-        return *this;
     }
 
-    Unserializer &operator<<(std::string &value)
+    void operator()(std::string &value)
     {
         decltype(value.size()) size = 0;
         m_reader.read(size);
         value.resize(size);
         for(char &elem : value)
         {
-            (*this) << elem;
+            (*this)(elem);
         }
-        return *this;
     }
 
     template<typename T>
-    Unserializer &operator<<(std::vector<T> &value)
+    void operator()(std::vector<T> &value)
     {
         decltype(value.size()) size = 0;
         m_reader.read(size);
         value.resize(size);
         for(T &elem : value)
         {
-            (*this) << elem;
+            (*this)(elem);
         }
-        return *this;
     }
 
     template<typename T, size_t Size>
-    Unserializer &operator<<(std::array<T, Size> &value)
+    void operator()(std::array<T, Size> &value)
     {
         for(T &elem : value)
         {
-            (*this) << elem;
+            (*this)(elem);
         }
-        return *this;
     }
 
     template<typename... Types>
-    Unserializer &operator<<(std::variant<Types...> &value)
+    void operator()(std::variant<Types...> &value)
     {
         decltype(value.index()) index = std::variant_npos;
         m_reader.read(index);
         detail::unserializeVariant<0>(*this, index, value);
-        return *this;
     }
 
     template<glm::length_t Length, typename T>
-    Unserializer &operator<<(glm::vec<Length, T> &value)
+    void operator()(glm::vec<Length, T> &value)
     {
         for(glm::length_t i = 0; i < value.length(); i++)
         {
-            (*this) << value[i];
+            (*this)(value[i]);
         }
-        return *this;
     }
 
     template<glm::length_t Columns, glm::length_t Rows, typename T>
-    Unserializer &operator<<(glm::mat<Columns, Rows, T> &value)
+    void operator()(glm::mat<Columns, Rows, T> &value)
     {
         for(glm::length_t i = 0; i < value.length(); i++)
         {
-            (*this) << value[i];
+            (*this)(value[i]);
         }
-        return *this;
     }
 
     template<typename T>
-    Unserializer &operator<<(glm::qua<T> &value)
+    void operator()(glm::qua<T> &value)
     {
         for(glm::length_t i = 0; i < value.length(); i++)
         {
-            (*this) << value[i];
+            (*this)(value[i]);
         }
-        return *this;
-    }
-
-    template<typename ...Args>
-    Unserializer &operator()(Args &...values)
-    {
-        ((*this) << ... << values);
-        return *this;
     }
 
 protected:

@@ -11,6 +11,9 @@ add_library(engine STATIC
     NewResourceManager.cpp
     StaticMesh.cpp
     SceneManager.cpp
+    Action.cpp
+    Input.cpp
+    Window.cpp
     components/DirectionalLightShadowMap.cpp
 )
 

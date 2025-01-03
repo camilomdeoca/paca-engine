@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 SESSION_NAME="paca_engine"
+export PATH=$PWD/scripts:$PATH
 
 # Check if the session already exists
 if tmux has-session -t $SESSION_NAME 2>/dev/null; then

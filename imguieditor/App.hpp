@@ -9,11 +9,12 @@ public:
     App();
     ~App();
 
-    void init(std::string title = "Engine");
+    void init(std::string title = "Editor");
     void run();
 
 private:
     Window m_window;
+    FrameBuffer m_sceneRendererTarget;
     engine::ForwardRenderer m_renderer;
     NewResourceManager m_resourceManager;
     EventReceiver m_eventReceiver;

@@ -1,6 +1,6 @@
 #include "opengl/FrameBuffer.hpp"
 
-#include "utils/Assert.hpp"
+#include <utils/Assert.hpp>
 #include "opengl/Texture.hpp"
 
 #include <GL/glew.h>
@@ -101,6 +101,13 @@ void FrameBuffer::init(FrameBufferParameters parameters)
 FrameBuffer::~FrameBuffer()
 {
     glDeleteFramebuffers(1, &m_id);
+}
+
+void FrameBuffer::shutdown()
+{
+    if (m_id) glDeleteFramebuffers(1, &m_id);
+    m_depthAttachment.reset();
+    m_colorAttachments.clear();
 }
 
 void FrameBuffer::bind()

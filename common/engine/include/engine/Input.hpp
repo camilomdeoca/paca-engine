@@ -173,6 +173,7 @@ public:
     static void init();
 
     static void processInput();
+    static void processSDLEvent(const SDL_Event &event);
 
     static void restrainMouseToWindow(bool enabled);
 

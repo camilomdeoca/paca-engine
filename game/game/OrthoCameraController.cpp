@@ -1,5 +1,5 @@
 #include "game/OrthoCameraController.hpp"
-#include "game/Input.hpp"
+#include <engine/Input.hpp>
 
 OrthoCameraController::OrthoCameraController(float aspectRatio)
     : m_aspectRatio(aspectRatio), m_camera(-m_aspectRatio*m_zoom, m_aspectRatio*m_zoom, -m_zoom, m_zoom)

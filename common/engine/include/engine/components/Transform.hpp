@@ -3,10 +3,15 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
+#include <serializers/Reflection.hpp>
+
 namespace engine::components {
 
 struct Transform
 {
+    NAME("Transform")
+    FIELDS(position, rotation, scale)
+    FIELD_NAMES("position", "rotation", "scale")
     glm::vec3 position = {0.0f, 0.0f, 0.0f};
     glm::vec3 rotation = {0.0f, 0.0f, 0.0f};
     glm::vec3 scale    = {1.0f, 1.0f, 1.0f};

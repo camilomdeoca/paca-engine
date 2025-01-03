@@ -20,9 +20,13 @@ public:
     ~FrameBuffer();
 
     void init(FrameBufferParameters parameters);
+    void shutdown();
 
     const std::vector<std::shared_ptr<Texture>> &getColorAttachments() const { return m_colorAttachments; }
     std::shared_ptr<Texture> getDepthAttachment() { return m_depthAttachment; }
+
+    uint32_t getWidth() const { return m_width; }
+    uint32_t getHeight() const { return m_height; }
 
     static void copy(const FrameBuffer &from, const FrameBuffer &to); // TODO: Specify what attachment is copied
     

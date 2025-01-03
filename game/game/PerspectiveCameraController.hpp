@@ -1,8 +1,8 @@
 #pragma once
 
-#include "game/Action.hpp"
-#include "game/Input.hpp"
-#include "engine/PerspectiveCamera.hpp"
+#include <engine/Action.hpp>
+#include <engine/Input.hpp>
+#include <engine/PerspectiveCamera.hpp>
 
 class PerspectiveCameraController {
 public:

@@ -65,7 +65,7 @@ public:
     void setBorderColor(const glm::vec4 color);
 
     // Needed for the framebuffer class. Is there a better way without exposing the id?
-    uint32_t getId() { return m_id; }
+    uint32_t getId() const { return m_id; }
 
 private:
     void create(const Specification &specification);

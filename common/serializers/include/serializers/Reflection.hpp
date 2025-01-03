@@ -1,15 +1,95 @@
 #pragma once
 
+// Those are not used in this file but are needed in any file that uses the macro
+#include <string_view>
+#include <array>
+
+namespace detail {
+
+template <typename VisitorType>
+class VisitorConverter {
+public:
+    VisitorConverter(VisitorType &visitor)
+        : m_visitor(visitor)
+    {}
+
+    template<typename ...Args>
+    void operator()(Args &...values)
+    {
+        ((*this) << ... << values);
+    }
+
+private:
+    VisitorConverter &operator<<(auto &value)
+    {
+        m_visitor(value);
+        return *this;
+    }
+
+    VisitorType &m_visitor;
+};
+
+template <typename T, typename VisitorType>
+class VisitorConverterWithName {
+public:
+    VisitorConverterWithName(VisitorType &visitor)
+        : m_visitor(visitor)
+    {}
+
+    template<typename ...Args>
+    void operator()(Args &...values)
+    {
+        ((*this) << ... << values);
+    }
+
+private:
+    VisitorConverterWithName &operator<<(auto &value)
+    {
+        std::string_view name = T::getFieldNames()[m_currentFieldIndex++];
+        m_visitor(value, name);
+        return *this;
+    }
+
+    int m_currentFieldIndex = 0;
+    VisitorType &m_visitor;
+};
+
+} // namespace detail
+
 #define NAME(name) \
 static constexpr std::string_view getClassName() { return name; }
 
 #define FIELDS(...) \
-template<typename T> \
-void forEachField(T &val) { val(__VA_ARGS__); } \
-template<typename T> \
-void forEachField(T &val) const { val(__VA_ARGS__); }
+template <typename Visitor> \
+void forEachField(Visitor &&visitor) \
+{ \
+    (detail::VisitorConverter<Visitor>(visitor))(__VA_ARGS__); \
+} \
+template <typename Visitor> \
+void forEachField(Visitor &&visitor) const \
+{ \
+    (detail::VisitorConverter<Visitor>(visitor))(__VA_ARGS__); \
+} \
+template <typename Visitor> \
+void forEachFieldWithName(Visitor &&visitor) \
+{ \
+    (detail::VisitorConverterWithName< \
+        std::remove_reference_t<decltype(*this)>, \
+        Visitor \
+    >(visitor))(__VA_ARGS__); \
+} \
+template <typename Visitor> \
+void forEachFieldWithName(Visitor &&visitor) const \
+{ \
+    (detail::VisitorConverterWithName< \
+        std::remove_reference_t<decltype(*this)>, \
+        Visitor \
+    >(visitor))(__VA_ARGS__); \
+}
 
 #define FIELD_NAMES(...) \
-static constexpr std::vector<std::string_view> getFieldNames() { return { __VA_ARGS__ }; }
-
+static constexpr auto getFieldNames() \
+{ \
+    return std::to_array<std::string_view>({ __VA_ARGS__ }); \
+}
 

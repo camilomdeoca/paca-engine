@@ -26,7 +26,7 @@ void NewResourceManager::loadAssetPack(const std::string &path)
 
     {
         serialization::BinaryUnserializer unserializer(path);
-        unserializer << assetPack;
+        unserializer(assetPack);
     }
 
     loadAssetPack(assetPack);

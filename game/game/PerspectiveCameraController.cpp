@@ -1,7 +1,7 @@
 #include "game/PerspectiveCameraController.hpp"
 
-#include "utils/Assert.hpp"
-#include "game/Input.hpp"
+#include <utils/Assert.hpp>
+#include <engine/Input.hpp>
 
 #include <algorithm>
 
