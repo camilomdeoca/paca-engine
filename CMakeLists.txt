@@ -28,6 +28,7 @@ enable_testing()
 add_subdirectory(lib/stb_image)
 add_subdirectory(lib/flecs EXCLUDE_FROM_ALL)
 add_subdirectory(lib/imgui EXCLUDE_FROM_ALL)
+add_subdirectory(lib/ImGuizmo EXCLUDE_FROM_ALL)
 
 add_subdirectory(common/utils)
 add_subdirectory(common/resource-file-formats)

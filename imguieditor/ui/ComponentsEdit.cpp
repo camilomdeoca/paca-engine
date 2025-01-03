@@ -1,6 +1,6 @@
 #include "ComponentsEdit.hpp"
+
 #include "CustomComponents.hpp"
-#include "imgui_internal.h"
 
 #include <imgui.h>
 
@@ -36,19 +36,26 @@ void componentEdit(EditorContext &editorContext, engine::components::Material &m
     ImGui::InputUInt("ID", &materialComponent.id);
     const Material &material = editorContext.resourceManager.getMaterial(materialComponent.id);
     for (auto &[textureType, name] : {
-        std::pair{MaterialTextureType::diffuse, "diffuse"},
-        std::pair{MaterialTextureType::specular, "specular"},
-        std::pair{MaterialTextureType::normal, "normal"}
+        std::pair{MaterialTextureType::diffuse, "Diffuse"},
+        std::pair{MaterialTextureType::specular, "Specular"},
+        std::pair{MaterialTextureType::normal, "Normal"}
     }) {
-        if (ImGui::TreeNodeEx(name))
+        ImGui::PushID(textureType);
+        bool isOpen = ImGui::TreeNodeEx(name);
+        ImGui::SameLine();
+        ImGui::Text("(%zu textures)", material.getTextureIds(textureType).size());
+        ImGui::SameLine();
+        ImGui::SmallButton("Add texture");
+        if (isOpen)
         {
-            for (TextureId id : material.getTextureIds(textureType))
+            if (ImGui::BeginTable("texture data", 2, ImGuiTableFlags_Resizable))
             {
-                const Texture &texture = editorContext.resourceManager.getTexture(id);
-                if (ImGui::BeginTable("texture data", 2, ImGuiTableFlags_Resizable))
+                ImGui::TableSetupColumn("Image", ImGuiTableColumnFlags_WidthFixed);
+                ImGui::TableSetupColumn("Description", ImGuiTableColumnFlags_WidthStretch);
+
+                for (TextureId id : material.getTextureIds(textureType))
                 {
-                    ImGui::TableSetupColumn("Image", ImGuiTableColumnFlags_WidthFixed);
-                    ImGui::TableSetupColumn("Description", ImGuiTableColumnFlags_WidthStretch);
+                    const Texture &texture = editorContext.resourceManager.getTexture(id);
                     ImGui::TableNextRow();
 
                     ImGui::TableSetColumnIndex(0);
@@ -64,13 +71,45 @@ void componentEdit(EditorContext &editorContext, engine::components::Material &m
 
                     ImGui::TableSetColumnIndex(1);
                     ImGui::LabelText("Format", "%s", formatName(texture.getFormat()));
+                    ImGui::LabelText("Size", "%ux%u", texture.getWidth(), texture.getHeight());
 
-                    ImGui::EndTable();
                 }
+                ImGui::EndTable();
             }
             ImGui::TreePop();
         }
+        ImGui::PopID();
     }
+}
+
+void componentEdit(EditorContext &editorContext, engine::components::StaticMesh &staticMesh)
+{
+    ImGui::InputUInt("ID", &staticMesh.id);
+}
+
+void componentEdit(EditorContext &editorContext, engine::components::AnimatedMesh &animatedMesh)
+{
+    ImGui::InputUInt("ID", &animatedMesh.id);
+}
+
+void componentEdit(EditorContext &editorContext, engine::components::PointLight &pointLight)
+{
+    ImGui::SliderFloat3("Color", glm::value_ptr(pointLight.color), 0.0f, 1.0f);
+    ImGui::SliderFloat("Intensity", &pointLight.intensity, 0.0f, 3.0f);
+    ImGui::SliderFloat("Attenuation", &pointLight.attenuation, 0.0f, 0.1f);
+}
+
+void componentEdit(
+    EditorContext &editorContext,
+    engine::components::DirectionalLight &directionalLight)
+{
+    ImGui::SliderFloat3("Color", glm::value_ptr(directionalLight.color), 0.0f, 1.0f);
+    ImGui::SliderFloat("Intensity", &directionalLight.intensity, 0.0f, 3.0f);
+}
+
+void componentEdit(EditorContext &editorContext, engine::components::Skybox &skybox)
+{
+    ImGui::InputUInt("ID", &skybox.id);
 }
 
 } // namespace ui

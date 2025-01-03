@@ -6,3 +6,5 @@ CMakeFiles
 .cache/clangd/index
 compile_commands.json
 .clangd
+
+imgui.ini

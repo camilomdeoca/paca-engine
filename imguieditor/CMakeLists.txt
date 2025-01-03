@@ -25,6 +25,7 @@ target_link_libraries(imguieditor
         assimp
         stb_image
         imgui
+        ImGuizmo
         ${FREETYPE_LIBRARIES}
         ${SDL2_LIBRARIES}
 )

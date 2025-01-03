@@ -3,6 +3,6 @@
 (
     cd build &&
     cmake .. -DCMAKE_CXX_COMPILER=g++ &&
-    cmake --build imguieditor -j $(nproc)
+    cmake --build $1 -j $(nproc)
 ) &&
-./build/imguieditor/imguieditor
+./build/$1/$1
