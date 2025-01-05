@@ -10,7 +10,7 @@
 #include <variant>
 #include <vector>
 
-namespace serialization {
+namespace engine::serializers {
 
 namespace detail {
 
@@ -289,5 +289,5 @@ public:
     }
 };
 
-} // namespace serialization
+} // namespace engine::serializers
 

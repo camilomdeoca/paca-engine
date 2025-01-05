@@ -21,7 +21,7 @@ bool DragEditVec3(
 
     if (ImGui::BeginPopupContextItem(label))
     {
-        if (ImGui::Selectable("reset")) v = {0.0f, 0.0f, 0.0f};
+        if (ImGui::Selectable("reset")) v = resetValue;
         ImGui::EndPopup();
     }
 

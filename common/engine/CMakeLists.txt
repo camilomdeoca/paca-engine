@@ -14,7 +14,7 @@ add_library(engine STATIC
     Action.cpp
     Input.cpp
     Window.cpp
-    components/DirectionalLightShadowMap.cpp
+    Components.cpp
 )
 
 target_include_directories(engine PRIVATE
@@ -34,7 +34,8 @@ target_link_libraries(engine
     asserts
     assimp
     resource-file-formats
-    serializers
+    reflection
     stb_image
     flecs::flecs_static
+    yaml-cpp
 )

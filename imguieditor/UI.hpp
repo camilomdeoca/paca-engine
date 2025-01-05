@@ -18,6 +18,7 @@ struct EditorContext
     std::function<void(uint32_t, uint32_t)> resizeCallback;
     flecs::world &world;
     flecs::entity selectedEntity;
+    float timeDelta;
 };
 
 void draw(EditorContext &context);

@@ -1,9 +1,13 @@
 #include "App.hpp"
+
+#include <engine/FlecsSerialization.hpp>
 #include "UI.hpp"
+
 #include <engine/SceneManager.hpp>
 #include <engine/Input.hpp>
 #include <engine/Action.hpp>
-#include <serializers/BinarySerialization.hpp>
+#include <engine/BinarySerialization.hpp>
+#include <engine/YamlSerialization.hpp>
 #include <utils/Assert.hpp>
 #include <engine/OrthoCamera.hpp>
 #include <engine/NewResourceManager.hpp>
@@ -18,6 +22,7 @@
 #include <ImGuizmo.h>
 #include <backends/imgui_impl_sdl2.h>
 #include <backends/imgui_impl_opengl3.h>
+#include <yaml-cpp/node/parse.h>
 
 App::App()
 {}
@@ -95,14 +100,11 @@ void App::run()
 
     m_resourceManager.loadAssetPack("build/out.pack");
     
-    engine::SceneManager sceneManager;
-    paca::fileformats::Scene scene;
+    flecs::world world;
     {
-        serialization::BinaryUnserializer unserializer("build/scene.scene");
-        unserializer(scene);
+        engine::serializers::FlecsUnserializer unserializer("flecs.yaml");
+        unserializer.operator()(world);
     }
-    sceneManager.loadScene(scene);
-    flecs::world &world = sceneManager.getFlecsWorld();
 
     BindingsManager::bind(Key::w, "forward");
     BindingsManager::bind(Key::s, "backward");
@@ -138,8 +140,9 @@ void App::run()
             m_renderer.resize(w, h);
             camera.setAspect((float)w/h);
         },
-        .world = sceneManager.getFlecsWorld(),
-        .selectedEntity = sceneManager.getFlecsWorld().lookup("1002"),
+        .world = world,
+        .selectedEntity = flecs::entity(),
+        .timeDelta = 0,
     };
 
     float lastFrameTime = SDL_GetTicks();
@@ -147,6 +150,8 @@ void App::run()
         float time = SDL_GetTicks();
         float timeDelta = time - lastFrameTime;
         lastFrameTime = time;
+
+        editorContext.timeDelta = timeDelta;
 
         constexpr int frameTimeMeasurementCount = 10;
         static float framTimeBuffer[frameTimeMeasurementCount] = {0};

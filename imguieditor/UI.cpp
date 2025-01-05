@@ -1,7 +1,7 @@
 #include "UI.hpp"
 #include "ui/ComponentsEdit.hpp"
 
-#include <engine/components/Components.hpp>
+#include <engine/Components.hpp>
 
 #include <engine/PerspectiveCamera.hpp>
 #include <engine/NewResourceManager.hpp>
@@ -77,19 +77,22 @@ void draw(EditorContext &context)
 
     if (ImGui::Begin("Selected entity"))
     {
-        visitComponents([&context](auto &component) {
-            using ComponentType = decltype(component);
-            flecs::component<ComponentType> componentEntity
-                = context.world.component<ComponentType>();
-            if (ImGui::CollapsingHeader(
-                componentEntity.name().c_str(),
-                ImGuiTreeNodeFlags_DefaultOpen))
-            {
-                ImGui::PushID(componentEntity.name().c_str());
-                ui::componentEdit(context, component);
-                ImGui::PopID();
-            }
-        }, context.selectedEntity);
+        if (context.selectedEntity.is_valid())
+        {
+            visitComponents([&context](auto &component) {
+                using ComponentType = decltype(component);
+                flecs::component<ComponentType> componentEntity
+                    = context.world.component<ComponentType>();
+                if (ImGui::CollapsingHeader(
+                    componentEntity.name().c_str(),
+                    ImGuiTreeNodeFlags_DefaultOpen))
+                {
+                    ImGui::PushID(componentEntity.name().c_str());
+                    ui::componentEdit(context, component);
+                    ImGui::PopID();
+                }
+            }, context.selectedEntity);
+        }
     }
     ImGui::End();
 
@@ -97,6 +100,53 @@ void draw(EditorContext &context)
     {
         if (ImGui::BeginChild("Scene Render"))
         {
+            if(ImGui::IsWindowFocused())
+            {
+                constexpr float cameraSpeed = 0.005f; // units per ms
+
+                glm::vec3 position = context.camera.getPosition();
+                glm::vec3 front = context.camera.getDirection();
+                //front.y = 0;
+                //front = glm::normalize(front);
+                glm::vec3 right = glm::normalize(glm::cross(front, context.camera.getUp()));
+
+                if (ImGui::IsKeyDown(ImGuiKey_A)) {
+                    position -= right * cameraSpeed * context.timeDelta;
+                }
+                if (ImGui::IsKeyDown(ImGuiKey_D)) {
+                    position += right * cameraSpeed * context.timeDelta;
+                }
+                if (ImGui::IsKeyDown(ImGuiKey_W)) {
+                    position += front * cameraSpeed * context.timeDelta;
+                }
+                if (ImGui::IsKeyDown(ImGuiKey_S)) {
+                    position -= front * cameraSpeed * context.timeDelta;
+                }
+                if (ImGui::IsKeyDown(ImGuiKey_Space)) {
+                    position.y += cameraSpeed * context.timeDelta;
+                }
+                if (ImGui::IsKeyDown(ImGuiKey_ModShift)) {
+                    position.y -= cameraSpeed * context.timeDelta;
+                }
+
+                if (ImGui::IsMouseDown(ImGuiMouseButton_Right))
+                {
+                    ImGuiIO& io = ImGui::GetIO();
+                    const float sensitivity = 0.5f;
+                    glm::vec3 rotation = context.camera.getRotation();
+                    float fov = context.camera.getFov();
+
+                    rotation.x -= io.MouseDelta.y * sensitivity * (fov/90.0f);
+                    rotation.y += io.MouseDelta.x * sensitivity * (fov/90.0f);
+
+                    rotation.x = std::clamp(rotation.x, -89.0f, 89.0f);
+
+                    context.camera.setRotation(rotation);
+                }
+
+                context.camera.setPosition(position);
+            }
+
             ImVec2 size = ImGui::GetContentRegionAvail();
             // resize when size changes
             if (size.x != (float)context.renderTarget.getWidth()
@@ -111,6 +161,7 @@ void draw(EditorContext &context)
                 ImVec2(0, 1),
                 ImVec2(1, 0));
 
+            if (context.selectedEntity.is_valid())
             {
                 ImGuizmo::SetOrthographic(false);
                 ImGuizmo::SetDrawlist();
@@ -127,12 +178,20 @@ void draw(EditorContext &context)
 
                 ASSERT(context.selectedEntity.has<engine::components::Transform>());
                 glm::mat4 selectedEntityTransform
-                    = *context.selectedEntity.get<engine::components::Transform>();
+                    = context.selectedEntity.get<engine::components::Transform>()->getTransform();
+
+                static ImGuizmo::OPERATION operation = ImGuizmo::TRANSLATE;
+                if (ImGui::IsWindowHovered())
+                {
+                    if (ImGui::IsKeyDown(ImGuiKey_T)) operation = ImGuizmo::TRANSLATE;
+                    if (ImGui::IsKeyDown(ImGuiKey_R)) operation = ImGuizmo::ROTATE;
+                    if (ImGui::IsKeyDown(ImGuiKey_G)) operation = ImGuizmo::SCALE;
+                }
 
                 ImGuizmo::Manipulate(
                     glm::value_ptr(cameraView),
                     glm::value_ptr(cameraProj),
-                    ImGuizmo::OPERATION::ROTATE,
+                    operation,
                     ImGuizmo::LOCAL,
                     glm::value_ptr(selectedEntityTransform));
 

@@ -1,7 +1,8 @@
 #include "engine/SceneManager.hpp"
 
+#include "engine/Components.hpp"
+
 #include <ResourceFileFormats.hpp>
-#include <engine/components/Components.hpp>
 #include <utils/Log.hpp>
 
 #include <variant>

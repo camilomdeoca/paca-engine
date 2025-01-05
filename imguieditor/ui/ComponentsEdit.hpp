@@ -1,10 +1,9 @@
 #pragma once
 
 #include "../UI.hpp"
-#include "engine/components/Skybox.hpp"
 
 #include <engine/NewResourceManager.hpp>
-#include <engine/components/Components.hpp>
+#include <engine/Components.hpp>
 
 namespace ui {
 

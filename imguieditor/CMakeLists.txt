@@ -15,7 +15,7 @@ target_link_libraries(imguieditor
     PRIVATE
         engine
         resource-file-formats
-        serializers
+        reflection
         opengl-wrapper
         GLX
         OpenGL

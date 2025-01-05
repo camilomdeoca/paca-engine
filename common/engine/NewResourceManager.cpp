@@ -6,7 +6,7 @@
 #include "engine/Material.hpp"
 #include "engine/Animation.hpp"
 #include "engine/Font.hpp"
-#include "serializers/BinarySerialization.hpp"
+#include "engine/BinarySerialization.hpp"
 
 NewResourceManager::NewResourceManager()
 {
@@ -25,7 +25,7 @@ void NewResourceManager::loadAssetPack(const std::string &path)
     paca::fileformats::AssetPack assetPack;
 
     {
-        serialization::BinaryUnserializer unserializer(path);
+        engine::serializers::BinaryUnserializer unserializer(path);
         unserializer(assetPack);
     }
 

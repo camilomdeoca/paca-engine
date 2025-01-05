@@ -1,4 +1,4 @@
-#include "engine/components/DirectionalLightShadowMap.hpp"
+#include "engine/Components.hpp"
 #include "utils/Assert.hpp"
 
 namespace engine::components {

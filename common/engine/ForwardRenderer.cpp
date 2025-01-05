@@ -1,14 +1,8 @@
-#include <engine/ForwardRenderer.hpp>
+#include "engine/ForwardRenderer.hpp"
 
-#include <engine/Material.hpp>
-#include <engine/components/DirectionalLightShadowMap.hpp>
-#include <engine/components/Skybox.hpp>
-#include <engine/components/StaticMesh.hpp>
-#include <engine/components/AnimatedMesh.hpp>
-#include <engine/components/Material.hpp>
-#include <engine/components/DirectionalLight.hpp>
-#include <engine/components/PointLight.hpp>
-#include <engine/components/Transform.hpp>
+#include "engine/Components.hpp"
+#include "engine/Material.hpp"
+
 #include <opengl/gl.hpp>
 
 #include <flecs.h>
@@ -237,7 +231,7 @@ void ForwardRenderer::renderWorld(const PerspectiveCamera &camera, const flecs::
     {
         world.each([&resourceManager, this, &world](const components::StaticMesh &meshComponent, const components::Transform &transform) {
             const StaticMesh &mesh = resourceManager.getStaticMesh(meshComponent.id);
-            drawMeshInShadowMaps(mesh, transform, world);
+            drawMeshInShadowMaps(mesh, transform.getTransform(), world);
         });
         //world.each([&resourceManager, this, &world](const components::AnimatedMesh &meshComponent, const components::Transform &transform) {
         //    const AnimatedMesh &mesh = resourceManager.getAnimatedMesh(meshComponent.id);
@@ -252,7 +246,7 @@ void ForwardRenderer::renderWorld(const PerspectiveCamera &camera, const flecs::
     {
         const StaticMesh &mesh = resourceManager.getStaticMesh(meshComponent.id);
         const Material &material = resourceManager.getMaterial(materialComponent.id);
-        drawMesh(camera, mesh, material, transform, world, resourceManager);
+        drawMesh(camera, mesh, material, transform.getTransform(), world, resourceManager);
     });
     //world.each([&resourceManager, this, &world, &camera](
     //    const components::AnimatedMesh &meshComponent,

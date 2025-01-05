@@ -32,7 +32,7 @@ add_subdirectory(lib/ImGuizmo EXCLUDE_FROM_ALL)
 
 add_subdirectory(common/utils)
 add_subdirectory(common/resource-file-formats)
-add_subdirectory(common/serializers)
+add_subdirectory(common/reflection)
 add_subdirectory(common/opengl)
 add_subdirectory(common/engine)
 add_subdirectory(editor)

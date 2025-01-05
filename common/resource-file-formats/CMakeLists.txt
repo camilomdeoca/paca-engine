@@ -9,5 +9,5 @@ target_link_libraries(resource-file-formats
     INTERFACE
         logger
         asserts
-        serializers
+        reflection
 )
