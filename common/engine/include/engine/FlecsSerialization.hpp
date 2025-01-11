@@ -39,13 +39,13 @@ public:
 
             m_serializer.getYamlEmitter() << YAML::Key << "components";
             m_serializer.getYamlEmitter() << YAML::Value << YAML::BeginSeq;
-            if (c1) m_serializer(c1->getClassName().data(), *c1);
-            if (c2) m_serializer(c2->getClassName().data(), *c2);
-            if (c3) m_serializer(c3->getClassName().data(), *c3);
-            if (c4) m_serializer(c4->getClassName().data(), *c4);
-            if (c5) m_serializer(c5->getClassName().data(), *c5);
-            if (c6) m_serializer(c6->getClassName().data(), *c6);
-            if (c7) m_serializer(c7->getClassName().data(), *c7);
+            if (c1) m_serializer(c1->getClassName(), *c1);
+            if (c2) m_serializer(c2->getClassName(), *c2);
+            if (c3) m_serializer(c3->getClassName(), *c3);
+            if (c4) m_serializer(c4->getClassName(), *c4);
+            if (c5) m_serializer(c5->getClassName(), *c5);
+            if (c6) m_serializer(c6->getClassName(), *c6);
+            if (c7) m_serializer(c7->getClassName(), *c7);
             m_serializer.getYamlEmitter() << YAML::EndSeq;
             m_serializer.getYamlEmitter() << YAML::EndMap;
         });
@@ -54,13 +54,13 @@ public:
         m_serializer.getYamlEmitter() << YAML::EndSeq;
         m_serializer.getYamlEmitter() << YAML::Key << "sceneComponents";
         m_serializer.getYamlEmitter() << YAML::Value << YAML::BeginSeq;
-        if (auto c = world.get<engine::components::Transform>()) m_serializer(c->getClassName().data(), *c);
-        if (auto c = world.get<engine::components::Material>()) m_serializer(c->getClassName().data(), *c);
-        if (auto c = world.get<engine::components::StaticMesh>()) m_serializer(c->getClassName().data(), *c);
-        if (auto c = world.get<engine::components::AnimatedMesh>()) m_serializer(c->getClassName().data(), *c);
-        if (auto c = world.get<engine::components::PointLight>()) m_serializer(c->getClassName().data(), *c);
-        if (auto c = world.get<engine::components::DirectionalLight>()) m_serializer(c->getClassName().data(), *c);
-        if (auto c = world.get<engine::components::Skybox>()) m_serializer(c->getClassName().data(), *c);
+        if (auto c = world.get<engine::components::Transform>()) m_serializer(c->getClassName(), *c);
+        if (auto c = world.get<engine::components::Material>()) m_serializer(c->getClassName(), *c);
+        if (auto c = world.get<engine::components::StaticMesh>()) m_serializer(c->getClassName(), *c);
+        if (auto c = world.get<engine::components::AnimatedMesh>()) m_serializer(c->getClassName(), *c);
+        if (auto c = world.get<engine::components::PointLight>()) m_serializer(c->getClassName(), *c);
+        if (auto c = world.get<engine::components::DirectionalLight>()) m_serializer(c->getClassName(), *c);
+        if (auto c = world.get<engine::components::Skybox>()) m_serializer(c->getClassName(), *c);
         m_serializer.getYamlEmitter() << YAML::EndSeq;
         m_serializer.getYamlEmitter() << YAML::EndMap;
     }
@@ -99,12 +99,18 @@ public:
         {
             YAML::Node entityNode = sceneEntities[i];
             flecs::entity e = world.entity()
-                .set_name(std::to_string(entityNode["id"].as<flecs::entity_t>(9)).c_str())
+                .set_name(entityNode["name"].as<std::string>("UNNAMED").c_str())
                 .add<engine::tags::SceneEntityTag>();
 
             YAML::Node entityComponents = entityNode["components"];
             for (size_t i = 0; i < entityComponents.size(); i++)
             {
+                if (!entityComponents[i].IsMap())
+                {
+                    ERROR("Invalid component in entity");
+                    continue;
+                }
+
                 std::string typeName = entityComponents[i].begin()->first.as<std::string>();
                 YAML::Node componentNode = entityComponents[i][typeName];
                 if (typeName == "Transform") m_unserializer(e.ensure<engine::components::Transform>(), componentNode);

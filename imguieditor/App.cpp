@@ -2,6 +2,7 @@
 
 #include <engine/FlecsSerialization.hpp>
 #include "UI.hpp"
+#include <engine/Loader.hpp>
 
 #include <engine/SceneManager.hpp>
 #include <engine/Input.hpp>
@@ -20,6 +21,7 @@
 
 #include <imgui.h>
 #include <ImGuizmo.h>
+#include <implot.h>
 #include <backends/imgui_impl_sdl2.h>
 #include <backends/imgui_impl_opengl3.h>
 #include <yaml-cpp/node/parse.h>
@@ -31,6 +33,11 @@ App::~App()
 {
     BindingsManager::shutdown();
     SDL_Quit();
+
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplSDL2_Shutdown();
+    ImPlot::DestroyContext();
+    ImGui::DestroyContext();
 }
 
 void App::init(std::string title)
@@ -70,6 +77,7 @@ void App::init(std::string title)
     
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
+    ImPlot::CreateContext();
     ImGuiIO &io = ImGui::GetIO();
     (void)io;
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
@@ -98,12 +106,62 @@ void App::run()
     PerspectiveCamera camera((float)m_window.getWidth() / m_window.getHeight(), 90.0f);
     OrthoCamera uiCamera(0.0f, m_window.getWidth(), 0.0f, m_window.getHeight());
 
-    m_resourceManager.loadAssetPack("build/out.pack");
-    
+    //m_resourceManager.loadAssetPack("build/out.pack");
     flecs::world world;
     {
         engine::serializers::FlecsUnserializer unserializer("flecs.yaml");
-        unserializer.operator()(world);
+        unserializer(world);
+    }
+
+    paca::fileformats::NewAssetPack assetPack;
+    {
+        engine::serializers::YamlUnserializer unserializer("assets.yaml");
+        unserializer(assetPack);
+    }
+
+    for (auto &staticMeshWithPath : assetPack.staticMeshes)
+    {
+        auto staticMesh = engine::loaders::load<paca::fileformats::StaticMesh>(staticMeshWithPath.path.c_str());
+        if (!staticMesh)
+        {
+            ERROR("Couldn't load mesh: {}", staticMeshWithPath.path);
+            continue;
+        }
+
+        staticMesh->name = staticMeshWithPath.name;
+        staticMesh->id = staticMeshWithPath.id;
+        m_resourceManager.add(*staticMesh);
+    }
+    for (auto &textureWithPath : assetPack.textures)
+    {
+        auto texture = engine::loaders::load<paca::fileformats::Texture>(textureWithPath.path.c_str());
+        if (!texture)
+        {
+            ERROR("Couldn't load texture: {}", textureWithPath.path);
+            continue;
+        }
+
+        texture->name = textureWithPath.name;
+        texture->id = textureWithPath.id;
+        m_resourceManager.add(*texture);
+    }
+    for (auto &cubemapWithPath : assetPack.cubeMaps)
+    {
+        auto cubemap = engine::loaders::load<paca::fileformats::CubeMap>(cubemapWithPath.path.c_str());
+        if (!cubemap)
+        {
+            ERROR("Couldn't load cubemap: {}", cubemapWithPath.path);
+            continue;
+        }
+        cubemap->name = cubemapWithPath.name;
+        cubemap->id = cubemapWithPath.id;
+        m_resourceManager.add(*cubemap);
+    }
+    INFO("MATERIALS: {}", assetPack.materials.size());
+    for (auto &material : assetPack.materials)
+    {
+        INFO("\tMat {}", material.id);
+        m_resourceManager.add(material);
     }
 
     BindingsManager::bind(Key::w, "forward");
@@ -123,9 +181,11 @@ void App::run()
     });
     BindingsManager::bind(Key::q, "wireframe_toggle");
 
+    float lastFrameTime = SDL_GetTicks();
     ui::EditorContext editorContext = {
         .camera = camera,
         .resourceManager = m_resourceManager,
+        .assetPack = assetPack,
         .renderTarget = m_sceneRendererTarget,
         .resizeCallback = [this, &camera](uint32_t w, uint32_t h) {
             m_sceneRendererTarget.shutdown();
@@ -142,15 +202,16 @@ void App::run()
         },
         .world = world,
         .selectedEntity = flecs::entity(),
+        .time = lastFrameTime,
         .timeDelta = 0,
     };
 
-    float lastFrameTime = SDL_GetTicks();
     while (m_running) {
         float time = SDL_GetTicks();
         float timeDelta = time - lastFrameTime;
         lastFrameTime = time;
 
+        editorContext.time = time;
         editorContext.timeDelta = timeDelta;
 
         constexpr int frameTimeMeasurementCount = 10;

@@ -38,14 +38,34 @@ struct Skeleton {
     std::vector<std::string> boneNames;
 };
 
+struct AxisAlignedBoundingBox
+{
+    NAME("AxisAlignedBoundingBox")
+    FIELDS(min, max)
+    FIELD_NAMES("min", "max")
+    glm::vec3 min, max;
+};
+
 struct StaticMesh {
     NAME("StaticMesh")
-    FIELDS(name, id, vertices, indices, materialId)
-    FIELD_NAMES("name", "id", "vertices", "indices", "materialId")
+    FIELDS(name, id, vertices, indices, aabb, materialId)
+    FIELD_NAMES("name", "id", "vertices", "indices", "aabb", "materialId")
+
+    struct Vertex {
+        NAME("StaticMesh::Vertex")
+        FIELDS(position, normal, tangent, texture)
+        FIELD_NAMES("position", "normal", "tangent", "texture")
+        glm::vec3 position;
+        glm::vec3 normal;
+        glm::vec3 tangent;
+        glm::vec2 texture;
+    };
+
     std::string name;
     StaticMeshId id;
     std::vector<uint8_t> vertices;
     std::vector<uint32_t> indices;
+    AxisAlignedBoundingBox aabb;
     MaterialId materialId;
 
     // @ glm::vec3 position
@@ -55,14 +75,38 @@ struct StaticMesh {
     static constexpr size_t vertex_size = (3+3+3+2)*sizeof(float);
 };
 
+struct StaticMeshRef
+{
+    NAME("StaticMeshRef")
+    FIELDS(name, id, path)
+    FIELD_NAMES("name", "id", "path")
+    std::string name;
+    StaticMeshId id;
+    std::string path;
+};
+
 struct AnimatedMesh {
     NAME("AnimatedMesh")
-    FIELDS(name, id, vertices, indices, materialId, animations, skeleton)
-    FIELD_NAMES("name", "id", "vertices", "indices", "materialId", "animations", "skeleton")
+    FIELDS(name, id, vertices, indices, aabb, materialId, animations, skeleton)
+    FIELD_NAMES("name", "id", "vertices", "indices", "aabb", "materialId", "animations", "skeleton")
+
+    struct Vertex {
+        NAME("AnimatedMesh::Vertex")
+        FIELDS(position, normal, tangent, texture, boneIDs, boneWeights)
+        FIELD_NAMES("position", "normal", "tangent", "texture", "boneIDs", "boneWeights")
+        glm::vec3 position;
+        glm::vec3 normal;
+        glm::vec3 tangent;
+        glm::vec2 texture;
+        glm::vec<4, uint32_t> boneIDs;
+        glm::vec4 boneWeights;
+    };
+
     std::string name;
     AnimatedMeshId id;
     std::vector<uint8_t> vertices;
     std::vector<uint32_t> indices;
+    AxisAlignedBoundingBox aabb;
     MaterialId materialId;
     std::vector<AnimationId> animations;
     Skeleton skeleton;
@@ -74,6 +118,16 @@ struct AnimatedMesh {
     // @ glm::vec<4, uint32_t> boneIDs
     // @ glm::vec4 boneWeights
     static constexpr size_t vertex_size = (3+3+3+2)*sizeof(float) + 4*sizeof(int32_t) + 4*sizeof(float);
+};
+
+struct AnimatedMeshRef
+{
+    NAME("AnimatedMeshRef")
+    FIELDS(name, id, path)
+    FIELD_NAMES("name", "id", "path")
+    std::string name;
+    AnimatedMeshId id;
+    std::string path;
 };
 
 struct PositionKeyFrame {
@@ -123,6 +177,17 @@ struct Animation {
     std::vector<BoneKeyFrames> keyframes;
 };
 
+struct AnimationRef
+{
+    NAME("AnimationRef")
+    FIELDS(name, id, path)
+    FIELD_NAMES("name", "id", "path")
+
+    std::string name;
+    AnimationId id;
+    std::string path;
+};
+
 namespace TextureType {
     enum Type : uint32_t {
         none = 0,
@@ -145,6 +210,16 @@ struct Texture {
     std::vector<uint8_t> pixelData;
 };
 
+struct TextureRef
+{
+    NAME("TextureRef")
+    FIELDS(name, id, path)
+    FIELD_NAMES("name", "id", "path")
+    std::string name;
+    TextureId id;
+    std::string path;
+};
+
 struct CubeMap {
     NAME("CubeMap")
     FIELDS(name, id, width, height, channels, pixelData)
@@ -154,6 +229,16 @@ struct CubeMap {
     uint32_t width, height;
     uint32_t channels;
     std::vector<uint8_t> pixelData;
+};
+
+struct CubeMapRef
+{
+    NAME("CubeMapRef")
+    FIELDS(name, id, path)
+    FIELD_NAMES("name", "id", "path")
+    std::string name;
+    CubeMapId id;
+    std::string path;
 };
 
 struct Material {
@@ -190,13 +275,28 @@ struct Font {
 struct AssetPack {
     NAME("AssetPack")
     FIELDS(staticMeshes, animatedMeshes, materials, textures, cubeMaps, animations, fonts)
-    FIELD_NAMES("staticMeshes", "animatedMeshes", "materials", "textures", "cubeMaps", "animations", "fonts")
+    FIELD_NAMES("staticMeshes", "animatedMeshes", "materials", "textures", "cubeMaps",
+            "animations", "fonts")
     std::vector<StaticMesh> staticMeshes;
     std::vector<AnimatedMesh> animatedMeshes;
     std::vector<Material> materials;
     std::vector<Texture> textures;
     std::vector<CubeMap> cubeMaps;
     std::vector<Animation> animations;
+    std::vector<Font> fonts;
+};
+
+struct NewAssetPack {
+    NAME("NewAssetPack")
+    FIELDS(staticMeshes, animatedMeshes, materials, textures, cubeMaps, animations, fonts)
+    FIELD_NAMES("staticMeshes", "animatedMeshes", "materials", "textures", "cubeMaps",
+            "animations", "fonts")
+    std::vector<StaticMeshRef> staticMeshes;
+    std::vector<AnimatedMeshRef> animatedMeshes;
+    std::vector<Material> materials;
+    std::vector<TextureRef> textures;
+    std::vector<CubeMapRef> cubeMaps;
+    std::vector<AnimationRef> animations;
     std::vector<Font> fonts;
 };
 

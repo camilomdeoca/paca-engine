@@ -19,6 +19,12 @@ public:
     FrameBuffer(FrameBufferParameters parameters);
     ~FrameBuffer();
 
+    FrameBuffer(const FrameBuffer&) = delete;
+    FrameBuffer& operator=(const FrameBuffer&) = delete;
+
+    FrameBuffer(FrameBuffer &&source);
+    FrameBuffer& operator=(FrameBuffer&& source);
+
     void init(FrameBufferParameters parameters);
     void shutdown();
 

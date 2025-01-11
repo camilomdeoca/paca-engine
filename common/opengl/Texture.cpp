@@ -79,9 +79,17 @@ Texture::Texture(const CubeMapSpecification &specification)
     createCubeMap(specification);
 }
 
+
+Texture::Texture(Texture &&texture)
+    : m_id(texture.m_id)
+{
+    texture.m_id = 0;
+}
+
 Texture::~Texture()
 {
-    glDeleteTextures(1, &m_id);
+    if (m_id != 0)
+        glDeleteTextures(1, &m_id);
 }
 
 void Texture::create(const Specification &specification)

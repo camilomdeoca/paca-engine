@@ -64,7 +64,6 @@ public:
         : m_path(path)
     {}
 
-
     void write()
     {
         std::ofstream ofs(m_path.c_str());
@@ -108,7 +107,7 @@ public:
 
     void operator()(const std::string &value)
     {
-        m_out << value;
+        m_out << YAML::DoubleQuoted << value;
     }
 
     template<typename T>
@@ -155,7 +154,7 @@ public:
     }
 
     template<glm::length_t Columns, glm::length_t Rows, typename T>
-    void operator()(const glm::mat<Columns, Rows, T> &value, const char *name)
+    void operator()(const glm::mat<Columns, Rows, T> &value)
     {
         m_out << YAML::BeginSeq;
         for(glm::length_t i = 0; i < value.length(); i++)
@@ -166,9 +165,9 @@ public:
     }
 
     template<typename T>
-    void operator()(const glm::qua<T> &value, const char *name)
+    void operator()(const glm::qua<T> &value)
     {
-        m_out << YAML::BeginSeq;
+        m_out << YAML::Flow << YAML::BeginSeq;
         for(glm::length_t i = 0; i < value.length(); i++)
         {
             (*this)(value[i]);
@@ -190,6 +189,12 @@ public:
     YAML::Node getYamlNode() { return m_root; }
 
     template<typename T>
+    void operator()(T &value)
+    {
+        (*this)(value, m_root);
+    }
+
+    template<typename T>
     void operator()(T &value, YAML::Node node)
     {
         if constexpr (std::is_enum_v<T>)
@@ -198,8 +203,9 @@ public:
         }
         else if constexpr (std::is_class_v<T>)
         {
-            value.forEachFieldWithName([this, &node](auto &field, std::string_view name) {
-                (*this)(field, node[name.data()]);
+            value.forEachFieldWithName([this, &node](auto &field, const char *name) {
+                YAML::Node fieldNode = node[name];
+                if (!fieldNode.IsNull()) (*this)(field, fieldNode);
             });
         }
         else

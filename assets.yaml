@@ -1,0 +1,47 @@
+staticMeshes:
+  - name: "plane"
+    id: 1
+    path: "assets/meshes/plane/plane.gltf"
+  - name: "statue"
+    id: 2
+    path: "assets/meshes/statue/statue.gltf"
+animatedMeshes:
+  []
+materials:
+  - name: "planeMaterial"
+    id: 1
+    textures:
+      - []
+      - [1]
+      - []
+      - [2]
+      - []
+  - name: "statueMaterial"
+    id: 2
+    textures:
+      - []
+      - [3]
+      - []
+      - [4]
+      - []
+textures:
+  - name: "bricks_diffuse"
+    id: 1
+    path: "assets/textures/Bricks091_4K-JPG_Color.jpg"
+  - name: "bricks_normal"
+    id: 2
+    path: "assets/textures/Bricks091_4K-JPG_NormalGL.jpg"
+  - name: "statue_diffuse"
+    id: 3
+    path: "assets/textures/statue-diffuse.jpg"
+  - name: "statue_normal"
+    id: 4
+    path: "assets/textures/statue-normal.jpg"
+cubeMaps:
+  - name: "statue_normal"
+    id: 1
+    path: "assets/textures/cubemaps/skybox"
+animations:
+  []
+fonts:
+  []

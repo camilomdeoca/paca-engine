@@ -10,3 +10,12 @@
 [submodule "lib/ImGuizmo"]
 	path = lib/ImGuizmo/ImGuizmo
 	url = https://github.com/CedricGuillemet/ImGuizmo.git
+[submodule "lib/implot/implot"]
+	path = lib/implot/implot
+	url = https://github.com/epezent/implot.git
+[submodule "lib/cgltf/cgltf"]
+	path = lib/cgltf/cgltf
+	url = https://github.com/jkuhlmann/cgltf.git
+[submodule "lib/nativefiledialog-extended"]
+	path = lib/nativefiledialog-extended
+	url = https://github.com/btzy/nativefiledialog-extended.git

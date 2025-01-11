@@ -1,0 +1,58 @@
+entities:
+  - id: 1001
+    name: "Plane"
+    components:
+      - Transform:
+          position: [0, -1, 0]
+          rotation: [0, 0, 0]
+          scale: [1, 1, 1]
+      - StaticMesh:
+          id: 1
+      - Material:
+          id: 1
+  - id: 1002
+    name: "Statue"
+    components:
+      - Transform:
+          position: [0, 0, 0]
+          rotation: [0, 0, 0]
+          scale: [10, 10, 10]
+      - StaticMesh:
+          id: 2
+      - Material:
+          id: 2
+  - id: 1003
+    name: "Red light"
+    components:
+      - PointLight:
+          color: [1, 0, 0]
+          intensity: 0.400000006
+          attenuation: 0.0199999996
+      - Transform:
+          position: [-3, 0, 0]
+          rotation: [0, 0, 0]
+          scale: [1, 1, 1]
+  - id: 1004
+    name: "Blue light"
+    components:
+      - PointLight:
+          color: [0, 0, 1]
+          intensity: 0.400000006
+          attenuation: 0.0199999996
+      - Transform:
+          position: [3, 0, 0]
+          rotation: [0, 0, 0]
+          scale: [1, 1, 1]
+  - id: 1005
+    name: "Directional Light"
+    components:
+      - Transform:
+          position: [0, 0, 0]
+          rotation: [-70, 35, 0]
+          scale: [1, 1, 1]
+      - DirectionalLight:
+          color: [1, 1, 0.899999976]
+          intensity: 0.699999988
+sceneComponents:
+  - Skybox:
+      id: 1

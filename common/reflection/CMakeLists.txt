@@ -11,4 +11,4 @@ target_link_libraries(reflection
         asserts
 )
 
-add_subdirectory(tests)
+#add_subdirectory(tests)

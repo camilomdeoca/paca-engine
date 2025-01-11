@@ -1,7 +1,7 @@
 #pragma once
 
 #include <cstdint>
-#include <glm/glm.hpp>
+#include <glm/fwd.hpp>
 #include <array>
 
 class Texture {
@@ -51,6 +51,11 @@ public:
     //Texture(std::array<const uint8_t*, 6> facesData, uint32_t width, uint32_t height, Format format);
     //Texture(uint32_t width, uint32_t height, Format format);
     ~Texture();
+
+    Texture(const Texture&) = delete;
+    Texture& operator=(const Texture&) = delete;
+
+    Texture(Texture &&texture);
 
     uint32_t getWidth() const { return m_width; }
     uint32_t getHeight() const { return m_height; }

@@ -13,11 +13,11 @@
 namespace engine {
 
 ForwardRenderer::ForwardRenderer()
-    : m_renderTarget(FrameBuffer::getDefault())
+    : m_renderTarget(&FrameBuffer::getDefault())
 {}
 
 ForwardRenderer::ForwardRenderer(const Parameters &parameters)
-    : m_renderTarget(FrameBuffer::getDefault())
+    : m_renderTarget(&FrameBuffer::getDefault())
 {
     init(parameters);
 }
@@ -230,8 +230,8 @@ void ForwardRenderer::renderWorld(const PerspectiveCamera &camera, const flecs::
     if (m_parameters.flags & Parameters::enableShadowMapping)
     {
         world.each([&resourceManager, this, &world](const components::StaticMesh &meshComponent, const components::Transform &transform) {
-            const StaticMesh &mesh = resourceManager.getStaticMesh(meshComponent.id);
-            drawMeshInShadowMaps(mesh, transform.getTransform(), world);
+            const StaticMesh *mesh = resourceManager.get(meshComponent.id);
+            if (mesh) drawMeshInShadowMaps(*mesh, transform.getTransform(), world);
         });
         //world.each([&resourceManager, this, &world](const components::AnimatedMesh &meshComponent, const components::Transform &transform) {
         //    const AnimatedMesh &mesh = resourceManager.getAnimatedMesh(meshComponent.id);
@@ -244,9 +244,10 @@ void ForwardRenderer::renderWorld(const PerspectiveCamera &camera, const flecs::
         const components::Transform &transform,
         const components::Material &materialComponent)
     {
-        const StaticMesh &mesh = resourceManager.getStaticMesh(meshComponent.id);
-        const Material &material = resourceManager.getMaterial(materialComponent.id);
-        drawMesh(camera, mesh, material, transform.getTransform(), world, resourceManager);
+        const StaticMesh *mesh = resourceManager.get(meshComponent.id);
+        const Material *material = resourceManager.get(materialComponent.id);
+        if (mesh)
+            drawMesh(camera, *mesh, material, transform.getTransform(), world, resourceManager);
     });
     //world.each([&resourceManager, this, &world, &camera](
     //    const components::AnimatedMesh &meshComponent,
@@ -258,7 +259,10 @@ void ForwardRenderer::renderWorld(const PerspectiveCamera &camera, const flecs::
     //    drawMesh(camera, mesh, material, transform, world, resourceManager);
     //});
     if (world.has<components::Skybox>())
-        drawSkybox(camera, resourceManager.getCubeMap(world.ensure<components::Skybox>().id));
+    {
+        const Texture *cubemap = resourceManager.get(world.ensure<components::Skybox>().id);
+        if (cubemap) drawSkybox(camera, *cubemap);
+    }
 }
 
 std::string textureTypeToUniformName(MaterialTextureType::Type type)
@@ -350,35 +354,53 @@ void ForwardRenderer::drawMeshInShadowMaps(
 void ForwardRenderer::drawMesh(
     const PerspectiveCamera &camera,
     const StaticMesh &mesh,
-    const Material &material,
+    const Material *material,
     const glm::mat4 &modelMatrix,
     const flecs::world &world,
     const NewResourceManager &resourceManager) const
 {
-    m_renderTarget.bind();
+    m_renderTarget->bind();
     m_staticMeshShader->bind();
     m_staticMeshShader->setMat4("u_projectionMatrix", camera.getProjectionMatrix());
     m_staticMeshShader->setMat4("u_viewModelMatrix", camera.getViewMatrix() * modelMatrix);
     m_staticMeshShader->setFloat("u_parallaxScale", 0.05f);
     GL::setDepthTest(true);
 
+
     unsigned int slot = 0;
-    for (MaterialTextureType::Type i : {
-        MaterialTextureType::diffuse,
-        MaterialTextureType::specular,
-        MaterialTextureType::normal
-    }) {
-        // Set uniform telling the shader if a texture of the type was provided
-        m_staticMeshShader->setInt(
-                textureTypeToHasTextureUniformName(i),
-                material.getTextureIds(i).empty() ? 0 : 1);
-        unsigned int indexOfTextureOfType = 0;
-        for (const TextureId &textureId : material.getTextureIds(i))
-        {
-            const Texture &texture = resourceManager.getTexture(textureId);
-            texture.bind(slot);
-            m_staticMeshShader->setInt(textureTypeToUniformName(i) + std::to_string(indexOfTextureOfType), slot);
-            slot++, indexOfTextureOfType++;
+    if (material)
+    {
+        for (MaterialTextureType::Type i : {
+            MaterialTextureType::diffuse,
+            MaterialTextureType::specular,
+            MaterialTextureType::normal
+        }) {
+            // Set uniform telling the shader if a texture of the type was provided
+            m_staticMeshShader->setInt(
+                    textureTypeToHasTextureUniformName(i),
+                    material->getTextureIds(i).empty() ? 0 : 1);
+            unsigned int indexOfTextureOfType = 0;
+            for (const TextureId &textureId : material->getTextureIds(i))
+            {
+                const Texture *texture = resourceManager.get(textureId);
+                if (texture)
+                {
+                    texture->bind(slot);
+                    m_staticMeshShader->setInt(textureTypeToUniformName(i) + std::to_string(indexOfTextureOfType), slot);
+                    slot++, indexOfTextureOfType++;
+                }
+            }
+        }
+    }
+    else
+    {
+        // When the mesh does not have a material set every has_{texture_type} uniform to false
+        for (MaterialTextureType::Type i : {
+            MaterialTextureType::diffuse,
+            MaterialTextureType::specular,
+            MaterialTextureType::normal
+        }) {
+            m_staticMeshShader->setInt(textureTypeToHasTextureUniformName(i), 0);
         }
     }
 

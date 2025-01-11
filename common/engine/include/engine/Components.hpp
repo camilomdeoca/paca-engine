@@ -99,6 +99,12 @@ struct DirectionalLightShadowMap
         float cutoffDistance;
         float maxDiagonal;
     };
+
+    DirectionalLightShadowMap(const DirectionalLightShadowMap&) = delete;
+    DirectionalLightShadowMap& operator=(const DirectionalLightShadowMap&) = delete;
+
+    DirectionalLightShadowMap(DirectionalLightShadowMap &&directionalLightShadowMap);
+    DirectionalLightShadowMap& operator=(DirectionalLightShadowMap &&directionalLightShadowMap);
     
     uint32_t shadowMapSize;
     ShadowMapLevel levels[MAX_DIRECTIONAL_LIGHT_SHADOW_MAP_LEVELS];

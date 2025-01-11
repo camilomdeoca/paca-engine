@@ -19,7 +19,14 @@ void Window::create(std::string title, int w, int h)
 {
     m_width = w;
     m_height = h;
-    m_window.reset(SDL_CreateWindow(title.c_str(), SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, w, h, SDL_WINDOW_OPENGL));
+    m_window.reset(
+        SDL_CreateWindow(
+            title.c_str(),
+            SDL_WINDOWPOS_UNDEFINED,
+            SDL_WINDOWPOS_UNDEFINED,
+            w,
+            h,
+            SDL_WINDOW_OPENGL|SDL_WINDOW_RESIZABLE));
 
     if (!m_window) {
         ERROR("Error creating window: {}", SDL_GetError());

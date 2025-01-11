@@ -10,11 +10,12 @@ add_library(engine STATIC
     ForwardRenderer.cpp
     NewResourceManager.cpp
     StaticMesh.cpp
-    SceneManager.cpp
+    #SceneManager.cpp
     Action.cpp
     Input.cpp
     Window.cpp
     Components.cpp
+    Loader.cpp
 )
 
 target_include_directories(engine PRIVATE
@@ -32,10 +33,12 @@ target_link_libraries(engine
     opengl-wrapper
     logger
     asserts
-    assimp
+    cgltf
     resource-file-formats
     reflection
     stb_image
     flecs::flecs_static
     yaml-cpp
 )
+
+add_subdirectory(loadertest)

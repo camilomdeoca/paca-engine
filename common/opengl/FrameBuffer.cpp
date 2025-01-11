@@ -27,6 +27,27 @@ FrameBuffer::FrameBuffer(FrameBufferParameters parameters)
     init(parameters);
 }
 
+FrameBuffer::FrameBuffer(FrameBuffer &&source)
+    : m_id(source.m_id),
+      m_width(source.m_width),
+      m_height(source.m_height),
+      m_colorAttachments(std::move(source.m_colorAttachments)),
+      m_depthAttachment(std::move(source.m_depthAttachment))
+{
+    source.m_id = 0;
+}
+
+FrameBuffer &FrameBuffer::operator=(FrameBuffer &&source)
+{
+    m_id = source.m_id;
+    m_width = source.m_width;
+    m_height = source.m_height;
+    m_colorAttachments = std::move(source.m_colorAttachments);
+    m_depthAttachment = std::move(source.m_depthAttachment);
+    source.m_id = 0;
+    return *this;
+}
+
 void FrameBuffer::init(FrameBufferParameters parameters)
 {
     m_width = parameters.width;

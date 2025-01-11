@@ -32,7 +32,7 @@ public:
     void init(const Parameters &parameters);
 
     void resize(uint32_t width, uint32_t height);
-    void setRenderTarget(FrameBuffer &renderTarget) { m_renderTarget = renderTarget; }
+    void setRenderTarget(FrameBuffer &renderTarget) { m_renderTarget = &renderTarget; }
 
     void renderWorld(const PerspectiveCamera &camera, const flecs::world &world, const NewResourceManager &resourceManager);
 
@@ -51,13 +51,13 @@ private:
     void drawMesh(
         const PerspectiveCamera &camera,
         const StaticMesh &mesh,
-        const Material &material,
+        const Material *material,
         const glm::mat4 &modelMatrix,
         const flecs::world &world,
         const NewResourceManager &resourceManager) const;
     void drawMesh(
         const PerspectiveCamera &camera,
-        const AnimatedMesh &mesh,
+        const AnimatedMesh *mesh,
         const Material &material,
         const glm::mat4 &modelMatrix,
         const flecs::world &world,
@@ -84,7 +84,7 @@ private:
     std::shared_ptr<Shader> m_shadowMapShader;
     std::shared_ptr<Shader> m_skyboxShader;
     std::shared_ptr<VertexArray> m_cubeVertexArray;
-    FrameBuffer &m_renderTarget;
+    FrameBuffer *m_renderTarget;
 };
 
 } // namespace engine

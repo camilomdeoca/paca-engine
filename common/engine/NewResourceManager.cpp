@@ -6,154 +6,143 @@
 #include "engine/Material.hpp"
 #include "engine/Animation.hpp"
 #include "engine/Font.hpp"
-#include "engine/BinarySerialization.hpp"
 
-NewResourceManager::NewResourceManager()
+#include <algorithm>
+
+const StaticMesh *NewResourceManager::get(StaticMeshId id) const
 {
-    // For now until i make move costructors
-    m_staticMeshes.reserve(100);
-    m_animatedMeshes.reserve(100);
-    m_textures.reserve(100);
-    m_cubeMaps.reserve(100);
-    m_materials.reserve(100);
-    m_animations.reserve(100);
-    m_fonts.reserve(100);
+    const auto it = m_staticMeshes.find(id);
+    if (it != m_staticMeshes.end())
+        return &it->second;
+    return nullptr;
 }
 
-void NewResourceManager::loadAssetPack(const std::string &path)
+const AnimatedMesh *NewResourceManager::get(AnimatedMeshId id) const
 {
-    paca::fileformats::AssetPack assetPack;
-
-    {
-        engine::serializers::BinaryUnserializer unserializer(path);
-        unserializer(assetPack);
-    }
-
-    loadAssetPack(assetPack);
+    const auto it = m_animatedMeshes.find(id);
+    if (it != m_animatedMeshes.end())
+        return &it->second;
+    return nullptr;
 }
 
-void NewResourceManager::loadAssetPack(paca::fileformats::AssetPack &assetPack)
+const Texture *NewResourceManager::get(TextureId id) const
 {
-    for (StaticMeshId id = 0; id < assetPack.staticMeshes.size(); id++)
-    {
-        paca::fileformats::StaticMesh &staticMesh = assetPack.staticMeshes[id];
-        ASSERT(id == staticMesh.id);
-        addStaticMesh(staticMesh);
-    }
-
-    for (AnimatedMeshId id = 0; id < assetPack.animatedMeshes.size(); id++)
-    {
-        paca::fileformats::AnimatedMesh &animatedMesh = assetPack.animatedMeshes[id];
-        ASSERT(id == animatedMesh.id);
-        addAnimatedMesh(animatedMesh);
-    }
-
-    for (TextureId id = 0; id < assetPack.textures.size(); id++)
-    {
-        paca::fileformats::Texture &texture = assetPack.textures[id];
-        ASSERT(id == texture.id);
-        addTexture(texture);
-    }
-
-    for (CubeMapId id = 0; id < assetPack.cubeMaps.size(); id++)
-    {
-        paca::fileformats::CubeMap &texture = assetPack.cubeMaps[id];
-        ASSERT(id == texture.id);
-        addCubeMap(texture);
-    }
-
-    for (MaterialId id = 0; id < assetPack.materials.size(); id++)
-    {
-        paca::fileformats::Material &material = assetPack.materials[id];
-        ASSERT(id == material.id);
-        addMaterial(material);
-    }
-
-    for (AnimationId id = 0; id < assetPack.animations.size(); id++)
-    {
-        paca::fileformats::Animation &animation = assetPack.animations[id];
-        ASSERT(id == animation.id);
-        addAnimation(animation);
-    }
-
-    for (FontId id = 0; id < assetPack.fonts.size(); id++)
-    {
-        paca::fileformats::Font &font = assetPack.fonts[id];
-        ASSERT(id == font.id);
-        addFont(font);
-    }
+    const auto it = m_textures.find(id);
+    if (it != m_textures.end())
+        return &it->second;
+    return nullptr;
 }
 
-const StaticMesh &NewResourceManager::getStaticMesh(StaticMeshId id) const
+const Texture *NewResourceManager::get(CubeMapId id) const
 {
-    ASSERT(id < m_staticMeshes.size());
-    return m_staticMeshes[id];
+    const auto it = m_cubemaps.find(id);
+    if (it != m_cubemaps.end())
+        return &it->second;
+    return nullptr;
 }
 
-const AnimatedMesh &NewResourceManager::getAnimatedMesh(AnimatedMeshId id) const
+const Material *NewResourceManager::get(MaterialId id) const
 {
-    ASSERT(id < m_animatedMeshes.size());
-    return m_animatedMeshes[id];
+    const auto it = m_materials.find(id);
+    if (it != m_materials.end())
+        return &it->second;
+    return nullptr;
 }
 
-const Texture &NewResourceManager::getTexture(TextureId id) const
+const Animation *NewResourceManager::get(AnimationId id) const
 {
-    ASSERT(id < m_textures.size());
-    return m_textures[id];
+    const auto it = m_animations.find(id);
+    if (it != m_animations.end())
+        return &it->second;
+    return nullptr;
 }
 
-const Texture &NewResourceManager::getCubeMap(CubeMapId id) const
+const Font *NewResourceManager::get(FontId id) const
 {
-    ASSERT(id < m_cubeMaps.size());
-    return m_cubeMaps[id];
+    const auto it = m_fonts.find(id);
+    if (it != m_fonts.end())
+        return &it->second;
+    return nullptr;
 }
 
-const Material &NewResourceManager::getMaterial(MaterialId id) const
+bool NewResourceManager::remove(StaticMeshId id)
 {
-    ASSERT(id < m_materials.size());
-    return m_materials[id];
+    return m_staticMeshes.erase(id);
 }
 
-const Animation &NewResourceManager::getAnimation(AnimationId id) const
+bool NewResourceManager::remove(AnimatedMeshId id)
 {
-    ASSERT(id < m_animations.size());
-    return m_animations[id];
+    return m_animatedMeshes.erase(id);
 }
 
-const Font &NewResourceManager::getFont(FontId id) const
+bool NewResourceManager::remove(TextureId id)
 {
-    ASSERT(id < m_fonts.size());
-    return m_fonts[id];
+    return m_textures.erase(id);
 }
 
-void NewResourceManager::addStaticMesh(paca::fileformats::StaticMesh &staticMesh)
+bool NewResourceManager::remove(CubeMapId id)
+{
+    return m_cubemaps.erase(id);
+}
+
+bool NewResourceManager::remove(MaterialId id)
+{
+    return m_materials.erase(id);
+}
+
+bool NewResourceManager::remove(AnimationId id)
+{
+    return m_animations.erase(id);
+}
+
+bool NewResourceManager::remove(FontId id)
+{
+    return m_fonts.erase(id);
+}
+
+
+void NewResourceManager::add(paca::fileformats::StaticMesh &staticMesh)
 {
 #ifdef DEBUG
     size_t vertexCount = 0;
     vertexCount += staticMesh.vertices.size() / paca::fileformats::StaticMesh::vertex_size;
 #endif // DEBUG
 
-    m_staticMeshes.emplace_back(
-                staticMesh.vertices,
-                staticMesh.indices);
+    const auto it = m_staticMeshes.emplace(
+        std::piecewise_construct,
+        std::forward_as_tuple(StaticMeshId(staticMesh.id)),
+        std::forward_as_tuple(
+            staticMesh.vertices,
+            staticMesh.indices));
+
+    ASSERT_MSG(it.second, "Error static mesh id {} is already on assets", staticMesh.id);
     INFO("Model {} has {} vertices", staticMesh.name, vertexCount);
 }
 
-void NewResourceManager::addAnimatedMesh(paca::fileformats::AnimatedMesh &animatedMesh)
+void NewResourceManager::add(paca::fileformats::AnimatedMesh &animatedMesh)
 {
 #ifdef DEBUG
     size_t vertexCount = 0;
     vertexCount += animatedMesh.vertices.size() / animatedMesh.vertex_size;
 #endif // DEBUG
-    m_animatedMeshes.emplace_back(
-                animatedMesh.vertices,
-                animatedMesh.indices,
-                animatedMesh.animations,
-                std::move(animatedMesh.skeleton));
+    
+    std::vector<AnimationId> animations(animatedMesh.animations.size());
+    std::transform(animatedMesh.animations.begin(), animatedMesh.animations.end(),
+            animations.begin(), [](paca::fileformats::AnimationId id) { return AnimationId(id); });
+    const auto it = m_animatedMeshes.emplace(
+        std::piecewise_construct,
+        std::forward_as_tuple(AnimatedMeshId(animatedMesh.id)),
+        std::forward_as_tuple(
+            animatedMesh.vertices,
+            animatedMesh.indices,
+            animations,
+            std::move(animatedMesh.skeleton)));
+
+    ASSERT_MSG(it.second, "Error animated mesh id {} is already on assets", animatedMesh.id);
     INFO("Model {} has {} vertices", animatedMesh.name, vertexCount);
 }
 
-void NewResourceManager::addTexture(paca::fileformats::Texture &texture)
+void NewResourceManager::add(paca::fileformats::Texture &texture)
 {
     Texture::Format format;
     switch (texture.channels)
@@ -166,20 +155,25 @@ void NewResourceManager::addTexture(paca::fileformats::Texture &texture)
 
 
 
-    m_textures.emplace_back(Texture::Specification{
-        .data = reinterpret_cast<const uint8_t*>(texture.pixelData.data()),
-        .width = texture.width,
-        .height = texture.height,
-        .format = format,
-        .mipmapLevels = 8,
-        .autoGenerateMipmapLevels = true,
-        .linearMinification = true,
-        .linearMagnification = true,
-        .interpolateBetweenMipmapLevels = true,
-    });
+    const auto it = m_textures.emplace(
+            std::piecewise_construct,
+            std::forward_as_tuple(TextureId(texture.id)),
+            std::forward_as_tuple(Texture::Specification{
+                .data = reinterpret_cast<const uint8_t*>(texture.pixelData.data()),
+                .width = texture.width,
+                .height = texture.height,
+                .format = format,
+                .mipmapLevels = 8,
+                .autoGenerateMipmapLevels = true,
+                .linearMinification = true,
+                .linearMagnification = true,
+                .interpolateBetweenMipmapLevels = true,
+            }));
+
+    ASSERT_MSG(it.second, "Error texture id {} is already on assets", texture.id);
 }
 
-void NewResourceManager::addCubeMap(paca::fileformats::CubeMap &cubeMap)
+void NewResourceManager::add(paca::fileformats::CubeMap &cubeMap)
 {
     Texture::Format format;
     switch (cubeMap.channels)
@@ -197,14 +191,20 @@ void NewResourceManager::addCubeMap(paca::fileformats::CubeMap &cubeMap)
             cubeMap.pixelData.data()
             + cubeMap.width * cubeMap.height * cubeMap.channels * i);
     }
-    m_cubeMaps.emplace_back(Texture::CubeMapSpecification{
-        .facesData = facesData,
-        .width = cubeMap.width,
-        .height = cubeMap.height,
-        .format = format,
-        .linearMinification = true,
-        .linearMagnification = true,
-    });
+
+    const auto it = m_cubemaps.emplace(
+            std::piecewise_construct,
+            std::forward_as_tuple(CubeMapId(cubeMap.id)),
+            std::forward_as_tuple(Texture::CubeMapSpecification{
+                .facesData = facesData,
+                .width = cubeMap.width,
+                .height = cubeMap.height,
+                .format = format,
+                .linearMinification = true,
+                .linearMagnification = true,
+            }));
+
+    ASSERT_MSG(it.second, "Error texture id {} is already on assets", cubeMap.id);
 }
 
 MaterialTextureType::Type pacaTextureTypeToMaterialTextureType(paca::fileformats::TextureType::Type type)
@@ -220,31 +220,48 @@ MaterialTextureType::Type pacaTextureTypeToMaterialTextureType(paca::fileformats
     ASSERT_MSG(false, "Invalid paca texture type!");
 }
 
-void NewResourceManager::addMaterial(paca::fileformats::Material &material)
+void NewResourceManager::add(paca::fileformats::Material &material)
 {
     MaterialSpecification materialSpec;
     for (uint32_t i = paca::fileformats::TextureType::none; i < paca::fileformats::TextureType::last; i++)
     {
-        for (TextureId texture : material.textures[i])
+        for (uint32_t texture : material.textures[i])
         {
             materialSpec.textures[pacaTextureTypeToMaterialTextureType(paca::fileformats::TextureType::Type(i))]
-                .emplace_back(texture);
+                .emplace_back(TextureId(texture));
         }
     }
 
-    m_materials.emplace_back(materialSpec);
+    const auto it = m_materials.emplace(
+        std::piecewise_construct,
+        std::forward_as_tuple(MaterialId(material.id)),
+        std::forward_as_tuple(materialSpec));
+
+    ASSERT_MSG(it.second, "Error material id {} is already on assets", material.id);
 }
 
-void NewResourceManager::addAnimation(paca::fileformats::Animation &animation)
+void NewResourceManager::add(paca::fileformats::Animation &animation)
 {
-    m_animations.emplace_back(
-        animation.duration,
-        animation.ticksPerSecond,
-        animation.keyframes);
+    const auto it = m_animations.emplace(
+        std::piecewise_construct,
+        std::forward_as_tuple(AnimationId(animation.id)),
+        std::forward_as_tuple(
+            animation.duration,
+            animation.ticksPerSecond,
+            animation.keyframes));
+    ASSERT_MSG(it.second, "Error animation id {} is already on assets", animation.id);
 }
 
-void NewResourceManager::addFont(paca::fileformats::Font &font)
+void NewResourceManager::add(paca::fileformats::Font &font)
 {
-    m_fonts.emplace_back(font.atlasTextureId, font.fontHeight, font.glyphs);
+    const auto it = m_fonts.emplace(
+        std::piecewise_construct,
+        std::forward_as_tuple(FontId(font.id)),
+        std::forward_as_tuple(
+            TextureId(font.atlasTextureId),
+            font.fontHeight,
+            font.glyphs));
+
+    ASSERT_MSG(it.second, "Error font id {} is already on assets", font.id);
 }
 

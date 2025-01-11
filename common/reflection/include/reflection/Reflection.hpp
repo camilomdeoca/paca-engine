@@ -1,8 +1,8 @@
 #pragma once
 
 // Those are not used in this file but are needed in any file that uses the macro
-#include <string_view>
 #include <array>
+#include <type_traits>
 
 namespace detail {
 
@@ -45,7 +45,7 @@ public:
 private:
     VisitorConverterWithName &operator<<(auto &value)
     {
-        std::string_view name = T::getFieldNames()[m_currentFieldIndex++];
+        auto name = T::getFieldNames()[m_currentFieldIndex++];
         m_visitor(value, name);
         return *this;
     }
@@ -57,7 +57,7 @@ private:
 } // namespace detail
 
 #define NAME(name) \
-static constexpr std::string_view getClassName() { return name; }
+static constexpr const char* getClassName() { return name; }
 
 #define FIELDS(...) \
 template <typename Visitor> \
@@ -90,6 +90,20 @@ void forEachFieldWithName(Visitor &&visitor) const \
 #define FIELD_NAMES(...) \
 static constexpr auto getFieldNames() \
 { \
-    return std::to_array<std::string_view>({ __VA_ARGS__ }); \
+    return std::to_array<const char*>({ __VA_ARGS__ }); \
 }
 
+// Describe enums with consecutive values that also start on 0
+#define ENUM_DESCRIPTION(type, enumName, valuesNames) \
+template<typename T> \
+const char *getEnumName(); \
+template<> \
+constexpr const char *getEnumName<type>() \
+{ \
+    return enumName; \
+} \
+constexpr const char *getEnumValueName(type value ) \
+{ \
+    constexpr const char *names[] = valuesNames; \
+    return names[std::to_underlying(value)]; \
+}

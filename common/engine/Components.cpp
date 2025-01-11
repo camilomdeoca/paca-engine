@@ -31,5 +31,28 @@ DirectionalLightShadowMap::DirectionalLightShadowMap(
     shadowMapAtlasFramebuffer.getDepthAttachment()->setBorderColor({1.0f, 1.0f, 1.0f, 1.0f});
 }
 
+DirectionalLightShadowMap::DirectionalLightShadowMap(DirectionalLightShadowMap &&source)
+    : shadowMapSize(source.shadowMapSize),
+      levelCount(source.levelCount),
+      shadowMapAtlasFramebuffer(std::move(source.shadowMapAtlasFramebuffer))
+{
+    for(int i = 0; i < levelCount; i++)
+    {
+        levels[i] = source.levels[i];
+    }
+}
+
+DirectionalLightShadowMap &DirectionalLightShadowMap::operator=(DirectionalLightShadowMap &&source)
+{
+    shadowMapSize = source.shadowMapSize;
+    levelCount = source.levelCount;
+    shadowMapAtlasFramebuffer = std::move(source.shadowMapAtlasFramebuffer);
+    for(int i = 0; i < levelCount; i++)
+    {
+        levels[i] = source.levels[i];
+    }
+    return *this;
+}
+
 } // namespace engine::components
 
