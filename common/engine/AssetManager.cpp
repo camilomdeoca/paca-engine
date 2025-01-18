@@ -33,7 +33,7 @@ const Texture *AssetManager::get(TextureId id) const
     return nullptr;
 }
 
-const Texture *AssetManager::get(CubeMapId id) const
+const Cubemap *AssetManager::get(CubeMapId id) const
 {
     const auto it = m_cubemaps.find(id);
     if (it != m_cubemaps.end())
@@ -280,7 +280,7 @@ void AssetManager::add(paca::fileformats::CubeMap &cubeMap)
     const auto it = m_cubemaps.emplace(
             std::piecewise_construct,
             std::forward_as_tuple(CubeMapId(cubeMap.id)),
-            std::forward_as_tuple(Texture::CubeMapSpecification{
+            std::forward_as_tuple(Cubemap::Specification{
                 .facesData = facesData,
                 .width = cubeMap.width,
                 .height = cubeMap.height,

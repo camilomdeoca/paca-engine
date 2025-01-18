@@ -309,7 +309,7 @@ void ForwardRenderer::renderWorld(
     //});
     if (world.has<components::Skybox>())
     {
-        const Texture *cubemap = assetManager.get(world.ensure<components::Skybox>().id);
+        const Cubemap *cubemap = assetManager.get(world.ensure<components::Skybox>().id);
         if (cubemap) drawSkybox(cameraTransform, camera, *cubemap, renderTarget);
     }
 }
@@ -530,7 +530,7 @@ void ForwardRenderer::drawAABB(
 void ForwardRenderer::drawSkybox(
     const engine::components::Transform &cameraTransform,
     const engine::components::Camera &camera,
-    const Texture &cubemap,
+    const Cubemap &cubemap,
     const FrameBuffer &renderTarget) const
 {
     renderTarget.bind();

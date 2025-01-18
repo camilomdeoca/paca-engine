@@ -7,15 +7,6 @@
 #include <stb_image.h>
 #include <GL/glew.h>
 
-GLenum typeToOpenGLType(Texture::Type type)
-{
-    switch (type) {
-        case Texture::Type::texture2D: return GL_TEXTURE_2D;
-        case Texture::Type::cubeMap: return GL_TEXTURE_CUBE_MAP;
-    }
-    ASSERT_MSG(false, "Invalid Texture Type!");
-}
-
 GLenum formatToOpenGLFormat(Texture::Format format)
 {
     switch (format)
@@ -78,18 +69,11 @@ Texture::Texture(const Specification &specification)
     init(specification);
 }
 
-Texture::Texture(const CubeMapSpecification &specification)
-{
-    init(specification);
-}
-
-
 Texture::Texture(Texture &&texture)
     : m_id(texture.m_id),
       m_width(texture.m_width),
       m_height(texture.m_height),
-      m_format(texture.m_format),
-      m_type(texture.m_type)
+      m_format(texture.m_format)
 {
     texture.m_id = 0;
 }
@@ -101,7 +85,6 @@ Texture& Texture::operator=(Texture&& source)
     m_width = source.m_width;
     m_height = source.m_height;
     m_format = source.m_format;
-    m_type = source.m_type;
     source.m_id = 0;
     return *this;
 }
@@ -151,7 +134,55 @@ void Texture::init(const Specification &specification)
     ASSERT(glGetError() == 0);
 }
 
-void Texture::init(const CubeMapSpecification &specification)
+Texture::~Texture()
+{
+    destroy();
+}
+
+void Texture::destroy()
+{
+    if (m_id != 0) glDeleteTextures(1, &m_id);
+    m_id = 0;
+}
+
+
+//void Texture::setData(void *data, uint32_t size)
+//{
+//    glTextureSubImage2D(m_id, 0, 0, 0, m_width, m_height, formatToOpenGLFormat(m_format), GL_UNSIGNED_BYTE, data);
+//}
+
+void Texture::bind(uint32_t slot) const
+{
+    glBindTextureUnit(slot, m_id);
+}
+
+void Texture::setInterpolate(bool value)
+{
+    glTextureParameteri(m_id, GL_TEXTURE_MIN_FILTER, value ? GL_LINEAR : GL_NEAREST);
+    glTextureParameteri(m_id, GL_TEXTURE_MAG_FILTER, value ? GL_LINEAR : GL_NEAREST);
+}
+
+void Texture::setRepeat(bool value)
+{
+    glTextureParameteri(m_id, GL_TEXTURE_WRAP_R, value ? GL_REPEAT : GL_CLAMP_TO_EDGE);
+    glTextureParameteri(m_id, GL_TEXTURE_WRAP_S, value ? GL_REPEAT : GL_CLAMP_TO_EDGE);
+    glTextureParameteri(m_id, GL_TEXTURE_WRAP_T, value ? GL_REPEAT : GL_CLAMP_TO_EDGE);
+}
+
+void Texture::setBorderColor(const glm::vec4 color)
+{
+    glTextureParameteri(m_id, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_BORDER);
+    glTextureParameteri(m_id, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    glTextureParameteri(m_id, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    glTextureParameterfv(m_id, GL_TEXTURE_BORDER_COLOR, glm::value_ptr(color));
+}
+
+Cubemap::Cubemap(const Specification &specification)
+{
+    init(specification);
+}
+
+void Cubemap::init(const Specification &specification)
 {
     m_format = specification.format;
     m_width = specification.width;
@@ -205,48 +236,5 @@ void Texture::init(const CubeMapSpecification &specification)
     if (specification.autoGenerateMipmapLevels && specification.mipmapLevels > 1)
         glGenerateTextureMipmap(m_id);
     ASSERT(glGetError() == 0);
-}
-
-Texture::~Texture()
-{
-    destroy();
-}
-
-void Texture::destroy()
-{
-    if (m_id != 0) glDeleteTextures(1, &m_id);
-    m_id = 0;
-}
-
-
-//void Texture::setData(void *data, uint32_t size)
-//{
-//    glTextureSubImage2D(m_id, 0, 0, 0, m_width, m_height, formatToOpenGLFormat(m_format), GL_UNSIGNED_BYTE, data);
-//}
-
-void Texture::bind(uint32_t slot) const
-{
-    glBindTextureUnit(slot, m_id);
-}
-
-void Texture::setInterpolate(bool value)
-{
-    glTextureParameteri(m_id, GL_TEXTURE_MIN_FILTER, value ? GL_LINEAR : GL_NEAREST);
-    glTextureParameteri(m_id, GL_TEXTURE_MAG_FILTER, value ? GL_LINEAR : GL_NEAREST);
-}
-
-void Texture::setRepeat(bool value)
-{
-    glTextureParameteri(m_id, GL_TEXTURE_WRAP_R, value ? GL_REPEAT : GL_CLAMP_TO_EDGE);
-    glTextureParameteri(m_id, GL_TEXTURE_WRAP_S, value ? GL_REPEAT : GL_CLAMP_TO_EDGE);
-    glTextureParameteri(m_id, GL_TEXTURE_WRAP_T, value ? GL_REPEAT : GL_CLAMP_TO_EDGE);
-}
-
-void Texture::setBorderColor(const glm::vec4 color)
-{
-    glTextureParameteri(m_id, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_BORDER);
-    glTextureParameteri(m_id, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-    glTextureParameteri(m_id, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-    glTextureParameterfv(m_id, GL_TEXTURE_BORDER_COLOR, glm::value_ptr(color));
 }
 

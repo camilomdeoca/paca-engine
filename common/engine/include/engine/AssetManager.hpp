@@ -15,7 +15,7 @@ public:
     const StaticMesh *get(StaticMeshId id) const;
     const AnimatedMesh *get(AnimatedMeshId id) const;
     const Texture *get(TextureId id) const;
-    const Texture *get(CubeMapId id) const;
+    const Cubemap *get(CubeMapId id) const;
     const Material *get(MaterialId id) const;
     const Animation *get(AnimationId id) const;
     const Font *get(FontId id) const;
@@ -58,7 +58,7 @@ private:
     std::unordered_map<StaticMeshId,   StaticMesh>   m_staticMeshes;
     std::unordered_map<AnimatedMeshId, AnimatedMesh> m_animatedMeshes;
     std::unordered_map<TextureId,      Texture>      m_textures;
-    std::unordered_map<CubeMapId,      Texture>      m_cubemaps;
+    std::unordered_map<CubeMapId,      Cubemap>      m_cubemaps;
     std::unordered_map<MaterialId,     Material>     m_materials;
     std::unordered_map<AnimationId,    Animation>    m_animations;
     std::unordered_map<FontId,         Font>         m_fonts;

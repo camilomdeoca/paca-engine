@@ -6,11 +6,6 @@
 
 class Texture {
 public:
-    enum class Type {
-        texture2D,
-        cubeMap
-    };
-
     enum class Format {
         G8,
         GA8,
@@ -33,24 +28,11 @@ public:
         bool interpolateBetweenMipmapLevels = false;
         bool tile = true;
     };
-    struct CubeMapSpecification {
-        std::array<const uint8_t*, 6> facesData = {};
-        uint32_t width = 0;
-        uint32_t height = 0;
-        Format format = Format::RGBA8;
-        uint32_t mipmapLevels = 1; // 1 to disable
-        bool autoGenerateMipmapLevels = false;
-        bool linearMinification = true; // if set to true it interpolates on minification
-        bool linearMagnification = true; // if set to true it interpolates on magnification
-        bool interpolateBetweenMipmapLevels = false;
-    };
 
     Texture();
     Texture(const Specification &specification);
-    Texture(const CubeMapSpecification &specification);
 
     void init(const Specification &specification);
-    void init(const CubeMapSpecification &specification);
 
     ~Texture();
 
@@ -79,10 +61,29 @@ public:
 
     // Needed for the framebuffer class. Is there a better way without exposing the id?
     uint32_t getId() const { return m_id; }
-private:
+protected:
     friend class FrameBuffer;
     uint32_t m_id;
     uint32_t m_width, m_height;
     Format m_format;
-    Type m_type;
+};
+
+class Cubemap : public Texture
+{
+public:
+    struct Specification {
+        std::array<const uint8_t*, 6> facesData = {};
+        uint32_t width = 0;
+        uint32_t height = 0;
+        Format format = Format::RGBA8;
+        uint32_t mipmapLevels = 1; // 1 to disable
+        bool autoGenerateMipmapLevels = false;
+        bool linearMinification = true; // if set to true it interpolates on minification
+        bool linearMagnification = true; // if set to true it interpolates on magnification
+        bool interpolateBetweenMipmapLevels = false;
+    };
+
+    Cubemap(const Specification &specification);
+
+    void init(const Specification &specification);
 };

@@ -68,7 +68,7 @@ private:
     void drawSkybox(
         const engine::components::Transform &cameraTransform,
         const engine::components::Camera &camera,
-        const Texture &cubemap,
+        const Cubemap &cubemap,
         const FrameBuffer &renderTarget) const;
 
     struct ShadowMapLevel {
