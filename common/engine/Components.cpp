@@ -23,12 +23,22 @@ DirectionalLightShadowMap::DirectionalLightShadowMap(
         INFO("\t Level {}: {} {}", i, levels[i].near, levels[i].far);
     }
 
-    FrameBufferParameters shadowDepthMapBufferParams;
-    shadowDepthMapBufferParams.width = shadowMapSize;
-    shadowDepthMapBufferParams.height = shadowMapSize * levelCount;
-    shadowDepthMapBufferParams.textureAttachmentFormats = { Texture::Format::depth24 };
-    shadowMapAtlasFramebuffer.init(shadowDepthMapBufferParams);
-    shadowMapAtlasFramebuffer.getDepthAttachment()->setBorderColor({1.0f, 1.0f, 1.0f, 1.0f});
+    uint32_t width = shadowMapSize;
+    uint32_t height = shadowMapSize * levelCount;
+
+    Texture depthTexture(Texture::Specification{
+        .width = width,
+        .height = height,
+        .format = Texture::Format::depth24,
+    });
+    depthTexture.setBorderColor({1.0f, 1.0f, 1.0f, 1.0f});
+
+    shadowMapAtlasFramebuffer.init(FrameBufferParameters {
+        .width = width,
+        .height = height,
+        .depthTextureAttachment = std::move(depthTexture),
+        .colorTextureAttachments = {},
+    });
 }
 
 DirectionalLightShadowMap::DirectionalLightShadowMap(DirectionalLightShadowMap &&source)

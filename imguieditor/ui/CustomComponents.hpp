@@ -31,7 +31,7 @@ void formatStringToTempBuffer(const char** out_buf, const char** out_buf_end, st
     // Have to subtract 1 from the buffer size because this replaces vsnprintf wich writes up to
     // buffer_size - 1 characters
     const std::format_to_n_result result
-        = std::format_to_n(g.TempBuffer.Data, g.TempBuffer.Size - 1, fmt, args...);
+        = std::format_to_n(g.TempBuffer.Data, g.TempBuffer.Size - 1, fmt, std::forward<Args>(args)...);
     
     //int buf_len = ImFormatStringV(g.TempBuffer.Data, g.TempBuffer.Size, fmt, args);
     size_t buf_len = result.size;
@@ -59,7 +59,7 @@ void Text(std::format_string<Args...> fmt, Args &&...args)
         return;
 
     const char* text, *text_end;
-    detail::formatStringToTempBuffer(&text, &text_end, fmt, args...);
+    detail::formatStringToTempBuffer(&text, &text_end, fmt, std::forward<Args>(args)...);
     ImGui::TextEx(text, text_end, ImGuiTextFlags_NoWidthForLargeClippedText);
 }
 

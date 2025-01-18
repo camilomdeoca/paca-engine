@@ -1,9 +1,9 @@
 #pragma once
 
-#include <engine/NewResourceManager.hpp>
-#include <engine/PerspectiveCamera.hpp>
-#include <engine/StaticMesh.hpp>
-#include <engine/AnimatedMesh.hpp>
+#include "AssetManager.hpp"
+#include "assets/StaticMesh.hpp"
+#include "assets/AnimatedMesh.hpp"
+#include "Components.hpp"
 #include <opengl/FrameBuffer.hpp>
 #include <opengl/Shader.hpp>
 
@@ -15,29 +15,29 @@ namespace engine {
 
 class ForwardRenderer {
 public:
-    struct Parameters {
-        enum FlagsMasks : uint32_t {
-            enableParallaxMapping = 0x1,
-            enableShadowMapping = 0x2
-        };
-        // size to render to
-        uint32_t width = 800, height = 600;
-        uint32_t flags = 0;
+    enum class Flags : uint32_t {
+        enableParallaxMapping = 0x1,
+        enableShadowMapping = 0x2
     };
 
     ForwardRenderer();
-    ForwardRenderer(const Parameters &parameters);
+    ForwardRenderer(Flags flags);
     ~ForwardRenderer();
 
-    void init(const Parameters &parameters);
+    void init(Flags flags);
 
-    void resize(uint32_t width, uint32_t height);
-    void setRenderTarget(FrameBuffer &renderTarget) { m_renderTarget = &renderTarget; }
-
-    void renderWorld(const PerspectiveCamera &camera, const flecs::world &world, const NewResourceManager &resourceManager);
+    void renderWorld(
+        const engine::components::Transform &cameraTransform,
+        const engine::components::Camera &camera,
+        const flecs::world &world,
+        const AssetManager &assetManager,
+        const FrameBuffer &renderTarget);
 
 private:
-    void updateShadowMapLevels(const PerspectiveCamera &camera, const flecs::world &world);
+    void updateShadowMapLevels(
+        const engine::components::Transform &cameraTransform,
+        const engine::components::Camera &camera,
+        const flecs::world &world);
     
     void drawMeshInShadowMaps(
         const StaticMesh &mesh,
@@ -49,21 +49,27 @@ private:
         const flecs::world &world) const;
 
     void drawMesh(
-        const PerspectiveCamera &camera,
+        const engine::components::Transform &cameraTransform,
+        const engine::components::Camera &camera,
         const StaticMesh &mesh,
         const Material *material,
         const glm::mat4 &modelMatrix,
         const flecs::world &world,
-        const NewResourceManager &resourceManager) const;
-    void drawMesh(
-        const PerspectiveCamera &camera,
-        const AnimatedMesh *mesh,
-        const Material &material,
-        const glm::mat4 &modelMatrix,
-        const flecs::world &world,
-        const NewResourceManager &resourceManager) const;
+        const AssetManager &assetManager,
+        const FrameBuffer &renderTarget) const;
 
-    void drawSkybox(const PerspectiveCamera &camera, const Texture &cubemap) const;
+    void drawAABB(
+        const engine::components::Transform &cameraTransform,
+        const engine::components::Camera &camera,
+        const AxisAlignedBoundingBox &aabb,
+        const glm::mat4 &modelMatrix,
+        const FrameBuffer &renderTarget) const;
+
+    void drawSkybox(
+        const engine::components::Transform &cameraTransform,
+        const engine::components::Camera &camera,
+        const Texture &cubemap,
+        const FrameBuffer &renderTarget) const;
 
     struct ShadowMapLevel {
         // ProjectionView of the camera for the shadowMap
@@ -80,11 +86,22 @@ private:
     std::shared_ptr<Shader> m_staticMeshShader; // Get this from the ResourceManager
                                                 // so it isnt recreated with multiple renderers
 
-    Parameters m_parameters;
+    Flags m_flags;
     std::shared_ptr<Shader> m_shadowMapShader;
     std::shared_ptr<Shader> m_skyboxShader;
+    std::shared_ptr<Shader> m_cubeLinesShader;
     std::shared_ptr<VertexArray> m_cubeVertexArray;
-    FrameBuffer *m_renderTarget;
+    std::shared_ptr<VertexArray> m_cubeVertexArrayForLines;
 };
+
+inline ForwardRenderer::Flags operator|(ForwardRenderer::Flags a, ForwardRenderer::Flags b)
+{
+    return ForwardRenderer::Flags(std::to_underlying(a) | std::to_underlying(b));
+}
+
+inline ForwardRenderer::Flags operator&(ForwardRenderer::Flags a, ForwardRenderer::Flags b)
+{
+    return ForwardRenderer::Flags(std::to_underlying(a) & std::to_underlying(b));
+}
 
 } // namespace engine

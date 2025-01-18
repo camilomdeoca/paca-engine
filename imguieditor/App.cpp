@@ -1,7 +1,8 @@
 #include "App.hpp"
 
+#include "ui/UI.hpp"
+
 #include <engine/FlecsSerialization.hpp>
-#include "UI.hpp"
 #include <engine/Loader.hpp>
 
 #include <engine/SceneManager.hpp>
@@ -11,7 +12,7 @@
 #include <engine/YamlSerialization.hpp>
 #include <utils/Assert.hpp>
 #include <engine/OrthoCamera.hpp>
-#include <engine/NewResourceManager.hpp>
+#include <engine/AssetManager.hpp>
 #include <opengl/gl.hpp>
 
 #include <SDL2/SDL.h>
@@ -27,6 +28,7 @@
 #include <yaml-cpp/node/parse.h>
 
 App::App()
+    : m_assetMetadataManager(m_assetManager)
 {}
 
 App::~App()
@@ -52,27 +54,15 @@ void App::init(std::string title)
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 
-    m_sceneRendererTarget.init({
-        .width = 320,
-        .height = 240,
-        .textureAttachmentFormats = {
-            Texture::Format::depth24,
-            Texture::Format::RGBA8,
-        },
-    });
-
-    engine::ForwardRenderer::Parameters rendererParams;
-    rendererParams.width = 320;
-    rendererParams.height = 240;
-    rendererParams.flags =
-        //ForwardRenderer::Parameters::enableParallaxMapping |
-        engine::ForwardRenderer::Parameters::enableShadowMapping;
+    engine::ForwardRenderer::Flags flags =
+        //engine::ForwardRenderer::Flags::enableParallaxMapping |
+        engine::ForwardRenderer::Flags::enableShadowMapping;
 
     GL::init();
+    m_assetMetadataManager.init();
     Input::init();
     BindingsManager::init();
-    m_renderer.init(rendererParams);
-    m_renderer.setRenderTarget(m_sceneRendererTarget);
+    m_renderer.init(flags);
     //Renderer2D::init();
     
     IMGUI_CHECKVERSION();
@@ -103,8 +93,8 @@ void App::init(std::string title)
 void App::run()
 {
     //Input::restrainMouseToWindow(true);
-    PerspectiveCamera camera((float)m_window.getWidth() / m_window.getHeight(), 90.0f);
-    OrthoCamera uiCamera(0.0f, m_window.getWidth(), 0.0f, m_window.getHeight());
+    //PerspectiveCamera camera((float)m_window.getWidth() / m_window.getHeight(), 90.0f);
+    //OrthoCamera uiCamera(0.0f, m_window.getWidth(), 0.0f, m_window.getHeight());
 
     //m_resourceManager.loadAssetPack("build/out.pack");
     flecs::world world;
@@ -121,16 +111,7 @@ void App::run()
 
     for (auto &staticMeshWithPath : assetPack.staticMeshes)
     {
-        auto staticMesh = engine::loaders::load<paca::fileformats::StaticMesh>(staticMeshWithPath.path.c_str());
-        if (!staticMesh)
-        {
-            ERROR("Couldn't load mesh: {}", staticMeshWithPath.path);
-            continue;
-        }
-
-        staticMesh->name = staticMeshWithPath.name;
-        staticMesh->id = staticMeshWithPath.id;
-        m_resourceManager.add(*staticMesh);
+        m_assetMetadataManager.add(staticMeshWithPath);
     }
     for (auto &textureWithPath : assetPack.textures)
     {
@@ -143,7 +124,7 @@ void App::run()
 
         texture->name = textureWithPath.name;
         texture->id = textureWithPath.id;
-        m_resourceManager.add(*texture);
+        m_assetManager.add(*texture);
     }
     for (auto &cubemapWithPath : assetPack.cubeMaps)
     {
@@ -155,13 +136,12 @@ void App::run()
         }
         cubemap->name = cubemapWithPath.name;
         cubemap->id = cubemapWithPath.id;
-        m_resourceManager.add(*cubemap);
+        m_assetManager.add(*cubemap);
     }
     INFO("MATERIALS: {}", assetPack.materials.size());
     for (auto &material : assetPack.materials)
     {
-        INFO("\tMat {}", material.id);
-        m_resourceManager.add(material);
+        m_assetMetadataManager.add(material);
     }
 
     BindingsManager::bind(Key::w, "forward");
@@ -182,46 +162,19 @@ void App::run()
     BindingsManager::bind(Key::q, "wireframe_toggle");
 
     float lastFrameTime = SDL_GetTicks();
-    ui::EditorContext editorContext = {
-        .camera = camera,
-        .resourceManager = m_resourceManager,
-        .assetPack = assetPack,
-        .renderTarget = m_sceneRendererTarget,
-        .resizeCallback = [this, &camera](uint32_t w, uint32_t h) {
-            m_sceneRendererTarget.shutdown();
-            m_sceneRendererTarget.init({
-                .width = w,
-                .height = h,
-                .textureAttachmentFormats = {
-                    Texture::Format::depth24,
-                    Texture::Format::RGBA8,
-                },
-            });
-            m_renderer.resize(w, h);
-            camera.setAspect((float)w/h);
-        },
+    UI ui({
+        .assetManager = m_assetManager,
+        .assetMetadataManager = m_assetMetadataManager,
+        .renderer = m_renderer,
         .world = world,
-        .selectedEntity = flecs::entity(),
-        .time = lastFrameTime,
-        .timeDelta = 0,
-    };
+    });
 
     while (m_running) {
         float time = SDL_GetTicks();
         float timeDelta = time - lastFrameTime;
         lastFrameTime = time;
 
-        editorContext.time = time;
-        editorContext.timeDelta = timeDelta;
-
-        constexpr int frameTimeMeasurementCount = 10;
-        static float framTimeBuffer[frameTimeMeasurementCount] = {0};
-        static int oldestFrameTimeIndex = 0;
-        framTimeBuffer[oldestFrameTimeIndex] = timeDelta;
-        oldestFrameTimeIndex++;
-        if (oldestFrameTimeIndex >= frameTimeMeasurementCount) oldestFrameTimeIndex = 0;
-        float smoothFrameTime = 0;
-        for (int i = 0; i < frameTimeMeasurementCount; i++) smoothFrameTime += framTimeBuffer[i]/frameTimeMeasurementCount;
+        ui.update(timeDelta);
 
         SDL_Event event;
         while (SDL_PollEvent(&event))
@@ -232,12 +185,6 @@ void App::run()
 
             Input::processSDLEvent(event);
         }
-        
-        // Rotate Light
-        //static float distance = 3.0f;
-        //glm::vec3 newLightPos(distance * sin(time*0.002f), 2.0f, distance * cos(time*0.002f));
-        //light->setPosition(newLightPos);
-        //lightBulb.setPosition(newLightPos);        
 
         /* Draw */
         ImGui_ImplOpenGL3_NewFrame();
@@ -245,13 +192,9 @@ void App::run()
         ImGui::NewFrame();
         ImGuizmo::BeginFrame();
 
-        ui::draw(editorContext);
+        ui.draw();
 
-        m_sceneRendererTarget.bind();
-        GL::clear();
-        m_renderer.renderWorld(camera, world, m_resourceManager);
-        m_sceneRendererTarget.unbind();
-
+        FrameBuffer::getDefault().bind();
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 

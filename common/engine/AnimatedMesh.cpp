@@ -1,4 +1,4 @@
-#include "engine/AnimatedMesh.hpp"
+#include "engine/assets/AnimatedMesh.hpp"
 
 AnimatedMesh::AnimatedMesh(
     const std::vector<uint8_t> &vertices,

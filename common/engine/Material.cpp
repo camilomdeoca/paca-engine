@@ -1,4 +1,4 @@
-#include "engine/Material.hpp"
+#include "engine/assets/Material.hpp"
 
 Material::Material(MaterialSpecification specification)
     : m_textures(specification.textures)

@@ -4,7 +4,6 @@
 #include "opengl/Texture.hpp"
 
 #include <GL/glew.h>
-#include <memory>
 #include <vector>
 
 FrameBuffer FrameBuffer::defaultFramebuffer(0);
@@ -22,9 +21,9 @@ FrameBuffer::FrameBuffer()
     : m_id(0)
 {}
 
-FrameBuffer::FrameBuffer(FrameBufferParameters parameters)
+FrameBuffer::FrameBuffer(FrameBufferParameters &&parameters)
 {
-    init(parameters);
+    init(std::move(parameters));
 }
 
 FrameBuffer::FrameBuffer(FrameBuffer &&source)
@@ -39,6 +38,7 @@ FrameBuffer::FrameBuffer(FrameBuffer &&source)
 
 FrameBuffer &FrameBuffer::operator=(FrameBuffer &&source)
 {
+    shutdown();
     m_id = source.m_id;
     m_width = source.m_width;
     m_height = source.m_height;
@@ -48,7 +48,7 @@ FrameBuffer &FrameBuffer::operator=(FrameBuffer &&source)
     return *this;
 }
 
-void FrameBuffer::init(FrameBufferParameters parameters)
+void FrameBuffer::init(FrameBufferParameters &&parameters)
 {
     m_width = parameters.width;
     m_height = parameters.height;
@@ -56,40 +56,36 @@ void FrameBuffer::init(FrameBufferParameters parameters)
     glGenFramebuffers(1, &m_id);
     glBindFramebuffer(GL_FRAMEBUFFER, m_id);
 
-    // Create textures for attaching to the framebuffer
-    for (Texture::Format format : parameters.textureAttachmentFormats)
-    {
-        if (format != Texture::Format::depth24stencil8 && format != Texture::Format::depth24)
-        {
-            std::shared_ptr<Texture> &texture =
-                m_colorAttachments.emplace_back(std::make_shared<Texture>(Texture::Specification{
-                    .width = parameters.width,
-                    .height = parameters.height,
-                    .format = format,
-                    .linearMinification = false,
-                    .linearMagnification = false,
-                    .interpolateBetweenMipmapLevels = false,
-                }));
-            texture->setRepeat(false);
-        }
-        else
-        {
-            m_depthAttachment = std::make_shared<Texture>(Texture::Specification{
-                .width = parameters.width,
-                .height = parameters.height,
-                .format = format,
-            });
-        }
-    }
+    m_colorAttachments = std::move(parameters.colorTextureAttachments);
+
+    m_depthAttachment = std::move(parameters.depthTextureAttachment);
 
     // Attach all color textures
     for (unsigned int i = 0; i < m_colorAttachments.size(); i++) {
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, GL_TEXTURE_2D, m_colorAttachments[i]->getId(), 0);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, GL_TEXTURE_2D, m_colorAttachments[i].getId(), 0);
+        INFO("COLOR {}", i);
+        INFO("\tid: {}", m_colorAttachments[i].m_id);
+        INFO("\tformat: {}", std::to_underlying(m_colorAttachments[i].m_format));
+        INFO("\twidth: {}", m_colorAttachments[i].m_width);
+        INFO("\theight: {}", m_colorAttachments[i].m_height);
     }
+
+    INFO("DEPTH");
+    INFO("\tid: {}", m_depthAttachment.m_id);
+    INFO("\tformat: {}", std::to_underlying(m_depthAttachment.m_format));
+    INFO("\twidth: {}", m_depthAttachment.m_width);
+    INFO("\theight: {}", m_depthAttachment.m_height);
 
     // Attach depth stencil buffer
     if (m_depthAttachment)
-        glFramebufferTexture2D(GL_FRAMEBUFFER, depthBufferFormatToAttachment(m_depthAttachment->getFormat()), GL_TEXTURE_2D, m_depthAttachment->getId(), 0);
+    {
+        glFramebufferTexture2D(
+            GL_FRAMEBUFFER,
+            depthBufferFormatToAttachment(m_depthAttachment.getFormat()),
+            GL_TEXTURE_2D,
+            m_depthAttachment.getId(),
+            0);
+    }
 
     // Set color buffers to draw to
     GLenum buffers[] = {
@@ -112,7 +108,7 @@ void FrameBuffer::init(FrameBufferParameters parameters)
         glReadBuffer(GL_NONE);
     }
     unsigned int error = glGetError();
-    ASSERT_MSG(error == 0, "OpenGl Error: {}", error);
+    ASSERT_MSG(error == 0, "OpenGl Error: {}", (const char*)glewGetErrorString(error));
 
     ASSERT_MSG(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE, "Framebuffer is incomplete");
 
@@ -127,16 +123,16 @@ FrameBuffer::~FrameBuffer()
 void FrameBuffer::shutdown()
 {
     if (m_id) glDeleteFramebuffers(1, &m_id);
-    m_depthAttachment.reset();
+    m_depthAttachment.destroy();
     m_colorAttachments.clear();
 }
 
-void FrameBuffer::bind()
+void FrameBuffer::bind() const
 {
     glBindFramebuffer(GL_FRAMEBUFFER, m_id);
 }
 
-void FrameBuffer::unbind()
+void FrameBuffer::unbind() const
 {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }

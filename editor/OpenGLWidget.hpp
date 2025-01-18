@@ -25,7 +25,7 @@ protected:
 private:
     PerspectiveCamera m_camera;
     engine::ForwardRenderer m_renderer;
-    NewResourceManager m_resourceManager;
+    AssetManager m_resourceManager;
     const flecs::world &m_scene;
     const paca::fileformats::AssetPack &m_assetPack;
 };

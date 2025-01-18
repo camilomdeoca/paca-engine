@@ -53,6 +53,18 @@ entities:
       - DirectionalLight:
           color: [1, 1, 0.899999976]
           intensity: 0.699999988
+  - id: 1006
+    name: "Camera component"
+    components:
+      - Transform:
+          position: [0, 5, 0]
+          rotation: [0, 0, 0]
+          scale: [1, 1, 1]
+      - Camera:
+          aspect: 1.77777777
+          fov: 1.5
+          near: 0.1
+          far: 500
 sceneComponents:
   - Skybox:
       id: 1

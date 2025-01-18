@@ -1,6 +1,7 @@
 #pragma once
 
 #include <engine/ForwardRenderer.hpp>
+#include "AssetMetadataManager.hpp"
 #include <engine/Window.hpp>
 #include <engine/Input.hpp>
 
@@ -14,9 +15,9 @@ public:
 
 private:
     Window m_window;
-    FrameBuffer m_sceneRendererTarget;
     engine::ForwardRenderer m_renderer;
-    NewResourceManager m_resourceManager;
+    AssetManager m_assetManager;
+    AssetMetadataManager m_assetMetadataManager;
     EventReceiver m_eventReceiver;
     bool m_running = true;
 };

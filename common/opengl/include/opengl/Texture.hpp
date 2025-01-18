@@ -31,6 +31,7 @@ public:
         bool linearMinification = true; // if set to true it interpolates on minification
         bool linearMagnification = true; // if set to true it interpolates on magnification
         bool interpolateBetweenMipmapLevels = false;
+        bool tile = true;
     };
     struct CubeMapSpecification {
         std::array<const uint8_t*, 6> facesData = {};
@@ -44,18 +45,25 @@ public:
         bool interpolateBetweenMipmapLevels = false;
     };
 
+    Texture();
     Texture(const Specification &specification);
     Texture(const CubeMapSpecification &specification);
-    //Texture(const std::string &path);
-    //Texture(const uint8_t *data, uint32_t width, uint32_t height, Format format);
-    //Texture(std::array<const uint8_t*, 6> facesData, uint32_t width, uint32_t height, Format format);
-    //Texture(uint32_t width, uint32_t height, Format format);
+
+    void init(const Specification &specification);
+    void init(const CubeMapSpecification &specification);
+
     ~Texture();
+
+    void destroy();
 
     Texture(const Texture&) = delete;
     Texture& operator=(const Texture&) = delete;
 
     Texture(Texture &&texture);
+    Texture& operator=(Texture&& source);
+
+    bool isValid() const { return m_id != 0; }
+    operator bool() const { return isValid(); }
 
     uint32_t getWidth() const { return m_width; }
     uint32_t getHeight() const { return m_height; }
@@ -71,12 +79,8 @@ public:
 
     // Needed for the framebuffer class. Is there a better way without exposing the id?
     uint32_t getId() const { return m_id; }
-
 private:
-    void create(const Specification &specification);
-    // The data parameter are the pointers to each face data
-    void createCubeMap(const CubeMapSpecification &specification);
-
+    friend class FrameBuffer;
     uint32_t m_id;
     uint32_t m_width, m_height;
     Format m_format;

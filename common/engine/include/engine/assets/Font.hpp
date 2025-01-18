@@ -1,7 +1,7 @@
 #pragma once
 
 #include "ResourceFileFormats.hpp"
-#include "IdTypes.hpp"
+#include "engine/IdTypes.hpp"
 
 #include <cstdint>
 #include <unordered_map>

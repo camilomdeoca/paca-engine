@@ -1,8 +1,10 @@
-#include "engine/StaticMesh.hpp"
+#include "engine/assets/StaticMesh.hpp"
 
 StaticMesh::StaticMesh(
     const std::vector<uint8_t> &vertices,
-    const std::vector<uint32_t> &indices)
+    const std::vector<uint32_t> &indices,
+    const AxisAlignedBoundingBox &aabb)
+    : m_aabb(aabb)
 {
     m_vertex_array = std::make_shared<VertexArray>();
 

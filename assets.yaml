@@ -15,14 +15,14 @@ materials:
       - [1]
       - []
       - [2]
-      - []
+      - [3]
   - name: "statueMaterial"
     id: 2
     textures:
       - []
-      - [3]
-      - []
       - [4]
+      - []
+      - [5]
       - []
 textures:
   - name: "bricks_diffuse"
@@ -31,14 +31,17 @@ textures:
   - name: "bricks_normal"
     id: 2
     path: "assets/textures/Bricks091_4K-JPG_NormalGL.jpg"
-  - name: "statue_diffuse"
+  - name: "bricks_height"
     id: 3
+    path: "assets/textures/Bricks091_4K-JPG_Displacement.jpg"
+  - name: "statue_diffuse"
+    id: 4
     path: "assets/textures/statue-diffuse.jpg"
   - name: "statue_normal"
-    id: 4
+    id: 5
     path: "assets/textures/statue-normal.jpg"
 cubeMaps:
-  - name: "statue_normal"
+  - name: "skybox_cubemap"
     id: 1
     path: "assets/textures/cubemaps/skybox"
 animations:

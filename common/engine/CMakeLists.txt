@@ -8,7 +8,7 @@ add_library(engine STATIC
     #Renderer2D.cpp
     #Renderer.cpp
     ForwardRenderer.cpp
-    NewResourceManager.cpp
+    AssetManager.cpp
     StaticMesh.cpp
     #SceneManager.cpp
     Action.cpp
@@ -17,6 +17,9 @@ add_library(engine STATIC
     Components.cpp
     Loader.cpp
 )
+
+
+target_compile_definitions(engine PRIVATE IN_EDITOR)
 
 target_include_directories(engine PRIVATE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/>

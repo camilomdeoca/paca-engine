@@ -1,4 +1,4 @@
-#include "engine/Animation.hpp"
+#include "engine/assets/Animation.hpp"
 
 #include "utils/Assert.hpp"
 

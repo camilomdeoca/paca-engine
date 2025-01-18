@@ -31,6 +31,7 @@ public:
             engine::components::PointLight *c5,
             engine::components::DirectionalLight *c6,
             engine::components::Skybox *c7,
+            engine::components::Camera *c8,
             engine::tags::SceneEntityTag
         ) {
             m_serializer.getYamlEmitter() << YAML::BeginMap;
@@ -46,6 +47,7 @@ public:
             if (c5) m_serializer(c5->getClassName(), *c5);
             if (c6) m_serializer(c6->getClassName(), *c6);
             if (c7) m_serializer(c7->getClassName(), *c7);
+            if (c8) m_serializer(c8->getClassName(), *c8);
             m_serializer.getYamlEmitter() << YAML::EndSeq;
             m_serializer.getYamlEmitter() << YAML::EndMap;
         });
@@ -92,6 +94,7 @@ public:
         world.component<engine::components::DirectionalLight>("DirectionalLight");
         world.component<engine::components::DirectionalLightShadowMap>("DirectionalLightShadowMap");
         world.component<engine::components::Skybox>("Skybox");
+        world.component<engine::components::Camera>("Camera");
 
         YAML::Node rootNode = m_unserializer.getYamlNode();
         YAML::Node sceneEntities = rootNode["entities"];
@@ -122,9 +125,10 @@ public:
                     m_unserializer(e.ensure<engine::components::DirectionalLight>(), componentNode);
                     e.template emplace<engine::components::DirectionalLightShadowMap>(
                         512u,
-                        std::vector<float>{5.0f, 10.0f, 25.0f, 50.0f, 100.0f});
+                        std::vector<float>{2.5f, 5.0f, 10.0f, 20.0f, 50.0f});
                 }
                 if (typeName == "Skybox") m_unserializer(e.ensure<engine::components::Skybox>(), componentNode);
+                if (typeName == "Camera") m_unserializer(e.ensure<engine::components::Camera>(), componentNode);
             }
         }
 
@@ -140,6 +144,7 @@ public:
             if (typeName == "PointLight") m_unserializer(world.ensure<engine::components::PointLight>(), componentNode);
             if (typeName == "DirectionalLight") m_unserializer(world.ensure<engine::components::DirectionalLight>(), componentNode);
             if (typeName == "Skybox") m_unserializer(world.ensure<engine::components::Skybox>(), componentNode);
+            if (typeName == "Camera") m_unserializer(world.ensure<engine::components::Camera>(), componentNode);
         }
     }
 

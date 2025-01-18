@@ -36,6 +36,13 @@ void GL::drawIndexed(const VertexArray &vertexArray, uint32_t indexCount)
     glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, nullptr);
 }
 
+void GL::drawLines(const VertexArray &vertexArray, uint32_t indexCount)
+{
+    vertexArray.bind();
+    uint32_t count = indexCount ? indexCount : vertexArray.getIndexBuffer()->getCount();
+    glDrawElements(GL_LINES, count, GL_UNSIGNED_INT, nullptr);
+}
+
 void GL::setDepthTest(bool value)
 {
     if (value)

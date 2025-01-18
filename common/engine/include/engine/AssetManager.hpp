@@ -2,14 +2,14 @@
 
 #include <ResourceFileFormats.hpp>
 
-#include "StaticMesh.hpp"
-#include "AnimatedMesh.hpp"
+#include "assets/StaticMesh.hpp"
+#include "assets/AnimatedMesh.hpp"
 #include "opengl/Texture.hpp"
-#include "Material.hpp"
-#include "Animation.hpp"
-#include "Font.hpp"
+#include "assets/Material.hpp"
+#include "assets/Animation.hpp"
+#include "assets/Font.hpp"
 
-class NewResourceManager
+class AssetManager
 {
 public:
     const StaticMesh *get(StaticMeshId id) const;
@@ -27,6 +27,14 @@ public:
     bool remove(MaterialId id);
     bool remove(AnimationId id);
     bool remove(FontId id);
+
+    bool move(StaticMeshId from, StaticMeshId to);
+    bool move(AnimatedMeshId from, AnimatedMeshId to);
+    bool move(TextureId from, TextureId to);
+    bool move(CubeMapId from, CubeMapId to);
+    bool move(MaterialId from, MaterialId to);
+    bool move(AnimationId from, AnimationId to);
+    bool move(FontId from, FontId to);
 
     void add(paca::fileformats::StaticMesh &staticMesh);
     void add(paca::fileformats::AnimatedMesh &animatedMesh);

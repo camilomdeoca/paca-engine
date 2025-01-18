@@ -4,9 +4,10 @@ find_package(SDL2)
 add_executable(imguieditor
     Main.cpp
     App.cpp
-    UI.cpp
-    ui/ComponentsEdit.cpp
+    ui/UI.cpp
     ui/CustomComponents.cpp
+    AssetMetadataManager.cpp
+    PreviewRenderer.cpp
 )
 
 message(STATUS "FREETYPE_LIBRARIES = ${FREETYPE_LIBRARIES}")

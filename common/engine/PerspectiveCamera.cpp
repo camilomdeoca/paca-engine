@@ -3,7 +3,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 PerspectiveCamera::PerspectiveCamera(float aspect, float fov)
-    : m_aspect(aspect), m_fov(fov), m_near(0.1f), m_far(100.0f)
+    : m_aspect(aspect), m_fov(fov), m_near(0.1f), m_far(500.0f)
 {
 }
 

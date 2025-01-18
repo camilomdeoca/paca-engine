@@ -15,7 +15,7 @@ public:
 private:
     Window m_window;
     engine::ForwardRenderer m_renderer;
-    NewResourceManager m_resourceManager;
+    AssetManager m_assetManager;
     EventReceiver m_eventReceiver;
     bool m_running = true;
 };

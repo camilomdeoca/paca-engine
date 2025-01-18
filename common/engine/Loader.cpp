@@ -73,6 +73,15 @@ void readMesh(const cgltf_mesh &mesh, paca::fileformats::StaticMesh &outMesh)
     ASSERT(primitive.attributes[normalAttributeIndex].data->type == cgltf_type_vec3);
     ASSERT(primitive.attributes[textureAttributeIndex].data->type == cgltf_type_vec2);
     ASSERT(primitive.attributes[tangentAttributeIndex].data->type == cgltf_type_vec4);
+
+    glm::vec3 firstVertexPosition;
+    cgltf_accessor_read_float(
+        primitive.attributes[positionAttributeIndex].data, 0,
+        glm::value_ptr(firstVertexPosition), 3);
+    outMesh.aabb = {
+        .min = firstVertexPosition,
+        .max = firstVertexPosition,
+    };
     for (cgltf_size i = 0; i < vertexCount; i++)
     {
         cgltf_accessor_read_float(
@@ -80,10 +89,12 @@ void readMesh(const cgltf_mesh &mesh, paca::fileformats::StaticMesh &outMesh)
                 glm::value_ptr(vertices[i].position), 3);
 
         // Calculate AABB
-        for (glm::length_t i = 0; i < outMesh.aabb.min.length(); i++)
+        for (glm::length_t j = 0; j < outMesh.aabb.min.length(); j++)
         {
-            outMesh.aabb.min[i] = glm::min(vertices[i].position[i], outMesh.aabb.min[i]);
-            outMesh.aabb.max[i] = glm::max(vertices[i].position[i], outMesh.aabb.max[i]);
+            if (vertices[i].position[j] > outMesh.aabb.min[j])
+                outMesh.aabb.min[j] = vertices[i].position[j];
+            if (vertices[i].position[j] < outMesh.aabb.max[j])
+                outMesh.aabb.max[j] = vertices[i].position[j];
         }
 
         if (normalAttributeIndex != -1)
@@ -106,6 +117,14 @@ void readMesh(const cgltf_mesh &mesh, paca::fileformats::StaticMesh &outMesh)
             vertices[i].tangent = glm::vec3(tangent.x, tangent.y, tangent.z);
         }
     }
+    INFO(
+        "AABB ({} {} {})_({} {} {})",
+        outMesh.aabb.min.x,
+        outMesh.aabb.min.y,
+        outMesh.aabb.min.z,
+        outMesh.aabb.max.x,
+        outMesh.aabb.max.y,
+        outMesh.aabb.max.z);
 
     outMesh.indices.resize(primitive.indices->count);
     for (cgltf_size i = 0; i < primitive.indices->count; i++)

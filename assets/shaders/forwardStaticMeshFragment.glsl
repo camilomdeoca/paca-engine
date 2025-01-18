@@ -35,7 +35,7 @@ struct PointLight {
 #ifdef USE_SHADOW_MAPPING
 
 #define MAX_SHADOW_MAP_LEVELS 5
-#define SHADOW_CALCULATIONS_BIAS 0.00005
+#define SHADOW_CALCULATIONS_BIAS 0.00025
 
 struct ShadowMapLevel {
     mat4 cameraSpaceToLightSpace;
@@ -75,20 +75,22 @@ float shadowCalculation(uint lightIndex, vec4 fragPosLightSpace, uint level, flo
     vec3 projectedCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
     projectedCoords = projectedCoords * 0.5 + 0.5;
     vec2 offset = vec2(0.0, float(level) / float(light.numOfShadowMapLevels));
-    vec2 uv = offset + vec2(projectedCoords.x, projectedCoords.y / light.numOfShadowMapLevels);
+    vec2 centerUV = offset + vec2(projectedCoords.x, projectedCoords.y / light.numOfShadowMapLevels);
     float currentDepth = projectedCoords.z;
 
     vec2 texelSize = 1.0 / textureSize(u_directionalLightsShadowMapAtlas[lightIndex], 0);
     float shadow = 0.0;
-    for (int x = -1; x <= 1; x++)
+    const int radius = 2;
+    for (int x = -radius; x <= radius; x++)
     {
-        for (int y = -1; y <= 1; y++)
+        for (int y = -radius; y <= radius; y++)
         {
-            float closestDepth = texture(u_directionalLightsShadowMapAtlas[lightIndex], uv + vec2(x, y) * texelSize).r;
+            vec2 uv = centerUV + vec2(x, y) * texelSize;
+            float closestDepth = texture(u_directionalLightsShadowMapAtlas[lightIndex], uv).r;
             shadow += currentDepth - bias > closestDepth ? 1.0 : 0.0;
         }
     }
-    shadow /= 9.0;
+    shadow /= float((2 * radius + 1) * (2 * radius + 1));
 
     if (projectedCoords.z > 1.0) shadow = 0.0;
     return shadow;
@@ -259,7 +261,7 @@ void main()
     else
         spec = vec3(1.0);
 
-    vec3 ambient = color * 0.15;
+    vec3 ambient = color * 0.5;
     vec3 final = vec3(0);
 
     for (uint i = 0; i < u_numOfDirectionalLights; i++)

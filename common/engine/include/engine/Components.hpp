@@ -31,6 +31,20 @@ struct Transform
         return transform;
     }
 
+    glm::vec3 getDirection() const
+    {
+        return glm::normalize(glm::vec3(
+            cos(glm::radians(rotation.y)) * cos(glm::radians(rotation.x)),
+            sin(glm::radians(rotation.x)),
+            sin(glm::radians(rotation.y)) * cos(glm::radians(rotation.x))
+        ));
+    }
+
+    glm::mat4 getView() const
+    {
+        return glm::lookAt(position, position + getDirection(), {0.0f, 1.0f, 0.0f});
+    }
+
     glm::mat3 getRotationMat3() const
     {
         return glm::mat3_cast(glm::quat(glm::radians(rotation)));
@@ -42,7 +56,7 @@ struct Material
     NAME("Material")
     FIELDS(id)
     FIELD_NAMES("id")
-    MaterialId id;
+    MaterialId id = MaterialId::null;
 };
 
 struct StaticMesh
@@ -50,7 +64,7 @@ struct StaticMesh
     NAME("StaticMesh")
     FIELDS(id)
     FIELD_NAMES("id")
-    StaticMeshId id;
+    StaticMeshId id = StaticMeshId::null;
 };
 
 struct AnimatedMesh
@@ -58,7 +72,7 @@ struct AnimatedMesh
     NAME("AnimatedMesh")
     FIELDS(id)
     FIELD_NAMES("id")
-    AnimatedMeshId id;
+    AnimatedMeshId id = AnimatedMeshId::null;
 };
 
 struct PointLight
@@ -117,7 +131,7 @@ struct Skybox
     NAME("Skybox")
     FIELDS(id)
     FIELD_NAMES("id")
-    CubeMapId id;
+    CubeMapId id = CubeMapId::null;
 };
 
 struct Camera
@@ -125,7 +139,10 @@ struct Camera
     NAME("Camera")
     FIELDS(aspect, fov, near, far)
     FIELD_NAMES("aspect", "fov", "near", "far")
-    float aspect, fov, near, far;
+    float aspect = 1.0f;
+    float fov = 90.0f;
+    float near = 0.1f;
+    float far = 100.0f;
 
     glm::mat4 getProjection() const
     {

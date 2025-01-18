@@ -2,7 +2,7 @@
 
 #include "Animation.hpp"
 #include "Mesh.hpp"
-#include "IdTypes.hpp"
+#include "engine/IdTypes.hpp"
 
 class AnimatedMesh : public Mesh {
 public:

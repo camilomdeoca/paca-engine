@@ -65,7 +65,7 @@ void App::run()
     PerspectiveCameraController cameraController((float)m_window.getWidth() / m_window.getHeight(), 90.0f);
     OrthoCamera uiCamera(0.0f, m_window.getWidth(), 0.0f, m_window.getHeight());
 
-    m_resourceManager.loadAssetPack("build/out.pack");
+    m_assetManager.loadAssetPack("build/out.pack");
     
     engine::SceneManager sceneManager;
     serialization::BinaryUnserializer unserializer("build/scene.scene");
@@ -150,7 +150,7 @@ void App::run()
 
         //Renderer::beginScene(cameraController.getCamera(), environment);
         const PerspectiveCamera &camera = cameraController.getCamera();
-        m_renderer.renderWorld(camera, world, m_resourceManager);
+        m_renderer.renderWorld(camera, world, m_assetManager);
 
         // Render UI
         //Renderer2D::beginScene(uiCamera);

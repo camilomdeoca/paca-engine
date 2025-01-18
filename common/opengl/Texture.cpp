@@ -69,30 +69,44 @@ GLenum formatToOpenGLInternalFormat(Texture::Format format)
 //    stbi_image_free(data);
 //}
 
+Texture::Texture()
+    : m_id(0)
+{}
+
 Texture::Texture(const Specification &specification)
 {
-    create(specification);
+    init(specification);
 }
 
 Texture::Texture(const CubeMapSpecification &specification)
 {
-    createCubeMap(specification);
+    init(specification);
 }
 
 
 Texture::Texture(Texture &&texture)
-    : m_id(texture.m_id)
+    : m_id(texture.m_id),
+      m_width(texture.m_width),
+      m_height(texture.m_height),
+      m_format(texture.m_format),
+      m_type(texture.m_type)
 {
     texture.m_id = 0;
 }
 
-Texture::~Texture()
+Texture& Texture::operator=(Texture&& source)
 {
-    if (m_id != 0)
-        glDeleteTextures(1, &m_id);
+    destroy();
+    m_id = source.m_id;
+    m_width = source.m_width;
+    m_height = source.m_height;
+    m_format = source.m_format;
+    m_type = source.m_type;
+    source.m_id = 0;
+    return *this;
 }
 
-void Texture::create(const Specification &specification)
+void Texture::init(const Specification &specification)
 {
     m_format = specification.format;
     m_width = specification.width;
@@ -124,7 +138,7 @@ void Texture::create(const Specification &specification)
         GL_TEXTURE_MAG_FILTER,
         specification.linearMagnification ? GL_LINEAR : GL_NEAREST);
 
-    setRepeat(true);
+    setRepeat(specification.tile);
 
     if (specification.data)
     {
@@ -137,7 +151,7 @@ void Texture::create(const Specification &specification)
     ASSERT(glGetError() == 0);
 }
 
-void Texture::createCubeMap(const CubeMapSpecification &specification)
+void Texture::init(const CubeMapSpecification &specification)
 {
     m_format = specification.format;
     m_width = specification.width;
@@ -192,6 +206,18 @@ void Texture::createCubeMap(const CubeMapSpecification &specification)
         glGenerateTextureMipmap(m_id);
     ASSERT(glGetError() == 0);
 }
+
+Texture::~Texture()
+{
+    destroy();
+}
+
+void Texture::destroy()
+{
+    if (m_id != 0) glDeleteTextures(1, &m_id);
+    m_id = 0;
+}
+
 
 //void Texture::setData(void *data, uint32_t size)
 //{
