@@ -675,7 +675,10 @@ void UI::drawCameraEntityViews()
             sizeof(windowName) - 1,
             "{}: Camera",
             cameraEntityView.entity.name().c_str());
-        *result.out = '\0';
+        size_t textLength = static_cast<size_t>(result.size) < sizeof(windowName) - 1
+            ? result.size
+            : sizeof(windowName) - 1;
+        windowName[textLength] = '\0';
 
 
         if (ImGui::Begin(windowName))

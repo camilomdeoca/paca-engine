@@ -63,18 +63,7 @@ void FrameBuffer::init(FrameBufferParameters &&parameters)
     // Attach all color textures
     for (unsigned int i = 0; i < m_colorAttachments.size(); i++) {
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, GL_TEXTURE_2D, m_colorAttachments[i].getId(), 0);
-        INFO("COLOR {}", i);
-        INFO("\tid: {}", m_colorAttachments[i].m_id);
-        INFO("\tformat: {}", std::to_underlying(m_colorAttachments[i].m_format));
-        INFO("\twidth: {}", m_colorAttachments[i].m_width);
-        INFO("\theight: {}", m_colorAttachments[i].m_height);
     }
-
-    INFO("DEPTH");
-    INFO("\tid: {}", m_depthAttachment.m_id);
-    INFO("\tformat: {}", std::to_underlying(m_depthAttachment.m_format));
-    INFO("\twidth: {}", m_depthAttachment.m_width);
-    INFO("\theight: {}", m_depthAttachment.m_height);
 
     // Attach depth stencil buffer
     if (m_depthAttachment)

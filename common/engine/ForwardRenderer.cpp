@@ -361,9 +361,9 @@ void ForwardRenderer::drawMeshInShadowMaps(
                 i*shadowMapComponent.shadowMapSize,
                 shadowMapComponent.shadowMapSize,
                 shadowMapComponent.shadowMapSize);
-            m_shadowMapShader->setMat4(
-                "u_lightSpaceModelMatrix",
-                shadowMapComponent.levels[i].projectionView * modelMatrix);
+            m_shadowMapShader->setUniform(
+                shadowMapComponent.levels[i].projectionView * modelMatrix,
+                "u_lightSpaceModelMatrix");
             GL::drawIndexed(mesh.getVertexArray());
         }
     });
@@ -390,9 +390,9 @@ void ForwardRenderer::drawMeshInShadowMaps(
                 i*shadowMapComponent.shadowMapSize,
                 shadowMapComponent.shadowMapSize,
                 shadowMapComponent.shadowMapSize);
-            m_shadowMapShader->setMat4(
-                "u_lightSpaceModelMatrix",
-                shadowMapComponent.levels[i].projectionView * modelMatrix);
+            m_shadowMapShader->setUniform(
+                shadowMapComponent.levels[i].projectionView * modelMatrix,
+                "u_lightSpaceModelMatrix");
             GL::drawIndexed(mesh.getVertexArray());
         }
     });
@@ -410,13 +410,13 @@ void ForwardRenderer::drawMesh(
 {
     renderTarget.bind();
     m_staticMeshShader->bind();
-    m_staticMeshShader->setMat4("u_projectionMatrix", camera.getProjection());
-    m_staticMeshShader->setMat4("u_viewModelMatrix", cameraTransform.getView() * modelMatrix);
-    m_staticMeshShader->setFloat("u_parallaxScale", 0.05f);
+    m_staticMeshShader->setUniform(camera.getProjection(), "u_projectionMatrix");
+    m_staticMeshShader->setUniform(cameraTransform.getView() * modelMatrix, "u_viewModelMatrix");
+    m_staticMeshShader->setUniform(0.05f, "u_parallaxScale");
     GL::setDepthTest(true);
 
 
-    unsigned int slot = 0;
+    int slot = 0;
     if (material)
     {
         for (MaterialTextureType::Type i : {
@@ -426,9 +426,10 @@ void ForwardRenderer::drawMesh(
             MaterialTextureType::height
         }) {
             // Set uniform telling the shader if a texture of the type was provided
-            m_staticMeshShader->setInt(
-                    textureTypeToHasTextureUniformName(i),
-                    material->getTextureIds(i).empty() ? 0 : 1);
+            m_staticMeshShader->setUniform(
+                    material->getTextureIds(i).empty() ? 0 : 1,
+                    "{}",
+                    textureTypeToHasTextureUniformName(i));
             unsigned int indexOfTextureOfType = 0;
             for (const TextureId &textureId : material->getTextureIds(i))
             {
@@ -436,7 +437,7 @@ void ForwardRenderer::drawMesh(
                 if (texture)
                 {
                     texture->bind(slot);
-                    m_staticMeshShader->setInt(textureTypeToUniformName(i) + std::to_string(indexOfTextureOfType), slot);
+                    m_staticMeshShader->setUniform(slot, "{}{}", textureTypeToUniformName(i), indexOfTextureOfType);
                     slot++, indexOfTextureOfType++;
                 }
             }
@@ -451,7 +452,7 @@ void ForwardRenderer::drawMesh(
             MaterialTextureType::normal,
             MaterialTextureType::height
         }) {
-            m_staticMeshShader->setInt(textureTypeToHasTextureUniformName(i), 0);
+            m_staticMeshShader->setUniform(0, "{}", textureTypeToHasTextureUniformName(i));
         }
     }
 
@@ -465,28 +466,37 @@ void ForwardRenderer::drawMesh(
         if (std::to_underlying(m_flags & Flags::enableShadowMapping) && shadowMapComponent)
         {
             shadowMapComponent->shadowMapAtlasFramebuffer.getDepthAttachment().bind(slot);
-            m_staticMeshShader->setInt(std::format("u_directionalLightsShadowMapAtlas[{}]", lightIndex), slot);
+            m_staticMeshShader->setUniform(slot, "u_directionalLightsShadowMapAtlas[{}]", lightIndex);
             slot++;
 
             for (unsigned int i = 0; i < shadowMapComponent->levelCount; i++)
             {
                 const components::DirectionalLightShadowMap::ShadowMapLevel &shadowMap
                     = shadowMapComponent->levels[i];
-                glm::mat4 cameraSpaceToLightSpace = shadowMap.projectionView * glm::inverse(cameraTransform.getView());
-                m_staticMeshShader->setMat4(std::format("u_directionalLights[{}].shadowMapLevels[{}].cameraSpaceToLightSpace", lightIndex, i), cameraSpaceToLightSpace);
-                m_staticMeshShader->setFloat(std::format("u_directionalLights[{}].shadowMapLevels[{}].cutoffDistance", lightIndex, i), shadowMap.cutoffDistance);
+                glm::mat4 cameraSpaceToLightSpace
+                    = shadowMap.projectionView * glm::inverse(cameraTransform.getView());
+                m_staticMeshShader->setUniform(
+                    cameraSpaceToLightSpace,
+                    "u_directionalLights[{}].shadowMapLevels[{}].cameraSpaceToLightSpace",
+                    lightIndex, i);
+                m_staticMeshShader->setUniform(
+                    shadowMap.cutoffDistance,
+                    "u_directionalLights[{}].shadowMapLevels[{}].cutoffDistance",
+                    lightIndex, i);
             }
-            m_staticMeshShader->setInt(std::format("u_directionalLights[{}].numOfShadowMapLevels", lightIndex), shadowMapComponent->levelCount);
+            m_staticMeshShader->setUniform(shadowMapComponent->levelCount, "u_directionalLights[{}].numOfShadowMapLevels", lightIndex);
         }
 
         glm::vec3 lightDirection = transform.getRotationMat3() * glm::vec3(0.0f, 0.0f, -1.0f);
-        m_staticMeshShader->setFloat3(std::format("u_directionalLights[{}].directionInViewSpace", lightIndex), glm::mat3(cameraTransform.getView()) * lightDirection);
-        m_staticMeshShader->setFloat3(std::format("u_directionalLights[{}].color", lightIndex), light.color);
-        m_staticMeshShader->setFloat(std::format("u_directionalLights[{}].intensity", lightIndex), light.intensity);
+        m_staticMeshShader->setUniform(
+            glm::mat3(cameraTransform.getView()) * lightDirection,
+            "u_directionalLights[{}].directionInViewSpace", lightIndex);
+        m_staticMeshShader->setUniform(light.color, "u_directionalLights[{}].color", lightIndex);
+        m_staticMeshShader->setUniform(light.intensity, "u_directionalLights[{}].intensity", lightIndex);
 
         lightIndex++;
     });
-    m_staticMeshShader->setInt("u_numOfDirectionalLights", lightIndex);
+    m_staticMeshShader->setUniform(lightIndex, "u_numOfDirectionalLights");
 
     int i = 0;
     world.each([ this, &i, &cameraTransform](
@@ -495,13 +505,13 @@ void ForwardRenderer::drawMesh(
     {
         glm::vec3 lightPosInViewSpace = cameraTransform.getView() * glm::vec4(transform.position, 1.0f);
 
-        m_staticMeshShader->setFloat3(std::format("u_pointLights[{}].posInViewSpace", i), lightPosInViewSpace);
-        m_staticMeshShader->setFloat3(std::format("u_pointLights[{}].color", i), light.color);
-        m_staticMeshShader->setFloat(std::format("u_pointLights[{}].intensity", i), light.intensity);
-        m_staticMeshShader->setFloat(std::format("u_pointLights[{}].attenuation", i), light.attenuation);
+        m_staticMeshShader->setUniform(lightPosInViewSpace, "u_pointLights[{}].posInViewSpace", i);
+        m_staticMeshShader->setUniform(light.color, "u_pointLights[{}].color", i);
+        m_staticMeshShader->setUniform(light.intensity, "u_pointLights[{}].intensity", i);
+        m_staticMeshShader->setUniform(light.attenuation, "u_pointLights[{}].attenuation", i);
         i++;
     });
-    m_staticMeshShader->setInt("u_numOfPointLights", i);
+    m_staticMeshShader->setUniform(i, "u_numOfPointLights");
 
     mesh.getVertexArray().bind();
     GL::viewport(renderTarget.getWidth(), renderTarget.getHeight());
@@ -522,7 +532,7 @@ void ForwardRenderer::drawAABB(
         * modelMatrix
         * glm::translate(glm::mat4(1.0f), aabb.min)
         * glm::scale(glm::mat4(1.0f), aabb.max - aabb.min);
-    m_cubeLinesShader->setMat4("u_projectionView", matrix);
+    m_cubeLinesShader->setUniform(matrix, "u_projectionView");
     GL::viewport(renderTarget.getWidth(), renderTarget.getHeight());
     GL::drawLines(*m_cubeVertexArrayForLines);
 }
@@ -537,9 +547,11 @@ void ForwardRenderer::drawSkybox(
     GL::setDepthTest(true);
     GL::setDepthTestFunction(GL::DepthTestFunction::lessEqual);
     m_skyboxShader->bind();
-    m_skyboxShader->setMat4("u_projectionView", camera.getProjection() * glm::mat4(glm::mat3(cameraTransform.getView())));
+    m_skyboxShader->setUniform(
+        camera.getProjection() * glm::mat4(glm::mat3(cameraTransform.getView())),
+        "u_projectionView");
     cubemap.bind(0);
-    m_skyboxShader->setInt("u_skybox", 0);
+    m_skyboxShader->setUniform(0, "u_skybox");
     GL::viewport(renderTarget.getWidth(), renderTarget.getHeight());
     GL::drawIndexed(*m_cubeVertexArray);
     GL::setDepthTestFunction(GL::DepthTestFunction::less);

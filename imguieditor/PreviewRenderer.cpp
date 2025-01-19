@@ -199,12 +199,16 @@ void PreviewRenderer::drawPreviewToTexture(
 
 
     m_staticMeshShader->bind();
-    m_staticMeshShader->setMat4("u_projectionMatrix", camera.getProjectionMatrix());
-    m_staticMeshShader->setMat4("u_viewModelMatrix", camera.getViewMatrix() * glm::translate(glm::scale(glm::mat4(1.0f), {scale, scale, scale}), -aabbCenter));
-    m_staticMeshShader->setFloat("u_parallaxScale", 0.05f);
+    m_staticMeshShader->setUniform(camera.getProjectionMatrix(), "u_projectionMatrix");
+    m_staticMeshShader->setUniform(
+        camera.getViewMatrix() * glm::translate(glm::scale(glm::mat4(1.0f), {scale, scale, scale}), -aabbCenter),
+        "u_viewModelMatrix");
+    m_staticMeshShader->setUniform(
+        0.05f,
+        "u_parallaxScale");
     GL::setDepthTest(true);
 
-    unsigned int slot = 0;
+    int slot = 0;
     if (material)
     {
         for (MaterialTextureType::Type i : {
@@ -213,9 +217,10 @@ void PreviewRenderer::drawPreviewToTexture(
             MaterialTextureType::normal
         }) {
             // Set uniform telling the shader if a texture of the type was provided
-            m_staticMeshShader->setInt(
-                    textureTypeToHasTextureUniformName(i),
-                    material->getTextureIds(i).empty() ? 0 : 1);
+            m_staticMeshShader->setUniform(
+                    material->getTextureIds(i).empty() ? 0 : 1,
+                    "{}",
+                    textureTypeToHasTextureUniformName(i));
             unsigned int indexOfTextureOfType = 0;
             for (const TextureId &textureId : material->getTextureIds(i))
             {
@@ -223,7 +228,7 @@ void PreviewRenderer::drawPreviewToTexture(
                 if (texture)
                 {
                     texture->bind(slot);
-                    m_staticMeshShader->setInt(textureTypeToUniformName(i) + std::to_string(indexOfTextureOfType), slot);
+                    m_staticMeshShader->setUniform(slot, "{}{}", textureTypeToUniformName(i), indexOfTextureOfType);
                     slot++, indexOfTextureOfType++;
                 }
             }
@@ -237,18 +242,18 @@ void PreviewRenderer::drawPreviewToTexture(
             MaterialTextureType::specular,
             MaterialTextureType::normal
         }) {
-            m_staticMeshShader->setInt(textureTypeToHasTextureUniformName(i), 0);
+            m_staticMeshShader->setUniform(0, "{}", textureTypeToHasTextureUniformName(i));
         }
     }
 
     // Directional Light
     glm::vec3 lightDirection = glm::normalize(glm::vec3(-2.0f, -1.0f, -0.5f));
-    m_staticMeshShader->setFloat3("u_directionalLights[0].directionInViewSpace", glm::mat3(camera.getViewMatrix()) * lightDirection);
-    m_staticMeshShader->setFloat3("u_directionalLights[0].color", {1.0f, 1.0f, 1.0f});
-    m_staticMeshShader->setFloat("u_directionalLights[0].intensity", 0.5f);
-    m_staticMeshShader->setInt("u_numOfDirectionalLights", 1);
+    m_staticMeshShader->setUniform(glm::mat3(camera.getViewMatrix()) * lightDirection, "u_directionalLights[0].directionInViewSpace");
+    m_staticMeshShader->setUniform(glm::vec3(1.0f), "u_directionalLights[0].color");
+    m_staticMeshShader->setUniform(0.5f, "u_directionalLights[0].intensity");
+    m_staticMeshShader->setUniform(1, "u_numOfDirectionalLights");
 
-    m_staticMeshShader->setInt("u_numOfPointLights", 0);
+    m_staticMeshShader->setUniform(0, "u_numOfPointLights");
 
     if (mesh)
     {
@@ -271,7 +276,7 @@ void PreviewRenderer::drawPreviewToTexture(
             * glm::translate(glm::scale(glm::mat4(1.0f), {scale, scale, scale}), -aabbCenter)
             * glm::translate(glm::mat4(1.0f), mesh->getAABB().min)
             * glm::scale(glm::mat4(1.0f), mesh->getAABB().max - mesh->getAABB().min);
-        m_cubeLinesShader->setMat4("u_projectionView", matrix);
+        m_cubeLinesShader->setUniform(matrix, "u_projectionView");
         GL::drawLines(*m_cubeVertexArrayForLines);
     }
 
