@@ -75,6 +75,16 @@ struct AnimatedMesh
     AnimatedMeshId id = AnimatedMeshId::null;
 };
 
+struct AnimationPlayer
+{
+    NAME("Animation")
+    FIELDS(id, progress)
+    FIELD_NAMES("id", "progress")
+    AnimationId id = AnimationId::null;
+    bool playing = true;
+    float progress = 0.0f; // in seconds
+};
+
 struct PointLight
 {
     NAME("PointLight")

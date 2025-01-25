@@ -4,6 +4,8 @@
 #include "engine/assets/Material.hpp"
 
 #include <glm/fwd.hpp>
+#include <glm/gtx/string_cast.hpp>
+#include <memory>
 #include <opengl/gl.hpp>
 
 #include <flecs.h>
@@ -13,6 +15,8 @@
 #include <utility>
 
 namespace engine {
+
+constexpr size_t MAX_VERTICES_IN_LINES_BATCH = 2048;
 
 ForwardRenderer::ForwardRenderer()
 {}
@@ -28,21 +32,27 @@ ForwardRenderer::~ForwardRenderer()
 void ForwardRenderer::init(Flags flags)
 {
     m_flags = flags;
-    std::list<ShaderCompileTimeParameter> staticMeshShaderParams;
+    std::list<ShaderCompileTimeParameter> meshShaderParams;
 
     if (std::to_underlying(m_flags & Flags::enableShadowMapping))
     {
-        staticMeshShaderParams.emplace_back("USE_SHADOW_MAPPING");
+        meshShaderParams.emplace_back("USE_SHADOW_MAPPING");
     }
     if (std::to_underlying(m_flags & Flags::enableParallaxMapping))
     {
-        staticMeshShaderParams.emplace_back("USE_PARALLAX_MAPPING");
+        meshShaderParams.emplace_back("USE_PARALLAX_MAPPING");
     }
 
     m_staticMeshShader = std::make_shared<Shader>(
         "assets/shaders/forwardStaticMeshVertex.glsl",
         "assets/shaders/forwardStaticMeshFragment.glsl",
-        staticMeshShaderParams);
+        meshShaderParams);
+
+    meshShaderParams.emplace_back("USE_SKINNING");
+    m_animatedMeshShader = std::make_shared<Shader>(
+        "assets/shaders/forwardStaticMeshVertex.glsl",
+        "assets/shaders/forwardStaticMeshFragment.glsl",
+        meshShaderParams);
 
     if (std::to_underlying(m_flags & Flags::enableShadowMapping))
     {
@@ -66,7 +76,15 @@ void ForwardRenderer::init(Flags flags)
         //shadowDepthMapBufferParams.textureAttachmentFormats = { Texture::Format::depth24 };
         //m_shadowMapAtlasFramebuffer = std::make_shared<FrameBuffer>(shadowDepthMapBufferParams);
         //m_shadowMapAtlasFramebuffer->getDepthAttachment()->setBorderColor({1.0f, 1.0f, 1.0f, 1.0f});
-        m_shadowMapShader = std::make_shared<Shader>("assets/shaders/shadowMapVertex.glsl", "assets/shaders/shadowMapFragment.glsl");
+        m_staticShadowMapShader = std::make_shared<Shader>(
+            "assets/shaders/shadowMapVertex.glsl",
+            "assets/shaders/shadowMapFragment.glsl");
+
+        std::list<ShaderCompileTimeParameter> animatedMeshShadowMapShaderParameters {{"USE_SKINNING"}};
+        m_animatedShadowMapShader = std::make_shared<Shader>(
+            "assets/shaders/shadowMapVertex.glsl",
+            "assets/shaders/shadowMapFragment.glsl",
+            animatedMeshShadowMapShaderParameters);
     }
 
     m_skyboxShader = std::make_shared<Shader>("assets/shaders/skyboxVertex.glsl", "assets/shaders/skyboxFragment.glsl");
@@ -123,17 +141,19 @@ void ForwardRenderer::init(Flags flags)
         );
     m_cubeVertexArray->setIndexBuffer(cubeIndexBuffer);
 
-    m_cubeLinesShader = std::make_shared<Shader>("assets/shaders/renderCubeLinesVertex.glsl", "assets/shaders/renderCubeLinesFragment.glsl");
+    m_cubeLinesShader = std::make_shared<Shader>(
+        "assets/shaders/renderCubeLinesVertex.glsl",
+        "assets/shaders/renderCubeLinesFragment.glsl");
     m_cubeVertexArrayForLines = std::make_shared<VertexArray>();
     float cubeVerticesForLines[] = {
-        0.0f, 0.0f, 1.0f,
-        1.0f, 0.0f, 1.0f,
-        1.0f, 1.0f, 1.0f,
-        0.0f, 1.0f, 1.0f,
         0.0f, 0.0f, 0.0f,
         1.0f, 0.0f, 0.0f,
         1.0f, 1.0f, 0.0f,
         0.0f, 1.0f, 0.0f,
+        0.0f, 0.0f, 1.0f,
+        1.0f, 0.0f, 1.0f,
+        1.0f, 1.0f, 1.0f,
+        0.0f, 1.0f, 1.0f,
     };
     uint32_t cubeIndicesForLines[] = {
         // Front face
@@ -160,6 +180,20 @@ void ForwardRenderer::init(Flags flags)
             sizeof(cubeIndicesForLines) / sizeof(uint32_t)
         );
     m_cubeVertexArrayForLines->setIndexBuffer(cubeIndexBufferForLines);
+
+    m_linesBatchVertexArray = std::make_shared<VertexArray>();
+
+    m_linesBatchVertexBuffer = std::make_shared<VertexBuffer>(MAX_VERTICES_IN_LINES_BATCH);
+    m_linesBatchVertexBuffer->setLayout({ {ShaderDataType::float3, "a_position"} });
+    m_linesBatchVertexArray->addVertexBuffer(m_linesBatchVertexBuffer);
+
+    std::array<uint32_t, MAX_VERTICES_IN_LINES_BATCH> indices;
+    for (uint32_t i = 0; i < indices.size(); i++)
+    {
+        indices[i] = i;
+    }
+    auto linesBatchIndexBufer = std::make_shared<IndexBuffer>(indices.data(), indices.size());
+    m_linesBatchVertexArray->setIndexBuffer(linesBatchIndexBufer);
 }
 
 std::array<glm::vec3, 8> getFrustumCorners(const glm::mat4 &projectionViewMatrix)
@@ -265,48 +299,105 @@ void ForwardRenderer::updateShadowMapLevels(
 }
 
 void ForwardRenderer::renderWorld(
+    float deltaTime, // in miliseconds
     const engine::components::Transform &cameraTransform,
     const engine::components::Camera &camera,
     const flecs::world &world,
     const AssetManager &assetManager,
     const FrameBuffer &renderTarget)
 {
+    if (deltaTime > 0.0f)
+    {
+        world.each([deltaTime, &assetManager](
+            engine::components::AnimationPlayer &animationComponent)
+        {
+            const Animation *animation = assetManager.get(animationComponent.id);
+            if (!animation) return;
+
+            if (animationComponent.playing)
+            {
+                animationComponent.progress
+                    = glm::mod(
+                        animationComponent.progress + (deltaTime / 1000.0f),
+                        animation->getDuration());
+            }
+        });
+    }
+
     updateShadowMapLevels(cameraTransform, camera, world);
     // Draw for shadow map
     if (std::to_underlying(m_flags & Flags::enableShadowMapping))
     {
-        world.each([&assetManager, this, &world](const components::StaticMesh &meshComponent, const components::Transform &transform) {
-            const StaticMesh *mesh = assetManager.get(meshComponent.id);
-            if (mesh) drawMeshInShadowMaps(*mesh, transform.getTransform(), world);
+        world.each([&assetManager, this, &world](
+            const components::StaticMesh &meshComponent,
+            const components::Transform &transform)
+        {
+            drawMeshInShadowMaps(meshComponent, transform.getTransform(), assetManager, world);
         });
-        //world.each([&resourceManager, this, &world](const components::AnimatedMesh &meshComponent, const components::Transform &transform) {
-        //    const AnimatedMesh &mesh = resourceManager.getAnimatedMesh(meshComponent.id);
-        //    drawMeshInShadowMaps(mesh, transform, world);
-        //});
+        world.each([&assetManager, this, &world](
+            const components::AnimatedMesh &meshComponent,
+            const components::AnimationPlayer *animationComponent,
+            const components::Transform &transform)
+        {
+            drawMeshInShadowMaps(meshComponent, animationComponent, transform.getTransform(), assetManager, world);
+        });
     }
 
-    world.each([&assetManager, this, &world, &camera, &cameraTransform, &renderTarget](
+    int nextFreeTextureSlotStaticMeshShader = 0;
+    int nextFreeTextureSlotAnimatedMeshShader = 0;
+    m_staticMeshShader->bind();
+    setLightUniforms(*m_staticMeshShader, world, cameraTransform, nextFreeTextureSlotStaticMeshShader);
+    m_animatedMeshShader->bind();
+    setLightUniforms(*m_animatedMeshShader, world, cameraTransform, nextFreeTextureSlotAnimatedMeshShader);
+
+    world.each([&assetManager, this, &camera, &cameraTransform, &renderTarget, nextFreeTextureSlotStaticMeshShader](
         const components::StaticMesh &meshComponent,
         const components::Transform &transform,
-        const components::Material &materialComponent)
+        const components::Material *materialComponent)
     {
-        const StaticMesh *mesh = assetManager.get(meshComponent.id);
-        const Material *material = assetManager.get(materialComponent.id);
-        if (mesh)
-        {
-            drawMesh(cameraTransform, camera, *mesh, material, transform.getTransform(), world, assetManager, renderTarget);
-            drawAABB(cameraTransform, camera, mesh->getAABB(), transform.getTransform(), renderTarget);
-        }
+        drawMesh(
+            cameraTransform,
+            camera,
+            meshComponent,
+            materialComponent,
+            transform.getTransform(),
+            assetManager,
+            renderTarget,
+            nextFreeTextureSlotStaticMeshShader);
+        drawAABB(
+            cameraTransform,
+            camera,
+            meshComponent,
+            transform.getTransform(),
+            assetManager,
+            renderTarget);
     });
-    //world.each([&resourceManager, this, &world, &camera](
-    //    const components::AnimatedMesh &meshComponent,
-    //    const components::Transform &transform,
-    //    const components::Material &materialComponent)
-    //{
-    //    const AnimatedMesh &mesh = resourceManager.getAnimatedMesh(meshComponent.id);
-    //    const Material &material = resourceManager.getMaterial(materialComponent.id);
-    //    drawMesh(camera, mesh, material, transform, world, resourceManager);
-    //});
+    world.each([&assetManager, this, &camera, &cameraTransform, &renderTarget, nextFreeTextureSlotAnimatedMeshShader](
+        const components::AnimatedMesh &meshComponent,
+        const components::AnimationPlayer *animationComponent,
+        const components::Transform &transform,
+        const components::Material *materialComponent)
+    {
+        drawMesh(
+            cameraTransform,
+            camera,
+            meshComponent,
+            materialComponent,
+            animationComponent,
+            transform.getTransform(),
+            assetManager,
+            renderTarget,
+            nextFreeTextureSlotAnimatedMeshShader);
+        drawSkeleton(
+            cameraTransform,
+            camera,
+            meshComponent,
+            animationComponent,
+            transform.getTransform(),
+            assetManager,
+            renderTarget);
+        //drawAABB(cameraTransform, camera, mesh->getAABB(), transform.getTransform(), renderTarget);
+    });
     if (world.has<components::Skybox>())
     {
         const Cubemap *cubemap = assetManager.get(world.ensure<components::Skybox>().id);
@@ -341,13 +432,20 @@ std::string textureTypeToHasTextureUniformName(MaterialTextureType::Type type)
 }
 
 void ForwardRenderer::drawMeshInShadowMaps(
-    const StaticMesh &mesh,
+    const engine::components::StaticMesh &meshComponent,
     const glm::mat4 &modelMatrix,
+    const AssetManager &assetManager,
     const flecs::world &world) const
 {
+    const StaticMesh *mesh = assetManager.get(meshComponent.id);
+    if (!mesh) {
+        WARN("Static mesh with id: {} does not exist", std::to_underlying(meshComponent.id));
+        return;
+    }
+
     GL::setDepthTest(true);
 
-    m_shadowMapShader->bind();
+    m_staticShadowMapShader->bind();
     world.each([this, &modelMatrix, &mesh](
         const components::DirectionalLight &light,
         const components::Transform &transform,
@@ -361,22 +459,56 @@ void ForwardRenderer::drawMeshInShadowMaps(
                 i*shadowMapComponent.shadowMapSize,
                 shadowMapComponent.shadowMapSize,
                 shadowMapComponent.shadowMapSize);
-            m_shadowMapShader->setUniform(
+            m_staticShadowMapShader->setUniform(
                 shadowMapComponent.levels[i].projectionView * modelMatrix,
                 "u_lightSpaceModelMatrix");
-            GL::drawIndexed(mesh.getVertexArray());
+            GL::drawIndexed(mesh->getVertexArray());
         }
     });
 }
 
 void ForwardRenderer::drawMeshInShadowMaps(
-    const AnimatedMesh &mesh,
+    const engine::components::AnimatedMesh &meshComponent,
+    const engine::components::AnimationPlayer *animationComponent,
     const glm::mat4 &modelMatrix,
+    const AssetManager &assetManager,
     const flecs::world &world) const
 {
+    const AnimatedMesh *mesh = assetManager.get(meshComponent.id);
+    if (!mesh) {
+        WARN("Animated mesh with id: {} does not exist", std::to_underlying(meshComponent.id));
+        return;
+    }
+    const Animation *animation = animationComponent ? assetManager.get(animationComponent->id) : nullptr;
+    if (!animation) {
+        WARN("Animation with id: {} does not exist", std::to_underlying(animationComponent->id));
+        return;
+    }
+
     GL::setDepthTest(true);
 
-    m_shadowMapShader->bind();
+    m_animatedShadowMapShader->bind();
+
+    if (animationComponent && animation)
+    {
+        std::vector<glm::mat4> matrices
+            = animation->getTransformations(
+                animationComponent->progress,
+                mesh->getSkeleton());
+
+        for (BoneID boneId = 0; boneId < matrices.size(); boneId++)
+        {
+            m_animatedShadowMapShader->setUniform(matrices[boneId], "u_finalBonesMatrices[{}]", boneId);
+        }
+    }
+    else
+    {
+        for (BoneID boneId = 0; boneId < mesh->getSkeleton().bones.size(); boneId++)
+        {
+            m_animatedShadowMapShader->setUniform(glm::mat4(1.0f), "u_finalBonesMatrices[{}]", boneId);
+        }
+    }
+
     world.each([this, &modelMatrix, &mesh](
         const components::DirectionalLight &light,
         const components::Transform &transform,
@@ -390,33 +522,21 @@ void ForwardRenderer::drawMeshInShadowMaps(
                 i*shadowMapComponent.shadowMapSize,
                 shadowMapComponent.shadowMapSize,
                 shadowMapComponent.shadowMapSize);
-            m_shadowMapShader->setUniform(
+            m_animatedShadowMapShader->setUniform(
                 shadowMapComponent.levels[i].projectionView * modelMatrix,
                 "u_lightSpaceModelMatrix");
-            GL::drawIndexed(mesh.getVertexArray());
+            GL::drawIndexed(mesh->getVertexArray());
         }
     });
 }
 
-void ForwardRenderer::drawMesh(
-    const engine::components::Transform &cameraTransform,
-    const engine::components::Camera &camera,
-    const StaticMesh &mesh,
+// nextFreeSlot gets incremented for each bound texture
+void ForwardRenderer::setMaterialUniforms(
+    Shader &shader,
     const Material *material,
-    const glm::mat4 &modelMatrix,
-    const flecs::world &world,
     const AssetManager &assetManager,
-    const FrameBuffer &renderTarget) const
+    int &nextFreeTextureSlot) const
 {
-    renderTarget.bind();
-    m_staticMeshShader->bind();
-    m_staticMeshShader->setUniform(camera.getProjection(), "u_projectionMatrix");
-    m_staticMeshShader->setUniform(cameraTransform.getView() * modelMatrix, "u_viewModelMatrix");
-    m_staticMeshShader->setUniform(0.05f, "u_parallaxScale");
-    GL::setDepthTest(true);
-
-
-    int slot = 0;
     if (material)
     {
         for (MaterialTextureType::Type i : {
@@ -426,7 +546,7 @@ void ForwardRenderer::drawMesh(
             MaterialTextureType::height
         }) {
             // Set uniform telling the shader if a texture of the type was provided
-            m_staticMeshShader->setUniform(
+            shader.setUniform(
                     material->getTextureIds(i).empty() ? 0 : 1,
                     "{}",
                     textureTypeToHasTextureUniformName(i));
@@ -436,9 +556,13 @@ void ForwardRenderer::drawMesh(
                 const Texture *texture = assetManager.get(textureId);
                 if (texture)
                 {
-                    texture->bind(slot);
-                    m_staticMeshShader->setUniform(slot, "{}{}", textureTypeToUniformName(i), indexOfTextureOfType);
-                    slot++, indexOfTextureOfType++;
+                    texture->bind(nextFreeTextureSlot);
+                    shader.setUniform(
+                        nextFreeTextureSlot,
+                        "{}{}",
+                        textureTypeToUniformName(i),
+                        indexOfTextureOfType);
+                    nextFreeTextureSlot++, indexOfTextureOfType++;
                 }
             }
         }
@@ -452,22 +576,29 @@ void ForwardRenderer::drawMesh(
             MaterialTextureType::normal,
             MaterialTextureType::height
         }) {
-            m_staticMeshShader->setUniform(0, "{}", textureTypeToHasTextureUniformName(i));
+            shader.setUniform(0, "{}", textureTypeToHasTextureUniformName(i));
         }
     }
+}
 
+void ForwardRenderer::setLightUniforms(
+    Shader &shader,
+    const flecs::world &world,
+    const engine::components::Transform &cameraTransform,
+    int &nextFreeTextureSlot) const
+{
     // Directional Light
     int lightIndex = 0;
-    world.each([this, &slot, &lightIndex, &cameraTransform](
+    world.each([this, &nextFreeTextureSlot, &lightIndex, &cameraTransform, &shader](
         const components::DirectionalLight &light,
         const components::Transform &transform,
         components::DirectionalLightShadowMap *shadowMapComponent)
     {
         if (std::to_underlying(m_flags & Flags::enableShadowMapping) && shadowMapComponent)
         {
-            shadowMapComponent->shadowMapAtlasFramebuffer.getDepthAttachment().bind(slot);
-            m_staticMeshShader->setUniform(slot, "u_directionalLightsShadowMapAtlas[{}]", lightIndex);
-            slot++;
+            shadowMapComponent->shadowMapAtlasFramebuffer.getDepthAttachment().bind(nextFreeTextureSlot);
+            shader.setUniform(nextFreeTextureSlot, "u_directionalLightsShadowMapAtlas[{}]", lightIndex);
+            nextFreeTextureSlot++;
 
             for (unsigned int i = 0; i < shadowMapComponent->levelCount; i++)
             {
@@ -475,56 +606,144 @@ void ForwardRenderer::drawMesh(
                     = shadowMapComponent->levels[i];
                 glm::mat4 cameraSpaceToLightSpace
                     = shadowMap.projectionView * glm::inverse(cameraTransform.getView());
-                m_staticMeshShader->setUniform(
+                shader.setUniform(
                     cameraSpaceToLightSpace,
                     "u_directionalLights[{}].shadowMapLevels[{}].cameraSpaceToLightSpace",
                     lightIndex, i);
-                m_staticMeshShader->setUniform(
+                shader.setUniform(
                     shadowMap.cutoffDistance,
                     "u_directionalLights[{}].shadowMapLevels[{}].cutoffDistance",
                     lightIndex, i);
             }
-            m_staticMeshShader->setUniform(shadowMapComponent->levelCount, "u_directionalLights[{}].numOfShadowMapLevels", lightIndex);
+            shader.setUniform(shadowMapComponent->levelCount, "u_directionalLights[{}].numOfShadowMapLevels", lightIndex);
         }
 
         glm::vec3 lightDirection = transform.getRotationMat3() * glm::vec3(0.0f, 0.0f, -1.0f);
-        m_staticMeshShader->setUniform(
+        shader.setUniform(
             glm::mat3(cameraTransform.getView()) * lightDirection,
             "u_directionalLights[{}].directionInViewSpace", lightIndex);
-        m_staticMeshShader->setUniform(light.color, "u_directionalLights[{}].color", lightIndex);
-        m_staticMeshShader->setUniform(light.intensity, "u_directionalLights[{}].intensity", lightIndex);
+        shader.setUniform(light.color, "u_directionalLights[{}].color", lightIndex);
+        shader.setUniform(light.intensity, "u_directionalLights[{}].intensity", lightIndex);
 
         lightIndex++;
     });
-    m_staticMeshShader->setUniform(lightIndex, "u_numOfDirectionalLights");
+    shader.setUniform(lightIndex, "u_numOfDirectionalLights");
 
     int i = 0;
-    world.each([ this, &i, &cameraTransform](
+    world.each([&i, &cameraTransform, &shader](
         const components::PointLight &light,
         const components::Transform & transform)
     {
         glm::vec3 lightPosInViewSpace = cameraTransform.getView() * glm::vec4(transform.position, 1.0f);
 
-        m_staticMeshShader->setUniform(lightPosInViewSpace, "u_pointLights[{}].posInViewSpace", i);
-        m_staticMeshShader->setUniform(light.color, "u_pointLights[{}].color", i);
-        m_staticMeshShader->setUniform(light.intensity, "u_pointLights[{}].intensity", i);
-        m_staticMeshShader->setUniform(light.attenuation, "u_pointLights[{}].attenuation", i);
+        shader.setUniform(lightPosInViewSpace, "u_pointLights[{}].posInViewSpace", i);
+        shader.setUniform(light.color, "u_pointLights[{}].color", i);
+        shader.setUniform(light.intensity, "u_pointLights[{}].intensity", i);
+        shader.setUniform(light.attenuation, "u_pointLights[{}].attenuation", i);
         i++;
     });
-    m_staticMeshShader->setUniform(i, "u_numOfPointLights");
+    shader.setUniform(i, "u_numOfPointLights");
+}
 
-    mesh.getVertexArray().bind();
+void ForwardRenderer::drawMesh(
+    const engine::components::Transform &cameraTransform,
+    const engine::components::Camera &camera,
+    const engine::components::StaticMesh &meshComponent,
+    const engine::components::Material *materialComponent,
+    const glm::mat4 &modelMatrix,
+    const AssetManager &assetManager,
+    const FrameBuffer &renderTarget,
+    int nextFreeTextureSlot) const
+{
+    const StaticMesh *mesh = assetManager.get(meshComponent.id);
+    const Material *material = materialComponent ? assetManager.get(materialComponent->id) : nullptr;
+    if (!mesh) {
+        WARN("Static mesh with id: {} does not exist", std::to_underlying(meshComponent.id));
+        return;
+    }
+
+    renderTarget.bind();
+    m_staticMeshShader->bind();
+    m_staticMeshShader->setUniform(camera.getProjection(), "u_projectionMatrix");
+    m_staticMeshShader->setUniform(cameraTransform.getView() * modelMatrix, "u_viewModelMatrix");
+    m_staticMeshShader->setUniform(0.05f, "u_parallaxScale");
+    GL::setDepthTest(true);
+
+    setMaterialUniforms(*m_staticMeshShader, material, assetManager, nextFreeTextureSlot);
+
+    mesh->getVertexArray().bind();
     GL::viewport(renderTarget.getWidth(), renderTarget.getHeight());
-    GL::drawIndexed(mesh.getVertexArray());
+    GL::drawIndexed(mesh->getVertexArray());
+}
+
+void ForwardRenderer::drawMesh(
+    const engine::components::Transform &cameraTransform,
+    const engine::components::Camera &camera,
+    const engine::components::AnimatedMesh &meshComponent,
+    const engine::components::Material *materialComponent,
+    const engine::components::AnimationPlayer *animationComponent,
+    const glm::mat4 &modelMatrix,
+    const AssetManager &assetManager,
+    const FrameBuffer &renderTarget,
+    int nextFreeTextureSlot) const
+{
+    const AnimatedMesh *mesh = assetManager.get(meshComponent.id);
+    const Material *material = materialComponent ? assetManager.get(materialComponent->id) : nullptr;
+    const Animation *animation = animationComponent ? assetManager.get(animationComponent->id) : nullptr;
+    if (!mesh) {
+        WARN("Animated mesh with id: {} does not exist", std::to_underlying(meshComponent.id));
+        return;
+    }
+
+    renderTarget.bind();
+    m_animatedMeshShader->bind();
+    m_animatedMeshShader->setUniform(camera.getProjection(), "u_projectionMatrix");
+    m_animatedMeshShader->setUniform(cameraTransform.getView() * modelMatrix, "u_viewModelMatrix");
+    m_animatedMeshShader->setUniform(0.05f, "u_parallaxScale");
+    GL::setDepthTest(true);
+
+    if (animationComponent && animation)
+    {
+        std::vector<glm::mat4> matrices
+            = animation->getTransformations(
+                animationComponent->progress,
+                mesh->getSkeleton());
+
+        for (BoneID boneId = 0; boneId < matrices.size(); boneId++)
+        {
+            m_animatedMeshShader->setUniform(matrices[boneId], "u_finalBonesMatrices[{}]", boneId);
+        }
+    }
+    else
+    {
+        for (BoneID boneId = 0; boneId < mesh->getSkeleton().bones.size(); boneId++)
+        {
+            m_animatedMeshShader->setUniform(glm::mat4(1.0f), "u_finalBonesMatrices[{}]", boneId);
+        }
+    }
+
+    setMaterialUniforms(*m_animatedMeshShader, material, assetManager, nextFreeTextureSlot);
+
+    mesh->getVertexArray().bind();
+    GL::viewport(renderTarget.getWidth(), renderTarget.getHeight());
+    GL::drawIndexed(mesh->getVertexArray());
 }
 
 void ForwardRenderer::drawAABB(
     const engine::components::Transform &cameraTransform,
     const engine::components::Camera &camera,
-    const AxisAlignedBoundingBox &aabb,
+    const engine::components::StaticMesh &meshComponent,
     const glm::mat4 &modelMatrix,
+    const AssetManager &assetManager,
     const FrameBuffer &renderTarget) const
 {
+    const StaticMesh *mesh = assetManager.get(meshComponent.id);
+    if (!mesh) {
+        WARN("Static mesh with id: {} does not exist", std::to_underlying(meshComponent.id));
+        return;
+    }
+
+    const AxisAlignedBoundingBox &aabb = mesh->getAABB();
     renderTarget.bind();
     m_cubeLinesShader->bind();
     glm::mat4 matrix
@@ -535,6 +754,68 @@ void ForwardRenderer::drawAABB(
     m_cubeLinesShader->setUniform(matrix, "u_projectionView");
     GL::viewport(renderTarget.getWidth(), renderTarget.getHeight());
     GL::drawLines(*m_cubeVertexArrayForLines);
+}
+
+glm::vec3 toVec3(const glm::vec4 &v)
+{
+    return {v.x/v.w, v.y/v.w, v.z/v.w};
+}
+
+void ForwardRenderer::drawSkeleton(
+    const engine::components::Transform &cameraTransform,
+    const engine::components::Camera &camera,
+    const engine::components::AnimatedMesh &meshComponent,
+    const engine::components::AnimationPlayer *animationComponent,
+    const glm::mat4 &modelMatrix,
+    const AssetManager &assetManager,
+    const FrameBuffer &renderTarget) const
+{
+    const AnimatedMesh *mesh = assetManager.get(meshComponent.id);
+    if (!mesh) {
+        WARN("Animated mesh with id: {} does not exist", std::to_underlying(meshComponent.id));
+        return;
+    }
+
+    const Animation *animation = animationComponent ? assetManager.get(animationComponent->id) : nullptr;
+    const Skeleton &skeleton = mesh->getSkeleton();
+
+    renderTarget.bind();
+    m_cubeLinesShader->bind();
+    glm::mat4 matrix
+        = camera.getProjection() * cameraTransform.getView()
+        * modelMatrix;
+    m_cubeLinesShader->setUniform(matrix, "u_projectionView");
+
+    GL::viewport(renderTarget.getWidth(), renderTarget.getHeight());
+    GL::setDepthTestFunction(GL::DepthTestFunction::always);
+    m_linesBatchVertices.clear();
+
+    std::vector<glm::mat4> animated
+        = animation->getTransformations(animationComponent->progress, skeleton);
+    for (size_t i = 1; i < skeleton.bones.size(); i++)
+    {
+        m_linesBatchVertices.emplace_back(
+            toVec3(
+                (
+                    animated[i]
+                    * glm::inverse(skeleton.bones[i].offsetMatrix)
+                )[3]
+            )
+        );
+        m_linesBatchVertices.emplace_back(
+            toVec3(
+                (
+                    animated[skeleton.bones[i].parentID]
+                    * glm::inverse(skeleton.bones[skeleton.bones[i].parentID].offsetMatrix)
+                )[3]
+            )
+        );
+    }
+    m_linesBatchVertexBuffer->setData(
+        m_linesBatchVertices.data(),
+        m_linesBatchVertices.size() * sizeof(m_linesBatchVertices[0]));
+    GL::drawLines(*m_linesBatchVertexArray, m_linesBatchVertices.size());
+    GL::setDepthTestFunction(GL::DepthTestFunction::less);
 }
 
 void ForwardRenderer::drawSkybox(

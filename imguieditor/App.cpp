@@ -113,6 +113,14 @@ void App::run()
     {
         m_assetMetadataManager.add(staticMeshWithPath);
     }
+    for (auto &animatedMeshWithPath : assetPack.animatedMeshes)
+    {
+        m_assetMetadataManager.add(animatedMeshWithPath);
+    }
+    for (auto &animationWithPath : assetPack.animations)
+    {
+        m_assetMetadataManager.add(animationWithPath);
+    }
     for (auto &textureWithPath : assetPack.textures)
     {
         auto texture = engine::loaders::load<paca::fileformats::Texture>(textureWithPath.path.c_str());

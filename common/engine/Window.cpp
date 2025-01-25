@@ -33,6 +33,8 @@ void Window::create(std::string title, int w, int h)
         ASSERT(false);
     }
 
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 6);
     m_glContext = SDL_GL_CreateContext(m_window.get());
     if (!m_glContext) {
         ERROR("Error creating GL context: {}", SDL_GetError());

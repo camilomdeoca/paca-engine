@@ -43,6 +43,14 @@ void GL::drawLines(const VertexArray &vertexArray, uint32_t indexCount)
     glDrawElements(GL_LINES, count, GL_UNSIGNED_INT, nullptr);
 }
 
+void GL::drawPoints(const VertexArray &vertexArray, uint32_t indexCount)
+{
+    glPointSize(6.0);
+    vertexArray.bind();
+    uint32_t count = indexCount ? indexCount : vertexArray.getIndexBuffer()->getCount();
+    glDrawElements(GL_POINTS, count, GL_UNSIGNED_INT, nullptr);
+}
+
 void GL::setDepthTest(bool value)
 {
     if (value)
@@ -55,7 +63,8 @@ void GL::setDepthTestFunction(DepthTestFunction function)
 {
     constexpr GLenum depthTestFuncToGLDepthFunc[static_cast<size_t>(DepthTestFunction::last)] = {
         GL_LESS,
-        GL_LEQUAL
+        GL_LEQUAL,
+        GL_ALWAYS
     };
     glDepthFunc(depthTestFuncToGLDepthFunc[static_cast<size_t>(function)]);
 }

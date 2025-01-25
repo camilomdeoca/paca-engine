@@ -4,13 +4,14 @@
 
 #include <glm/common.hpp>
 #include <glm/ext/matrix_transform.hpp>
+#include <glm/gtx/quaternion.hpp>
 #include <glm/ext/quaternion_common.hpp>
 #include <glm/matrix.hpp>
 #include <limits>
 
 std::vector<glm::mat4> Animation::getTransformations(float time, const Skeleton &skeleton) const
 {
-    std::vector<glm::mat4> result(m_boneKeyframes.size());
+    std::vector<glm::mat4> result(m_boneKeyframes.size(), glm::mat4(1.0f));
     std::vector<glm::mat4> boneTransforms(m_boneKeyframes.size());
 
     for (BoneID boneId = 0; boneId < m_boneKeyframes.size(); boneId++)
@@ -49,7 +50,9 @@ glm::vec3 Animation::getPosition(BoneID bone, float time) const
             return glm::mix(prev.position, next.position, ratio);
         }
     }
-    ASSERT_MSG(false, "There is no position keyframe for time {}", time);
+    if (m_boneKeyframes[bone].positions.empty()) return {0.0f, 0.0f, 0.0f};
+    ASSERT_MSG(time < getDuration(), "There is no position keyframe for time {}/{}", time, getDuration());
+    return m_boneKeyframes[bone].positions.back().position;
 }
 
 glm::quat Animation::getRotation(BoneID bone, float time) const
@@ -65,7 +68,9 @@ glm::quat Animation::getRotation(BoneID bone, float time) const
             return glm::slerp(prev.quaternion, next.quaternion, ratio);
         }
     }
-    ASSERT_MSG(false, "There is no rotation keyframe for time {}", time);
+    if (m_boneKeyframes[bone].rotations.empty()) return glm::identity<glm::quat>();
+    ASSERT_MSG(time < getDuration(), "There is no rotation keyframe for time {}/{}", time, getDuration());
+    return m_boneKeyframes[bone].rotations.back().quaternion;
 }
 
 glm::vec3 Animation::getScale(BoneID bone, float time) const
@@ -81,5 +86,7 @@ glm::vec3 Animation::getScale(BoneID bone, float time) const
             return glm::mix(prev.scale, next.scale, ratio);
         }
     }
-    ASSERT_MSG(false, "There is no scale keyframe for time {}", time);
+    if (m_boneKeyframes[bone].scalings.empty()) return {1.0f, 1.0f, 1.0f};
+    ASSERT_MSG(time < getDuration(), "There is no scale keyframe for time {}/{}", time, getDuration());
+    return m_boneKeyframes[bone].scalings.back().scale;
 }

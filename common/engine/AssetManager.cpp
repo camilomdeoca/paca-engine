@@ -7,8 +7,6 @@
 #include "engine/assets/Animation.hpp"
 #include "engine/assets/Font.hpp"
 
-#include <algorithm>
-
 const StaticMesh *AssetManager::get(StaticMeshId id) const
 {
     const auto it = m_staticMeshes.find(id);
@@ -187,44 +185,42 @@ bool AssetManager::move(FontId from, FontId to)
 
 void AssetManager::add(paca::fileformats::StaticMesh &staticMesh)
 {
-#ifdef DEBUG
-    size_t vertexCount = 0;
-    vertexCount += staticMesh.vertices.size() / paca::fileformats::StaticMesh::vertex_size;
-#endif // DEBUG
-
     const auto it = m_staticMeshes.emplace(
         std::piecewise_construct,
         std::forward_as_tuple(StaticMeshId(staticMesh.id)),
         std::forward_as_tuple(
-            staticMesh.vertices,
-            staticMesh.indices,
+            std::span
+            {
+                reinterpret_cast<StaticMesh::Vertex*>(staticMesh.vertices.data()),
+                staticMesh.vertices.size()
+            },
+            std::span
+            {
+                staticMesh.indices
+            },
             AxisAlignedBoundingBox{staticMesh.aabb.min, staticMesh.aabb.max}));
 
     ASSERT_MSG(it.second, "Error static mesh id {} is already on assets", staticMesh.id);
-    INFO("Model {} has {} vertices", staticMesh.name, vertexCount);
 }
 
 void AssetManager::add(paca::fileformats::AnimatedMesh &animatedMesh)
 {
-#ifdef DEBUG
-    size_t vertexCount = 0;
-    vertexCount += animatedMesh.vertices.size() / animatedMesh.vertex_size;
-#endif // DEBUG
-    
-    std::vector<AnimationId> animations(animatedMesh.animations.size());
-    std::transform(animatedMesh.animations.begin(), animatedMesh.animations.end(),
-            animations.begin(), [](paca::fileformats::AnimationId id) { return AnimationId(id); });
     const auto it = m_animatedMeshes.emplace(
         std::piecewise_construct,
         std::forward_as_tuple(AnimatedMeshId(animatedMesh.id)),
         std::forward_as_tuple(
-            animatedMesh.vertices,
-            animatedMesh.indices,
-            animations,
+            std::span
+            {
+                reinterpret_cast<AnimatedMesh::Vertex*>(animatedMesh.vertices.data()),
+                animatedMesh.vertices.size()
+            },
+            std::span
+            {
+                animatedMesh.indices
+            },
             std::move(animatedMesh.skeleton)));
 
     ASSERT_MSG(it.second, "Error animated mesh id {} is already on assets", animatedMesh.id);
-    INFO("Model {} has {} vertices", animatedMesh.name, vertexCount);
 }
 
 void AssetManager::add(paca::fileformats::Texture &texture)

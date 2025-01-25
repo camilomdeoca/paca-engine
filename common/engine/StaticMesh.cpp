@@ -1,14 +1,16 @@
 #include "engine/assets/StaticMesh.hpp"
 
 StaticMesh::StaticMesh(
-    const std::vector<uint8_t> &vertices,
-    const std::vector<uint32_t> &indices,
+    std::span<const Vertex> vertices,
+    std::span<const uint32_t> indices,
     const AxisAlignedBoundingBox &aabb)
     : m_aabb(aabb)
 {
     m_vertex_array = std::make_shared<VertexArray>();
 
-    m_vertex_buffer = std::make_shared<VertexBuffer>(vertices.data(), vertices.size());
+    m_vertex_buffer = std::make_shared<VertexBuffer>(
+        vertices.data(),
+        vertices.size() * sizeof(vertices[0]));
     m_vertex_buffer->setLayout({
         {ShaderDataType::float3, "a_position"},
         {ShaderDataType::float3, "a_normal"},

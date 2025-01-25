@@ -27,6 +27,7 @@
 #include <utility>
 
 constexpr const char * STATIC_MESH_ID_DRAG_DROP_PAYLOAD_TYPE = "StaticMeshId";
+constexpr const char * ANIMATED_MESH_ID_DRAG_DROP_PAYLOAD_TYPE = "AnimatedMeshId";
 constexpr const char * MATERIAL_ID_DRAG_DROP_PAYLOAD_TYPE = "MaterialId";
 
 
@@ -188,7 +189,6 @@ void UI::drawSceneView()
             if (size.x != (float)m_renderTarget.getWidth()
                 || size.y != (float)m_renderTarget.getHeight())
             {
-                INFO("prev {} {} next {} {}", m_renderTarget.getWidth(), m_renderTarget.getHeight(), size.x, size.y);
                 m_renderTarget.shutdown();
                 Texture depthAttachment(Texture::Specification{
                     .width = static_cast<uint32_t>(size.x),
@@ -217,7 +217,7 @@ void UI::drawSceneView()
 
             m_renderTarget.bind();
             GL::clear();
-            m_renderer.renderWorld(m_cameraTransform, m_camera, m_world, m_assetManager, m_renderTarget);
+            m_renderer.renderWorld(m_timeDelta, m_cameraTransform, m_camera, m_world, m_assetManager, m_renderTarget);
 
             ImGui::Image(
                 (ImTextureID)(intptr_t)(m_renderTarget.getColorAttachments()[0].getId()),
@@ -386,6 +386,11 @@ void UI::drawAssetManager()
                 drawStaticMeshBrowser();
                 ImGui::EndTabItem();
             }
+            if (ImGui::BeginTabItem("AnimatedMeshes"))
+            {
+                drawAnimatedMeshBrowser();
+                ImGui::EndTabItem();
+            }
             if (ImGui::BeginTabItem("Materials"))
             {
                 drawMaterialBrowser();
@@ -483,6 +488,101 @@ void UI::drawStaticMeshBrowser()
     if (toChangeId.from != StaticMeshId::null)
     {
         if (toChangeId.to != StaticMeshId::null)
+        {
+            m_assetMetadataManager.move(toChangeId.from, toChangeId.to);
+        }
+        else
+        {
+            m_assetMetadataManager.remove(toChangeId.from);
+        }
+    }
+}
+
+void UI::drawAnimatedMeshBrowser()
+{
+    char searchQuery[128] = {0};
+    ImGui::InputTextWithHint("Search", "Name...", searchQuery, sizeof(searchQuery));
+
+    struct {
+        AnimatedMeshId from = AnimatedMeshId::null;
+        AnimatedMeshId to   = AnimatedMeshId::null;
+    } toChangeId;
+
+    static std::unordered_set<AnimatedMeshId> selectedAnimatedMeshes;
+    for (auto &[id, meshMetadata] : m_assetMetadataManager.animatedMeshes())
+    {
+        if (searchQuery[0] != '\0' && !meshMetadata.name.contains(searchQuery))
+            continue;
+
+        ImGui::PushID(std::to_underlying(id));
+
+        ImGui::SetNextItemAllowOverlap();
+        if (ImGui::Selectable("", selectedAnimatedMeshes.contains(id), 0, ImVec2(0, 96)))
+        {
+            if (!ImGui::GetIO().KeyCtrl) selectedAnimatedMeshes.clear();
+            selectedAnimatedMeshes.insert(id);
+        }
+
+        if (ImGui::BeginDragDropSource())
+        {
+            ImGui::SetDragDropPayload(ANIMATED_MESH_ID_DRAG_DROP_PAYLOAD_TYPE, &id, sizeof(id));
+
+            ImGui::TextUnformatted(meshMetadata.name.c_str());
+            ImGui::Image(
+                (ImTextureID)(intptr_t)(meshMetadata.preview.getId()),
+                ImVec2(96, 96),
+                ImVec2(0, 1),
+                ImVec2(1, 0));
+
+            ImGui::EndDragDropSource();
+        }
+
+        ImGui::SameLine(0.0f, 0.0f);
+        ImGui::Image(
+            (ImTextureID)(intptr_t)(meshMetadata.preview.getId()),
+            ImVec2(96, 96),
+            ImVec2(0, 1),
+            ImVec2(1, 0));
+        ImGui::SameLine();
+        ImGui::BeginGroup();
+        {
+            char name[128] = "";
+            char path[128] = "";
+            strncpy(name, meshMetadata.name.c_str(), sizeof(name));
+            strncpy(path, meshMetadata.path.c_str(), sizeof(path));
+
+            ImGui::InputText("Name", name, sizeof(name));
+            ImGui::InputText("Path", path, sizeof(path));
+            auto underlyingId = std::to_underlying(id);
+            if (ImMe::InputUInt("Id", &underlyingId)
+                && AnimatedMeshId(underlyingId) != AnimatedMeshId::null)
+            {
+                toChangeId.from = id;
+                toChangeId.to = AnimatedMeshId(underlyingId);
+            }
+        }
+        ImGui::EndGroup();
+
+        if (ImGui::BeginPopupContextItem("Operations"))
+        {
+            if (ImGui::Selectable("Edit"))
+            {
+            }
+
+            if (ImGui::Selectable("Remove"))
+            {
+                toChangeId.from = id;
+                toChangeId.to = AnimatedMeshId::null; // just in case
+            }
+            ImGui::EndPopup();
+        }
+
+        ImGui::PopID();
+    }
+
+    if (toChangeId.from != AnimatedMeshId::null)
+    {
+        if (toChangeId.to != AnimatedMeshId::null)
         {
             m_assetMetadataManager.move(toChangeId.from, toChangeId.to);
         }
@@ -596,6 +696,7 @@ inline void visitComponents(auto &&v, flecs::entity &e) {
     visitIfExists<engine::components::Material>(v, e);
     visitIfExists<engine::components::StaticMesh>(v, e);
     visitIfExists<engine::components::AnimatedMesh>(v, e);
+    visitIfExists<engine::components::AnimationPlayer>(v, e);
     visitIfExists<engine::components::PointLight>(v, e);
     visitIfExists<engine::components::DirectionalLight>(v, e);
     visitIfExists<engine::components::Skybox>(v, e);
@@ -634,6 +735,7 @@ void UI::drawCameraParameters()
         ImGui::DragFloat3("Rotation", glm::value_ptr(m_cameraTransform.rotation), 3.f, -180.f, 180.f);
         ImGui::SliderFloat("Fov", &m_camera.fov, 15.f, 120.f);
         ImGui::SliderFloat("Aspect", &m_camera.aspect, 0.1f, 3.f);
+        ImGui::SliderFloat("Far", &m_camera.far, 10.0f, 10000.0f);
     }
     ImGui::End();
 }
@@ -690,13 +792,6 @@ void UI::drawCameraEntityViews()
                 if (size.x != (float)cameraEntityView.framebuffer.getWidth()
                     || size.y != (float)cameraEntityView.framebuffer.getHeight())
                 {
-                    INFO(
-                        "prev {} {} next {} {}",
-                        cameraEntityView.framebuffer.getWidth(),
-                        cameraEntityView.framebuffer.getHeight(),
-                        size.x,
-                        size.y);
-
                     cameraEntityView.framebuffer.shutdown();
                     Texture depthAttachment(Texture::Specification{
                         .width = static_cast<uint32_t>(size.x),
@@ -720,12 +815,15 @@ void UI::drawCameraEntityViews()
                         .depthTextureAttachment = std::move(depthAttachment),
                         .colorTextureAttachments = std::move(colorTextures),
                     });
+
+                    // TODO: do not change actual camera aspect but draw transparent black bars
+                    // like in blender render view
                     camera.aspect = size.x / size.y;
                 }
 
                 cameraEntityView.framebuffer.bind();
                 GL::clear();
-                m_renderer.renderWorld(transform, camera, m_world, m_assetManager, cameraEntityView.framebuffer);
+                m_renderer.renderWorld(0.0f, transform, camera, m_world, m_assetManager, cameraEntityView.framebuffer);
 
                 ImGui::Image(
                     (ImTextureID)(intptr_t)(cameraEntityView.framebuffer.getColorAttachments()[0].getId()),
@@ -846,19 +944,25 @@ void UI::componentEdit(engine::components::Material &materialComponent)
     }
 }
 
-void UI::componentEdit(engine::components::StaticMesh &staticMeshComponent)
+inline void meshComponentEditorImpl(
+    auto &meshComponent, 
+    const AssetManager &assetManager,
+    const char *dragDropPayloadType,
+    const char *meshTypeName)
 {
+    using MeshIdType = decltype(meshComponent.id);
+
     ImGui::BeginGroup();
-    bool changed = ImMe::InputUInt("ID", &to_underlying_ref(staticMeshComponent.id));
+    const bool changed = ImMe::InputUInt("ID", &to_underlying_ref(meshComponent.id));
 
-    const StaticMesh *staticMesh = m_assetManager.get(staticMeshComponent.id);
+    const auto *mesh = assetManager.get(meshComponent.id);
 
-    if (changed && !staticMesh)
-        ERROR("Error getting static mesh with id {}", std::to_underlying(staticMeshComponent.id));
+    if (changed && !mesh)
+        ERROR("Error getting {} mesh with id {}", meshTypeName, std::to_underlying(meshComponent.id));
 
-    if (!staticMesh)
+    if (!mesh)
     {
-        ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Static mesh with this id does not exist");
+        ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "%s mesh with this id does not exist", meshTypeName);
         return;
     }
     ImGui::EndGroup();
@@ -866,19 +970,53 @@ void UI::componentEdit(engine::components::StaticMesh &staticMeshComponent)
     if (ImGui::BeginDragDropTarget())
     {
         const ImGuiPayload *payload
-            = ImGui::AcceptDragDropPayload(STATIC_MESH_ID_DRAG_DROP_PAYLOAD_TYPE);
+            = ImGui::AcceptDragDropPayload(dragDropPayloadType);
         if (payload)
         {
-            ASSERT(payload->DataSize == sizeof(StaticMeshId));
-            staticMeshComponent.id = *reinterpret_cast<StaticMeshId*>(payload->Data);
+            ASSERT(payload->DataSize == sizeof(MeshIdType));
+            meshComponent.id = *reinterpret_cast<MeshIdType*>(payload->Data);
         }
         ImGui::EndDragDropTarget();
     }
 }
 
-void UI::componentEdit(engine::components::AnimatedMesh &animatedMesh)
+void UI::componentEdit(engine::components::StaticMesh &staticMeshComponent)
 {
-    ImMe::InputUInt("ID", &to_underlying_ref(animatedMesh.id));
+    meshComponentEditorImpl(
+        staticMeshComponent,
+        m_assetManager,
+        STATIC_MESH_ID_DRAG_DROP_PAYLOAD_TYPE,
+        "Static");
+}
+
+void UI::componentEdit(engine::components::AnimatedMesh &animatedMeshComponent)
+{
+    meshComponentEditorImpl(
+        animatedMeshComponent,
+        m_assetManager,
+        ANIMATED_MESH_ID_DRAG_DROP_PAYLOAD_TYPE,
+        "Animated");
+}
+
+void UI::componentEdit(engine::components::AnimationPlayer &animationPlayerComponent)
+{
+    bool changed = ImMe::InputUInt("ID", &to_underlying_ref(animationPlayerComponent.id));
+
+    const Animation *animation = m_assetManager.get(animationPlayerComponent.id);
+
+    if (!animation)
+    {
+        if (changed)
+        {
+            ERROR(
+                "Error getting animation with id {}",
+                std::to_underlying(animationPlayerComponent.id));
+        }
+        ImGui::TextColored({1.0f, 0.0f, 0.0f, 1.0f}, "Animation with this id does not exist");
+        return;
+    }
+    ImGui::SliderFloat("Progress", &animationPlayerComponent.progress, 0.0f, animation->getDuration());
+    ImGui::Checkbox("Playing", &animationPlayerComponent.playing);
 }
 
 void UI::componentEdit(engine::components::PointLight &pointLight)

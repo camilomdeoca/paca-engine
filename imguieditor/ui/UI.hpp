@@ -35,6 +35,7 @@ private:
     void drawSceneView();
     void drawAssetManager();
     void drawStaticMeshBrowser();
+    void drawAnimatedMeshBrowser();
     void drawMaterialBrowser();
     void drawSelectedEntity();
     void drawCameraParameters();
@@ -43,14 +44,15 @@ private:
 
     void addStaticMesh(const char *path);
 
-    void componentEdit(engine::components::Transform &transform);
-    void componentEdit(engine::components::Material &material);
-    void componentEdit(engine::components::StaticMesh &staticMesh);
-    void componentEdit(engine::components::AnimatedMesh &animatedMesh);
-    void componentEdit(engine::components::PointLight &pointLight);
-    void componentEdit(engine::components::DirectionalLight &directionalLight);
-    void componentEdit(engine::components::Skybox &skybox);
-    void componentEdit(engine::components::Camera &camera);
+    void componentEdit(engine::components::Transform &transformComponent);
+    void componentEdit(engine::components::Material &materialComponent);
+    void componentEdit(engine::components::StaticMesh &staticMeshComponent);
+    void componentEdit(engine::components::AnimatedMesh &animatedMeshComponent);
+    void componentEdit(engine::components::AnimationPlayer &animationPlayerComponent);
+    void componentEdit(engine::components::PointLight &pointLightComponent);
+    void componentEdit(engine::components::DirectionalLight &directionalLightComponent);
+    void componentEdit(engine::components::Skybox &skyboxComponent);
+    void componentEdit(engine::components::Camera &cameraComponent);
 
     AssetManager &m_assetManager;
     AssetMetadataManager &m_assetMetadataManager;

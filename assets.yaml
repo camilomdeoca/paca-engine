@@ -6,7 +6,9 @@ staticMeshes:
     id: 2
     path: "assets/meshes/statue/statue.gltf"
 animatedMeshes:
-  []
+  - name: "girl"
+    id: 1
+    path: "assets/meshes/girl/girl.gltf"
 materials:
   - name: "planeMaterial"
     id: 1
@@ -24,6 +26,14 @@ materials:
       - []
       - [5]
       - []
+  - name: "girlMaterial"
+    id: 3
+    textures:
+      - []
+      - [6]
+      - [7]
+      - [8]
+      - []
 textures:
   - name: "bricks_diffuse"
     id: 1
@@ -40,11 +50,22 @@ textures:
   - name: "statue_normal"
     id: 5
     path: "assets/textures/statue-normal.jpg"
+  - name: "monster_diffuse"
+    id: 6
+    path: "assets/textures/Kachujin_diffuse.png"
+  - name: "monster_specular"
+    id: 7
+    path: "assets/textures/Kachujin_specular.png"
+  - name: "monster_normal"
+    id: 8
+    path: "assets/textures/Kachujin_normal.png"
 cubeMaps:
   - name: "skybox_cubemap"
     id: 1
     path: "assets/textures/cubemaps/skybox"
 animations:
-  []
+  - name: "girl_walk"
+    id: 1
+    path: "assets/meshes/girl/girl.gltf"
 fonts:
   []

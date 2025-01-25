@@ -14,7 +14,7 @@ entities:
     name: "Statue"
     components:
       - Transform:
-          position: [0, 0, 0]
+          position: [7.5, 0, 0]
           rotation: [0, 0, 0]
           scale: [10, 10, 10]
       - StaticMesh:
@@ -22,6 +22,20 @@ entities:
       - Material:
           id: 2
   - id: 1003
+    name: "Girl"
+    components:
+      - Transform:
+          position: [0, 0, 0]
+          rotation: [0, 0, 0]
+          scale: [1, 1, 1]
+      - AnimatedMesh:
+          id: 1
+      - Animation:
+          id: 1
+          progress: 0
+      - Material:
+          id: 3
+  - id: 1004
     name: "Red light"
     components:
       - PointLight:
@@ -32,7 +46,7 @@ entities:
           position: [-3, 0, 0]
           rotation: [0, 0, 0]
           scale: [1, 1, 1]
-  - id: 1004
+  - id: 1005
     name: "Blue light"
     components:
       - PointLight:
@@ -43,7 +57,7 @@ entities:
           position: [3, 0, 0]
           rotation: [0, 0, 0]
           scale: [1, 1, 1]
-  - id: 1005
+  - id: 1006
     name: "Directional Light"
     components:
       - Transform:
@@ -53,7 +67,7 @@ entities:
       - DirectionalLight:
           color: [1, 1, 0.899999976]
           intensity: 0.699999988
-  - id: 1006
+  - id: 1007
     name: "Camera component"
     components:
       - Transform:
@@ -62,7 +76,7 @@ entities:
           scale: [1, 1, 1]
       - Camera:
           aspect: 1.77777777
-          fov: 1.5
+          fov: 90
           near: 0.1
           far: 500
 sceneComponents:

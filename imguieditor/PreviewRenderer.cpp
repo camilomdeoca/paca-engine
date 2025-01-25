@@ -62,7 +62,7 @@ void PreviewRenderer::init()
     std::shared_ptr<VertexBuffer> sphereVertexBuffer
         = std::make_shared<VertexBuffer>(
             staticMeshAssetData->vertices.data(),
-            staticMeshAssetData->vertices.size());
+            staticMeshAssetData->vertices.size() * sizeof(staticMeshAssetData->vertices[0]));
 
     sphereVertexBuffer->setLayout({
         {ShaderDataType::float3, "a_position"},
@@ -189,7 +189,6 @@ void PreviewRenderer::drawPreviewToTexture(
                 scale *= 0.9f;
             }
         }
-        INFO("SCALE {}", scale);
     }
     else
     {

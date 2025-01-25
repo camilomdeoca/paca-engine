@@ -7,7 +7,18 @@
 class StaticMesh : public Mesh
 {
 public:
-    StaticMesh(const std::vector<uint8_t> &vertices, const std::vector<uint32_t> &indices, const AxisAlignedBoundingBox &aabb);
+    // We are assuming that this struct has no padding in between the members
+    struct Vertex {
+        glm::vec3 position;
+        glm::vec3 normal;
+        glm::vec3 tangent;
+        glm::vec2 texture;
+    };
+
+    StaticMesh(
+        std::span<const Vertex> vertices,
+        std::span<const uint32_t> indices,
+        const AxisAlignedBoundingBox &aabb);
     virtual ~StaticMesh();
 
     const VertexArray &getVertexArray() const override { return *m_vertex_array; }

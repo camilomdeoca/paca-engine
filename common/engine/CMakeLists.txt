@@ -10,7 +10,7 @@ add_library(engine STATIC
     ForwardRenderer.cpp
     AssetManager.cpp
     StaticMesh.cpp
-    #SceneManager.cpp
+    FlecsSerialization.cpp
     Action.cpp
     Input.cpp
     Window.cpp

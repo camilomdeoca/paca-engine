@@ -48,8 +48,8 @@ struct AxisAlignedBoundingBox
 
 struct StaticMesh {
     NAME("StaticMesh")
-    FIELDS(name, id, vertices, indices, aabb, materialId)
-    FIELD_NAMES("name", "id", "vertices", "indices", "aabb", "materialId")
+    FIELDS(name, id, vertices, indices, aabb)
+    FIELD_NAMES("name", "id", "vertices", "indices", "aabb")
 
     struct Vertex {
         NAME("StaticMesh::Vertex")
@@ -63,10 +63,9 @@ struct StaticMesh {
 
     std::string name;
     StaticMeshId id;
-    std::vector<uint8_t> vertices;
+    std::vector<Vertex> vertices;
     std::vector<uint32_t> indices;
     AxisAlignedBoundingBox aabb;
-    MaterialId materialId;
 
     // @ glm::vec3 position
     // @ glm::vec3 normal
@@ -87,8 +86,8 @@ struct StaticMeshRef
 
 struct AnimatedMesh {
     NAME("AnimatedMesh")
-    FIELDS(name, id, vertices, indices, aabb, materialId, animations, skeleton)
-    FIELD_NAMES("name", "id", "vertices", "indices", "aabb", "materialId", "animations", "skeleton")
+    FIELDS(name, id, vertices, indices, aabb, skeleton)
+    FIELD_NAMES("name", "id", "vertices", "indices", "aabb", "skeleton")
 
     struct Vertex {
         NAME("AnimatedMesh::Vertex")
@@ -104,11 +103,9 @@ struct AnimatedMesh {
 
     std::string name;
     AnimatedMeshId id;
-    std::vector<uint8_t> vertices;
+    std::vector<Vertex> vertices;
     std::vector<uint32_t> indices;
     AxisAlignedBoundingBox aabb;
-    MaterialId materialId;
-    std::vector<AnimationId> animations;
     Skeleton skeleton;
 
     // @ glm::vec3 position
