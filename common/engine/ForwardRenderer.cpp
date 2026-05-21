@@ -3,6 +3,7 @@
 #include "engine/Components.hpp"
 #include "engine/assets/Material.hpp"
 
+#define GLM_ENABLE_EXPERIMENTAL
 #include <glm/fwd.hpp>
 #include <glm/gtx/string_cast.hpp>
 #include <memory>
